@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>页面不存在 · 海上小飞龙</title>
+<meta name="description" content="找不到这个页面">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="页面不存在 · 海上小飞龙">
+<meta property="og:description" content="找不到这个页面">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<section class="section"><div class="wrap" style="text-align:center;padding:80px 0"><h1 style="font-size:72px;margin:0;color:var(--accent)">404</h1><p style="color:var(--text-2);margin:16px 0 32px">这个页面不见了</p><a class="btn btn-primary" href="/">回到首页</a></div></section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

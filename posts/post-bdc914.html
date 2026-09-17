@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MySQL 回表：为什么走了索引还要再查一次 B+ 树？ · 海上小飞龙</title>
+<meta name="description" content="MySQL 面试里有一个绕不开的问题： 为什么走了索引，还需要回表？ 官方文档并没有给它正式定义，但它连着聚簇索引、非聚簇索引、覆盖索引一整条线，查询优化时经常撞上。 一句话说清楚： 回表就是用二级索…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-bdc914.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="MySQL 回表：为什么走了索引还要再查一次 B+ 树？ · 海上小飞龙">
+<meta property="og:description" content="MySQL 面试里有一个绕不开的问题： 为什么走了索引，还需要回表？ 官方文档并没有给它正式定义，但它连着聚簇索引、非聚簇索引、覆盖索引一整条线，查询优化时经常撞上。 一句话说清楚： 回表就是用二级索…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/mysql.html">MySQL</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a><a class="tag" href="/tags/post-d11195.html">面试题</a></div>
+      <h1 class="post-title">MySQL 回表：为什么走了索引还要再查一次 B+ 树？</h1>
+      <div class="post-meta">
+        <span>2026-08-17</span>
+        <span class="dot"></span>
+        <span>2079 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>MySQL 面试里有一个绕不开的问题：</p>
+<p>为什么走了索引，还需要回表？</p>
+<p>官方文档并没有给它正式定义，但它连着聚簇索引、非聚簇索引、覆盖索引一整条线，查询优化时经常撞上。</p>
+<p>一句话说清楚：</p>
+<p>回表就是用二级索引查数据时，叶子节点只给了一个主键值，MySQL 还得再拿这个主键去聚簇索引里把整行数据&quot;捞&quot;回来的那一步。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1786961264646-bd326258-6160-49c8-bc5b-d17105627d94.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>聚簇索引和非聚簇索引，叶子节点不一样</h2>
+<p>InnoDB 的索引分两种。</p>
+<p>聚簇索引的叶子节点存的是整行记录，也就是按主键组织好的完整数据。</p>
+<p>除了聚簇索引之外，其他索引在 InnoDB 中都属于二级索引，也叫非聚簇索引。</p>
+<p>它们的叶子节点不存整行，只存两样东西：</p>
+<p>索引字段的值，以及对应的主键值。</p>
+<h2>非聚簇索引没有保存完整数据</h2>
+<p>非聚簇索引的叶子节点不存整行，只放索引字段的值和对应的主键。</p>
+<p>查数据的时候，它手里只有主键这一个&quot;门牌号&quot;，拿不到 age、gender、address 这些字段。</p>
+<p>举个容易理解的例子。</p>
+<p>非聚簇索引像餐厅的菜单，上面只有菜名和对应的出餐口编号。</p>
+<p>出餐口编号就是主键。</p>
+<p>你光看菜单拿不到菜，得拿编号去后厨窗口，才能把整道菜端出来。</p>
+<p>后厨里按编号排好的整道菜，就是聚簇索引里的整行数据。</p>
+<p>从菜单到后厨窗口多走的那一步，就是回表。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1786961461949-bdeeea47-d792-4288-8133-bc8d955aec86.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>回表到底是怎么发生的</h2>
+<p>拿一张 <code>user</code> 表举例：</p>
+<pre><code class="language-sql"><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="k">user</span><span class="w"> </span><span class="p">(</span>
+<span class="w">  </span><span class="n">id</span><span class="w"> </span><span class="nb">INT</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="p">,</span>
+<span class="w">  </span><span class="n">name</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">50</span><span class="p">),</span>
+<span class="w">  </span><span class="n">age</span><span class="w"> </span><span class="nb">INT</span><span class="p">,</span>
+<span class="w">  </span><span class="n">gender</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">10</span><span class="p">),</span>
+<span class="w">  </span><span class="n">address</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">200</span><span class="p">),</span>
+<span class="w">  </span><span class="k">INDEX</span><span class="w"> </span><span class="n">idx_name</span><span class="w"> </span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+<span class="p">);</span>
+</code></pre>
+<p><code>id</code> 是主键，所以主键索引就是聚簇索引。</p>
+<p><code>name</code> 是普通索引，属于非聚簇索引。</p>
+<p>执行下面这条 SQL：</p>
+<pre><code class="language-sql"><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="k">user</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;张三&#39;</span><span class="p">;</span>
+</code></pre>
+<p>MySQL 会先走 <code>idx_name</code> 这棵 B+ 树，找到 <code>name = '张三'</code> 的那条记录，从叶子节点里取出对应的 <code>id</code>。</p>
+<p>注意，这时候它手里只有 <code>id</code>，没有 <code>age</code>、<code>gender</code>、<code>address</code> 这些字段。</p>
+<p>要拿完整行，必须再拿着 <code>id</code> 去聚簇索引走一趟，把整行捞出来。</p>
+<p>这一步，就是回表。</p>
+<h2>回表的代价</h2>
+<p>回表多走了一趟聚簇索引，开销直接上来了。</p>
+<p>第一个影响是增加 IO 访问次数。</p>
+<p>如果目标数据页不在 Buffer Pool，除了访问二级索引外，还需要额外访问聚簇索引对应的数据页。</p>
+<p>第二个影响是数据库负载。</p>
+<p>查询返回大量数据时，大量回表访问会增加聚簇索引的访问次数，提升 CPU 和 IO 压力。</p>
+<p>实际场景中，能避免回表就尽量避免。</p>
+<h2>怎么避开回表</h2>
+<p>有三种常见的思路。</p>
+<p>第一种，用覆盖索引。</p>
+<p>覆盖索引指的是要查的字段刚好都在非聚簇索引里，MySQL 不需要再回聚簇索引拿数据。</p>
+<p>上面那张 user 表，name 是普通索引，它的叶子节点里本来就存了 id 和 name（因为 InnoDB 的二级索引叶子节点默认保存主键值），所以这条语句不回表：</p>
+<pre><code class="language-sql"><span class="k">SELECT</span><span class="w"> </span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="k">user</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;张三&#39;</span><span class="p">;</span>
+</code></pre>
+<p>id 和 name 都在 idx_name 这个索引里，索引自己就能把结果给全。</p>
+<p>第二种，尽量直接走主键。</p>
+<p>主键索引的叶子节点就是整行数据，查主键天然不回表，效率最高。</p>
+<p>第三种，少查字段，别用 SELECT *。</p>
+<p>反过来想就清楚了：</p>
+<p>前面那条 <code>SELECT * FROM user WHERE name = '张三'</code>，因为要的是整行，索引给不全，才不得不回表。</p>
+<p>把要查的列收敛到索引覆盖范围内，回表这一步就没了。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1786961501010-93e0548a-7d6f-46b2-89e9-b01c9c5f4653.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>最后串一下</h2>
+<p>回表就是 InnoDB 用二级索引查到主键后，还得再拿主键去聚簇索引把整行取回来的过程。</p>
+<p>非聚簇索引叶子节点保存索引字段和主键，不保存完整数据行，决定了这一步省不掉；</p>
+<p>想绕开它，就用覆盖索引、优先走主键、少查字段。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "面试官：什么是覆盖索引？", "slug": "post-022681"}, "next": {"title": "Linux 的「一切皆文件」：硬盘、键盘、打印机，是怎么变成文件的？", "slug": "post-bbd13e"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "面试官：MySQL 索引是什么？这道题答全的人真不多", "slug": "post-78822c", "desc": "面试被问到 MySQL 索引，多数人的回答停留在\"加快查询\"四个字。 这话对，但没用。 索引真正要讲清楚的，是一份排好序的目录： 索引可以理解成一份排好序的目录，它通过维护特定的数据结构，让数据库能够…", "date": "2026-08-12"}, {"title": "MySQL 索引为什么是 B+ 树？二叉树、哈希、B 树是怎么被淘汰的", "slug": "post-9f798e", "desc": "面试被问到“MySQL 索引为什么用 B+ 树”，多数人的回答停留在“叶子节点存数据、非叶子节点不存、叶子节点用双向链表支持范围查询”。 这话没错，但没讲清“为什么非得是 B+ 树”。 二叉树不行吗？…", "date": "2026-08-13"}, {"title": "MySQL 聚簇索引和非聚簇索引：为什么二级索引查完还要回表？", "slug": "post-acebb2", "desc": "MySQL 的索引底层是一棵 B+ 树，这个说法你应该听过。 但一张表往往建了好几个索引，每个索引都是一棵独立的 B+ 树。 那问题来了，每棵树的叶子节点，都存一份完整的行数据吗？ 不是。 有的索引叶…", "date": "2026-08-14"}, {"title": "面试官：什么是覆盖索引？", "slug": "post-022681", "desc": "MySQL 索引里有一个经常被问到的问题： 明明已经走了索引，为什么还需要回表？ 之前讲过，回表就是在二级索引查到主键之后，再拿主键去聚簇索引把整行数据捞回来的那一步。 它本质上是在二级索引中找到主键…", "date": "2026-08-18"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

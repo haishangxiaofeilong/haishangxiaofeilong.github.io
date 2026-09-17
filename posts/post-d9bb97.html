@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skill 上线之后，怎么知道它悄悄退化了？ · 海上小飞龙</title>
+<meta name="description" content="你写了个 Skill，本地测着挺顺，就让它上岗了。 结果一周后，有同事跑来说： 你那个东西把我项目整个重搭了一遍。 你这才反应过来，它早就不对劲了，只是你一直没察觉。 问题不在 Skill 写得好不好…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-d9bb97.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Skill 上线之后，怎么知道它悄悄退化了？ · 海上小飞龙">
+<meta property="og:description" content="你写了个 Skill，本地测着挺顺，就让它上岗了。 结果一周后，有同事跑来说： 你那个东西把我项目整个重搭了一遍。 你这才反应过来，它早就不对劲了，只是你一直没察觉。 问题不在 Skill 写得好不好…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/post-2dc9b4.html">大模型</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a></div>
+      <h1 class="post-title">Skill 上线之后，怎么知道它悄悄退化了？</h1>
+      <div class="post-meta">
+        <span>2026-09-02</span>
+        <span class="dot"></span>
+        <span>2929 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>你写了个 Skill，本地测着挺顺，就让它上岗了。</p>
+<p>结果一周后，有同事跑来说：</p>
+<p>你那个东西把我项目整个重搭了一遍。</p>
+<p>你这才反应过来，它早就不对劲了，只是你一直没察觉。</p>
+<p>问题不在 Skill 写得好不好。</p>
+<p>在你根本没有任何办法，知道它已经退化。</p>
+<p>每次你动它一下，哪怕只是改一句提示词、加一个工具，它的行为边界都可能跟着漂。</p>
+<p>等它接进真实工作流，还会自己生成文件、留下副作用。</p>
+<p>你改一个角，别处已经悄悄变了。</p>
+<p>维护一个 Skill，写复杂谁都会。</p>
+<p>难的是，你能靠什么持续知道它没出问题。</p>
+<h2>别拿体感当验收</h2>
+<p>很多人所谓的维护，就是每次改完跑一下，没报错就算过了。</p>
+<p>这叫信感觉，不叫有证据。</p>
+<p>第一步永远是先把什么叫好写下来，再谈写测试。</p>
+<p>靶子都没有，后面所有评估都是空的。</p>
+<p>验收其实看四个地方。</p>
+<p>一层看结果对不对。</p>
+<p>任务达成了吗？</p>
+<p>应用能跑起来吗？</p>
+<p>这一层最直观，也最容易被当成全部。</p>
+<p>但只看结果远远不够，一个 Skill 可能兜了一大圈把事办了，走的路径你完全没料到，换个输入它就不一定还能走通。</p>
+<p>另一层看过程对不对。</p>
+<p>该轮到这个 Skill 出场的时候，它有没有被正确选中？</p>
+<p>被选中之后，又是不是按预期的步骤和工具链在执行？</p>
+<p>有没有执行多余操作、产生本来不该有的副作用？</p>
+<p>这一层盯的是行为路径本身，终点只是其中一环。</p>
+<p>还有两维总被人漏掉。</p>
+<p>一是产物能不能被下游接住：</p>
+<p>输出符合你的规范吗？</p>
+<p>文件结构、代码风格对不对？</p>
+<p>风格不一致不影响它跑不跑得通，但真实工作流里，下游的人或系统会直接拒收。</p>
+<p>二是执行成本有没有失控：</p>
+<p>有没有跑没必要的命令、做重复的检索，白白烧掉 token 和时间？</p>
+<p>单次测试你感觉不到，接进生产大量触发后，这点浪费会被放大成真金白银。</p>
+<p>这四件事合起来，干的是同一件事：</p>
+<p>把验收的对象，从最后长得像不像，推进到中间到底发生了什么。</p>
+<h2>它会从两个地方出问题</h2>
+<p>这里有个容易忽略的点：</p>
+<p>Skill 有两个需要分别维护的面。</p>
+<p>一个是执行体，包括指令、工具、步骤以及相关资源，它具体怎么干活。</p>
+<p>一个是触发边界，也就是 Agent 根据 Skill 的名称、描述等元信息和当前上下文，判断什么时候该轮到它出场。</p>
+<p>打个比方。</p>
+<p>执行体像后厨的菜谱，教厨师一步步怎么做菜；</p>
+<p>触发边界像门口的招牌，写明什么情况下该点这道菜。</p>
+<p>两套东西是分开的：</p>
+<p>菜谱改了，招牌不会自动跟着变；</p>
+<p>招牌上的品类改了，菜谱也不会自动变。</p>
+<p>正因为两套分开，两面会分别退化。</p>
+<p>你改了指令，触发边界没碰，可 Skill 的行为已经变了。</p>
+<p>你改了 description，执行体没碰，可触发范围飘了。</p>
+<p>你要是只盯执行体，触发边界那边退化了，你也根本发现不了。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1788347655230-2a8bad21-52b6-4dc3-b2ec-bcf6bbb8feb3.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>每个面都会出自己的问题</h2>
+<p>先看触发边界。</p>
+<h3>触发边界模糊了</h3>
+<p>哪些提示词明明该触发它，却没触发？</p>
+<p>哪些只是相邻需求，却把它误触发了？</p>
+<p>比如你只是想给现有项目加个样式。</p>
+<p>如果这请求本来不该轮到它，它却被错误选中，说明触发边界已经模糊。</p>
+<p>边界一模糊，Skill 就会在不该出手的时候出手，生产里非常危险，因为它会动你本来没打算动的东西。</p>
+<p>反过来，如果它本来就该被选中，只是在执行时把整个项目的目录结构都重排了，那问题就出在执行体——它选得没错，只是干过头了。</p>
+<p>再看执行体，它最容易犯两类错。</p>
+<h3>踩了环境的坑</h3>
+<p>Skill 会不会默认自己永远跑在空目录里？</p>
+<p>它又是不是默认系统里一定有某个包管理器？</p>
+<p>这类假设在本地测试时几乎不暴露，因为你的本地环境刚好满足了这些前提。</p>
+<p>可换一台机器、换一个用户，前提就可能全部失效。</p>
+<p>环境假设往往是最隐蔽的一类失控，它不在 Skill 的代码里，在它的运行上下文里。</p>
+<h3>顺序错了</h3>
+<p>Agent 会不会跳过安装依赖，因为它误以为依赖已经装好？</p>
+<p>会项目都还没建出来，就先去配置别的东西吗？</p>
+<p>这类失控的特点是，每一步单独看都是对的，但顺序错了，整个执行就卡在某个中间状态。</p>
+<p>很多时候结果看着还行，可其中一条路径已经在悄悄退化。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1788348149013-1a7b840c-7adb-4644-a2a1-b129489945b7.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>把失控点钉成一套样本</h2>
+<p>找到这些失控点之后，下一步是把它们钉死成一套回归样本。</p>
+<p>最容易犯的错，是一上来就想搞个很大的基准测试。</p>
+<p>对边界相对清晰的单个 Skill 来说，起步阶段不一定需要很大的基准集，先用十几条高价值样本把典型失败模式卡住，往往比堆几百条普通样本更有效。</p>
+<p>正向样本可以先覆盖三种典型场景。</p>
+<p>一种是点名它，直接把 Skill 名字写出来，保证改了描述和指令之后，显式调用这条路径仍然稳。这是最基础的防线。</p>
+<p>一种是只说场景，不提名。用户不提 Skill 名字，只描述要解决的场景，看 Agent 能不能自己选中它。这类测的是触发边界的质量。</p>
+<p>还有一种是混入噪声，在真实业务上下文里加入无关信息，测的是 Skill 在嘈杂环境下，还能不能被正确识别和执行。</p>
+<p>还有一类最容易被忽略，但它最危险：负样本。</p>
+<p>它不问 Skill 会不会被触发，它问的是该不该被触发。</p>
+<p>你本想做个增量改动，这活儿压根不归它管，它却认定该自己上、抢着出场。</p>
+<p>负样本是在给 Skill 画边界，不只验证它能做什么，还要验证它知道什么时候别动。</p>
+<p>训练新人也是这个理：</p>
+<p>不光要考他该做什么，更要考他什么时候别动。</p>
+<p>知道什么不该做，比知道该做什么更值钱。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1788348316566-0312fa6b-7969-419b-8124-041f6950acc9.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>样本建好，维护才真正开始。</p>
+<p>每次你改动 Skill，都重新跑一遍这套样本。</p>
+<p>不要求每次输出一字不差，只看那些已经被验证过的关键行为，有没有出现不该出现的行为漂移。</p>
+<p>这一步，才把“它有没有退化”，落到了可以前后对比的证据上。</p>
+<h2>你完成的是一件更基础的事</h2>
+<p>把这套样本建起来，你真正完成的是一件比评估系统更基础的事：</p>
+<p>把靠体感维护，换成靠最小证据维护。</p>
+<p>这个转变比任何工具细节都重要。</p>
+<p>因为 Skill 一旦接进生产，它就不再只是提示词技巧，它开始变成一个要被持续验证的工作流资产。</p>
+<p>下次再写 Skill 之前，先想清楚三件事：</p>
+<p>你想让它做成什么？</p>
+<p>它在哪些地方会失控？</p>
+<p>你准备用哪些样本，持续盯住这些失控点？</p>
+<p>想清楚这三件，你才算真正从会写一个 Skill，走到了会维护一个 Skill。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "gRPC 为什么比 HTTP+JSON 快：快不是某一个技术，是4件事叠出来的", "slug": "post-60f4d8"}, "next": {"title": "SFT 数据到底喂到什么火候，才轮得到 RL？", "slug": "post-30ef93"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "Agent Skill 和 MCP，到底有什么区别？", "slug": "post-ee1018", "desc": "做 AI 应用开发，经常会遇到两个概念：Agent Skill 和 MCP（Model Context Protocol）。 虽然都是让 AI 能调用工具，但它们根本不是一个维度的东西。 简单来说：…", "date": "2026-06-30"}, {"title": "RAG 面试高频题：召回率太低怎么办？一套完整优化方案讲透", "slug": "post-0b66cc", "desc": "很多人做 RAG 系统，遇到召回率低的问题，第一反应就是换模型——换一个参数更大的、换一个号称语义理解更强的。 结果呢？ 效果提升微乎其微。 根本原因不是模型不够强，而是模型拿到的参考材料本身就是错的…", "date": "2026-07-23"}, {"title": "Redis 的数据过期策略，到底是怎么删数据的？", "slug": "post-136c78", "desc": "给 Redis 的 key 设了过期时间，时间一到，这条数据会瞬间从内存里消失吗？ 这个问题问的其实就是 Redis 的 数据过期策略 。 说白了，当我们给一个 key 指定了 TTL（比如 set…", "date": "2026-08-04"}, {"title": "为什么大模型总记不住你的文档？聊聊向量数据库", "slug": "post-c65602", "desc": "不管是搭 RAG 知识库、做推荐系统，还是搞以图搜图，你迟早会撞上同一个词：向量数据库。 很多人把它想得很玄，觉得是某种更高端的 MySQL。 说白了，它干的事特别单纯： 存一堆高维向量，然后帮你找出…", "date": "2026-08-15"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

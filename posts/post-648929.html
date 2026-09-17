@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>大模型推理的两个速度指标：TTFT 和 ITL 分别卡在哪一段 · 海上小飞龙</title>
+<meta name="description" content="你问大模型一句话，它回你一段字。 字是一个一个蹦出来的，但你大概率有过这种体验： 第一个字要等好久，等它一冒头，后面的字就刷刷往外跑。 这两段等待，其实对应两个完全不同的性能指标。 我在《大模型推理的…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-648929.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="大模型推理的两个速度指标：TTFT 和 ITL 分别卡在哪一段 · 海上小飞龙">
+<meta property="og:description" content="你问大模型一句话，它回你一段字。 字是一个一个蹦出来的，但你大概率有过这种体验： 第一个字要等好久，等它一冒头，后面的字就刷刷往外跑。 这两段等待，其实对应两个完全不同的性能指标。 我在《大模型推理的…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/post-2dc9b4.html">大模型</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a></div>
+      <h1 class="post-title">大模型推理的两个速度指标：TTFT 和 ITL 分别卡在哪一段</h1>
+      <div class="post-meta">
+        <span>2026-09-08</span>
+        <span class="dot"></span>
+        <span>2176 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>你问大模型一句话，它回你一段字。</p>
+<p>字是一个一个蹦出来的，但你大概率有过这种体验：</p>
+<p>第一个字要等好久，等它一冒头，后面的字就刷刷往外跑。</p>
+<p>这两段等待，其实对应两个完全不同的性能指标。</p>
+<p>我在<a href="https://mp.weixin.qq.com/s/oDiSNjArnztd-Fe5P1dg6A">《大模型推理的两阶段：一次 Prefill，加上多次 Decode》</a>里讲过，模型一次生成可拆成 Prefill 和 Decode；</p>
+<p>我在<a href="https://mp.weixin.qq.com/s/qN91Oj7LRLJIsY7bOgJxww">《一次完整推理，模型背后要走完 5 道工序》</a>里也带过，这两步站在流水线中间。</p>
+<p>这篇就先用两个指标，把最直观的&quot;慢&quot;拆开看看：</p>
+<p>TTFT 和 ITL。</p>
+<p>一个主要看第一个 token 要等多久，一个主要看后面的 token 生成得有多快。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1788864812209-e0844b6e-05ef-4f3d-ab77-9bc75c2ee238.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>TTFT：你等第一个字，到底在等什么</h2>
+<p>TTFT（Time To First Token，首个 token 的等待时间），说白了就是从请求发出去，到模型返回第一个 token，中间等了多久。</p>
+<p>它的核心计算环节是 Prefill。</p>
+<p>Prefill 要干的事，是把你整段提示词一次性送进模型，跑一遍前向计算。</p>
+<p>提示词越长，通常要处理的 token 越多，Prefill 的计算量也越大；</p>
+<p>这一步完成后，模型会根据最后位置的输出 logits，用贪心或采样等解码策略得到第一个 token。</p>
+<p>不过，实际测出来的 TTFT 不只包含 Prefill 本身，还可能包含请求排队、调度等带来的等待。</p>
+<p>所以想让第一个 token 早点出来，主要有两条路。</p>
+<p>一条是减少生成前的等待，别让请求因为 GPU 忙、调度或者资源不足在那里排队等。</p>
+<p>另一条是把 Prefill 本身跑快，比如优化算子、提高硬件利用率。</p>
+<p>核心就一句：</p>
+<p>想压 TTFT，主要盯着 Prefill 和生成前的等待折腾。</p>
+<h2>ITL：后面的字，为什么快不起来</h2>
+<p>第一个 token 出来之后，模型进入 Decode，一个一个生成后面的 token。</p>
+<p>每两个相邻输出 token 之间的时间间隔，叫 ITL（Inter-Token Latency，token 间延迟）。</p>
+<p>这段时间主要反映 Decode 阶段每一步生成 token 的耗时。</p>
+<p>对于单条请求，Decode 每一轮通常只生成一个新 token。</p>
+<p>这个新 token 在注意力计算时需要利用前面的上下文，但历史 token 的 Key 和 Value 可以通过 KV cache 直接复用，不需要每轮重新计算。</p>
+<p>所以，Decode 慢不慢，除了当前这轮计算本身，还和需要读取、参与注意力计算的历史 KV 有关；</p>
+<p>同时，实际观测到的 ITL 还可能受到调度、Detokenization 和流式输出等环节影响。</p>
+<p>想让后面的字出得更快，就得去 Decode 这段找原因：</p>
+<p>这一轮到底算了什么、需要读多少历史 KV，又被什么资源卡着。</p>
+<p>找准了，才有办法压下去。</p>
+<p>核心也一句：</p>
+<p>想压 ITL，主要盯着 Decode 和它背后的资源瓶颈。</p>
+<h2>一张表看清两个指标</h2>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>量的是什么</th>
+<th>核心计算环节</th>
+<th>优化该动哪</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TTFT</td>
+<td>从请求到第一个 token 的等待时间</td>
+<td>Prefill + 前置等待</td>
+<td>减少排队、提高 Prefill 计算效率</td>
+</tr>
+<tr>
+<td>ITL</td>
+<td>相邻输出 token 之间的时间间隔</td>
+<td>Decode 为主</td>
+<td>优化 Decode、缓解资源瓶颈</td>
+</tr>
+</tbody>
+</table>
+<p>很多人以为&quot;推理慢&quot;是个整体问题。</p>
+<p>其实它至少可以拆成两半：</p>
+<p>头一个 token 的等待，和后面每个 token 之间的间隔，是两类不同的问题。</p>
+<p>所以优化时别瞎忙：</p>
+<p>第一个 token 慢，先看 TTFT；</p>
+<p>后面的 token 间隔大，再去看 ITL。</p>
+<p>力气别使错地方。</p>
+<h2>顺带说一个容易混的点</h2>
+<p>Decode 每生成一个 token ID，后面通常还要经过 Detokenization，把这个 token ID 转成人能看到的文本。</p>
+<p>所以你看到的&quot;字一个一个蹦&quot;，背后并不只有模型 Decode，还涉及 Detokenization 和流式输出。</p>
+<p>它们是不同的处理环节，最终共同影响用户看到文字的速度。</p>
+<h2>慢到底慢在哪，下一篇接着拆</h2>
+<p>把 TTFT 和 ITL 分开看，最大的好处是优化时方向清楚。</p>
+<p>但 Decode 为什么能一轮一轮生成 token，而历史 token 的 Key 和 Value 又为什么不用每轮重新计算？</p>
+<p>背后站着一个关键东西：</p>
+<p>KV cache。</p>
+<p>下一篇我们就聊 KV cache：</p>
+<p>它怎么让 Decode 复用历史 token 的 Key 和 Value，又为什么占了那么大一块显存。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "Decode 每轮都重算一遍历史 token 吗：聊聊 KV cache", "slug": "post-4ad759"}, "next": {"title": "一次完整推理，模型背后要走完 5 道工序", "slug": "post-0c850f"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "Agent Skill 和 MCP，到底有什么区别？", "slug": "post-ee1018", "desc": "做 AI 应用开发，经常会遇到两个概念：Agent Skill 和 MCP（Model Context Protocol）。 虽然都是让 AI 能调用工具，但它们根本不是一个维度的东西。 简单来说：…", "date": "2026-06-30"}, {"title": "RAG 面试高频题：召回率太低怎么办？一套完整优化方案讲透", "slug": "post-0b66cc", "desc": "很多人做 RAG 系统，遇到召回率低的问题，第一反应就是换模型——换一个参数更大的、换一个号称语义理解更强的。 结果呢？ 效果提升微乎其微。 根本原因不是模型不够强，而是模型拿到的参考材料本身就是错的…", "date": "2026-07-23"}, {"title": "Redis 的数据过期策略，到底是怎么删数据的？", "slug": "post-136c78", "desc": "给 Redis 的 key 设了过期时间，时间一到，这条数据会瞬间从内存里消失吗？ 这个问题问的其实就是 Redis 的 数据过期策略 。 说白了，当我们给一个 key 指定了 TTL（比如 set…", "date": "2026-08-04"}, {"title": "为什么大模型总记不住你的文档？聊聊向量数据库", "slug": "post-c65602", "desc": "不管是搭 RAG 知识库、做推荐系统，还是搞以图搜图，你迟早会撞上同一个词：向量数据库。 很多人把它想得很玄，觉得是某种更高端的 MySQL。 说白了，它干的事特别单纯： 存一堆高维向量，然后帮你找出…", "date": "2026-08-15"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

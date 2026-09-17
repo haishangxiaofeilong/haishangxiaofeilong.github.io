@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>面试官问我什么是幂等，我说按钮变灰就行了，他直接跳过了这道题 · 海上小飞龙</title>
+<meta name="description" content="先说结论： 幂等，就是同一个操作，执行一次和执行多次，对系统状态的影响完全相同。 它在支付系统里是条不能碰的生死线。 只要沾钱，系统就绝不能因为网络抖一下，让用户多扣一分。 很多人以为，幂等就是前端把…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-a52247.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="面试官问我什么是幂等，我说按钮变灰就行了，他直接跳过了这道题 · 海上小飞龙">
+<meta property="og:description" content="先说结论： 幂等，就是同一个操作，执行一次和执行多次，对系统状态的影响完全相同。 它在支付系统里是条不能碰的生死线。 只要沾钱，系统就绝不能因为网络抖一下，让用户多扣一分。 很多人以为，幂等就是前端把…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/post-7ddbe1.html">网络</a><a class="tag" href="/tags/java.html">Java</a><a class="tag" href="/tags/post-d11195.html">面试题</a></div>
+      <h1 class="post-title">面试官问我什么是幂等，我说按钮变灰就行了，他直接跳过了这道题</h1>
+      <div class="post-meta">
+        <span>2026-08-11</span>
+        <span class="dot"></span>
+        <span>2465 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>先说结论：</p>
+<p>幂等，就是同一个操作，执行一次和执行多次，对系统状态的影响完全相同。</p>
+<p>它在支付系统里是条不能碰的生死线。</p>
+<p>只要沾钱，系统就绝不能因为网络抖一下，让用户多扣一分。</p>
+<p>很多人以为，幂等就是前端把支付按钮变灰、不让连点。</p>
+<p>这是误解。</p>
+<p>变灰只是表面防护，真正的幂等是：</p>
+<p>允许用户重复点，甚至允许系统自动重试，后端依然只扣一次。</p>
+<p>下面把这件事拆开讲透。</p>
+<h2>一、什么是幂等？电梯按钮就能讲明白</h2>
+<p>把它想成电梯的呼叫按钮。</p>
+<p>你按一次，电梯来。</p>
+<p>你心急连按十次，电梯也只来一次，不会派十部下来。</p>
+<p>这就是幂等：</p>
+<p>重复触发，结果不变。</p>
+<p>软件里也是一样。</p>
+<p>同一笔扣款请求，正常送达一次，和因为网络问题重发十次，系统最终只扣你一次。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1786434751896-80ed2f9e-cde8-4932-8df3-ddf3fada5467.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>二、为什么支付场景最容易重复？</h2>
+<p>原因在于网络超时。</p>
+<p>手机点支付，请求顺着网络发往银行或支付平台。</p>
+<p>网络突然卡一下，手机没收到支付成功的回执，就以为请求没成功。</p>
+<p>这时候，不管是系统自动重试，还是你着急又点一遍，服务器都可能收到多条内容相同的扣款指令。</p>
+<p>没有幂等，服务器就老老实实重复扣。</p>
+<p>这就是为什么支付系统把幂等叫生死线。</p>
+<h2>三、幂等键：拦住重复扣款的闸门</h2>
+<p>堵这个漏洞，靠一个机制：</p>
+<p>幂等键（Idempotency Key），说白了就是唯一流水号。</p>
+<p>发起支付时，系统为这笔交易生成一个独一无二的流水号，和扣款请求绑在一起发往服务器。</p>
+<p>服务器第一次见这个流水号，执行扣款，把结果记下来。</p>
+<p>网络超时，第二条带着相同流水号的请求到了，服务器通过状态校验、唯一约束发现已经处理过，直接返回之前的结果，不再动余额。</p>
+<p>核心逻辑看这段演示代码：</p>
+<pre><code class="language-java"><span class="c1">// 幂等键校验：唯一流水号 + 数据库唯一索引兜底</span>
+<span class="kd">public</span><span class="w"> </span><span class="n">PaymentResult</span><span class="w"> </span><span class="nf">pay</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">idempotencyKey</span><span class="p">,</span><span class="w"> </span><span class="n">PayRequest</span><span class="w"> </span><span class="n">req</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// 1. 先查这个幂等键是否已处理过</span>
+<span class="w">    </span><span class="n">PaymentRecord</span><span class="w"> </span><span class="n">record</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">recordMapper</span><span class="p">.</span><span class="na">selectByKey</span><span class="p">(</span><span class="n">idempotencyKey</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">record</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// 已处理：直接返回之前的结果，绝不重复扣款</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">record</span><span class="p">.</span><span class="na">getResult</span><span class="p">();</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="c1">// 2. 没处理过：执行业务扣款</span>
+<span class="w">    </span><span class="n">PaymentResult</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">doDeduct</span><span class="p">(</span><span class="n">req</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// 3. 写入记录（唯一索引保证并发下也只进一条）</span>
+<span class="w">    </span><span class="n">recordMapper</span><span class="p">.</span><span class="na">insert</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">PaymentRecord</span><span class="p">(</span><span class="n">idempotencyKey</span><span class="p">,</span><span class="w"> </span><span class="n">result</span><span class="p">));</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">result</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre>
+<p>关键就在唯一约束。</p>
+<p>哪怕两条相同流水号的请求同时打进来，数据库唯一索引也保证只有一条能插入，另一条走「已处理」分支返回。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1786434957122-698833e9-436e-447f-b7c7-84740771f5b0.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>四、一个容易踩的边界：认流水号，不认商品</h2>
+<p>幂等防的是「同一笔业务被重复执行」，不干涉你真实的多次消费。</p>
+<p>你在网上买两杯咖啡，分两次下单，系统生成两个完全不同的流水号。</p>
+<p>服务器认出是两笔独立交易，正常扣两次。</p>
+<p>幂等只认业务流水号，不认商品。</p>
+<p>它精准拦截的是网络抖动和系统重试带来的幽灵重复，不是你的真实购买意愿。</p>
+<h2>五、前端禁点击 ≠ 后端幂等</h2>
+<p>不少人把「按钮变灰」当成幂等，这俩不是一回事。</p>
+<p>一张表讲清：</p>
+<table>
+<thead>
+<tr>
+<th>对比维度</th>
+<th>前端禁点击</th>
+<th>后端幂等</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>防的是谁</td>
+<td>用户手抖连点</td>
+<td>网络超时 + 系统重试</td>
+</tr>
+<tr>
+<td>生效范围</td>
+<td>只管自己这台设备</td>
+<td>跨请求、跨服务</td>
+</tr>
+<tr>
+<td>按钮变灰失效时</td>
+<td>重试机制照常发请求</td>
+<td>照常只扣一次</td>
+</tr>
+<tr>
+<td>本质</td>
+<td>表面防护</td>
+<td>兜底机制</td>
+</tr>
+</tbody>
+</table>
+<p>按钮变灰只是第一层皮。</p>
+<p>真兜底，在服务器。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1786435047249-28b1a72f-8218-40cf-80b0-3478cca6d1ec.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>六、哪些 HTTP 方法是幂等的？</h2>
+<p>面试官常顺着这个追问。</p>
+<p>RFC 7231 （HTTP 协议规范）给的定义是这样的：</p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>是否幂等</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td>是</td>
+<td>读数据，不改变服务器状态</td>
+</tr>
+<tr>
+<td>PUT</td>
+<td>是</td>
+<td>覆盖更新，重复执行结果一致</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td>是</td>
+<td>删除一次和删多次，结果都是没了</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>否</td>
+<td>每次都新建资源，重复会多建</td>
+</tr>
+</tbody>
+</table>
+<p>工程上，可安全重试的写操作多用 PUT，少用 POST。</p>
+<p>很多支付网关的「重试接口」设计成幂等的 PUT，原因就在这。</p>
+<h2>回到面试：这道题怎么答</h2>
+<ul>
+<li>幂等：同一操作执行多次，对系统状态的影响和执行一次完全相同。</li>
+<li>支付必做，根因是网络超时引发的重复请求。</li>
+<li>核心手段：幂等键 = 唯一流水号 + 状态校验 + 数据库唯一约束。</li>
+<li>边界：认流水号不认商品，两笔真下单照样扣两次。</li>
+<li>前端禁点击 ≠ 后端幂等，前者只是表面防护。</li>
+<li>GET、PUT、DELETE 幂等，POST 不幂等（RFC 7231）。</li>
+</ul>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "面试官：MySQL 索引是什么？这道题答全的人真不多", "slug": "post-78822c"}, "next": {"title": "面试官：Redis 单线程为什么还这么快？这道题答错的人真不少", "slug": "post-d200d2"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "一个登录框，如何让黑客绕过密码？聊聊 SQL 注入", "slug": "post-99da0d", "desc": "面试官问： \"你做Web项目的时候，后台接口肯定要跟数据库打交道。那你知道什么是SQL注入吗？\" 一句话： SQL注入就是攻击者通过构造恶意的输入参数，拼进你的SQL语句里，让数据库执行他想要的任何操…", "date": "2026-07-16"}, {"title": "面试官：MySQL 索引是什么？这道题答全的人真不多", "slug": "post-78822c", "desc": "面试被问到 MySQL 索引，多数人的回答停留在\"加快查询\"四个字。 这话对，但没用。 索引真正要讲清楚的，是一份排好序的目录： 索引可以理解成一份排好序的目录，它通过维护特定的数据结构，让数据库能够…", "date": "2026-08-12"}, {"title": "RAG 面试高频题：召回率太低怎么办？一套完整优化方案讲透", "slug": "post-0b66cc", "desc": "很多人做 RAG 系统，遇到召回率低的问题，第一反应就是换模型——换一个参数更大的、换一个号称语义理解更强的。 结果呢？ 效果提升微乎其微。 根本原因不是模型不够强，而是模型拿到的参考材料本身就是错的…", "date": "2026-07-23"}, {"title": "Redis 面试高频题：缓存击穿到底是什么？互斥锁和逻辑过期一次讲透", "slug": "post-fa28af", "desc": "先说结论： 缓存击穿（Cache Breakdown）指的是——某个 热点 key 刚好在过期的那一瞬间，被海量并发请求同时打中 ，缓存里没数据，请求全部砸向数据库，数据库瞬间被压垮。 说白了，它跟\"…", "date": "2026-07-28"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>你更新的数据明明还在内存里，可 MySQL 重启后凭什么没丢？ · 海上小飞龙</title>
+<meta name="description" content="你提交了一个事务，MySQL 回了你一句 &quot;commit ok&quot;。 下一秒机房断电、进程崩溃，等数据库重启，这笔数据还在吗？ 对已经成功提交的事务来说，只要提交所依赖的 redo log 已经安全落盘…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-f3f218.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="你更新的数据明明还在内存里，可 MySQL 重启后凭什么没丢？ · 海上小飞龙">
+<meta property="og:description" content="你提交了一个事务，MySQL 回了你一句 &quot;commit ok&quot;。 下一秒机房断电、进程崩溃，等数据库重启，这笔数据还在吗？ 对已经成功提交的事务来说，只要提交所依赖的 redo log 已经安全落盘…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/mysql.html">MySQL</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a><a class="tag" href="/tags/post-30d23e.html">操作系统</a><a class="tag" href="/tags/post-d11195.html">面试题</a></div>
+      <h1 class="post-title">你更新的数据明明还在内存里，可 MySQL 重启后凭什么没丢？</h1>
+      <div class="post-meta">
+        <span>2026-08-27</span>
+        <span class="dot"></span>
+        <span>3608 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>你提交了一个事务，MySQL 回了你一句 &quot;commit ok&quot;。</p>
+<p>下一秒机房断电、进程崩溃，等数据库重启，这笔数据还在吗？</p>
+<p>对已经成功提交的事务来说，只要提交所依赖的 redo log 已经安全落盘，即使数据页还没刷进数据文件，崩溃恢复后数据也能找回来。</p>
+<p>当然，这里说的&quot;安全落盘&quot;有个前提：</p>
+<p>操作系统和存储设备能够正确兑现 flush/fsync 的持久化语义，否则持久性依然可能落空。</p>
+<p>持久性的目标其实就一句话：</p>
+<p>事务一旦提交，它对数据的修改就是永久的，后面不管数据库崩了、服务器宕了、突然掉电了，已经写进去的东西不能丢。</p>
+<p>InnoDB 兜住这条底线的核心机制，就是 redo log，加上它背后的 WAL（Write Ahead Logging，预写日志）思想。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1787829574567-ddec34cf-df5e-4ebc-bba8-25a323df926a.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>持久性到底要保什么</h2>
+<p>先把目标钉死。</p>
+<p>持久性（Durability）是事务 ACID 里的 D，它不管后面发生什么意外，只要事务提交成功，结果就必须留得住。</p>
+<p>注意它保的是&quot;已提交&quot;的数据——没提交的事务本来就允许回滚，不在保护范围内。</p>
+<p>InnoDB 靠什么做到？</p>
+<p>答案就是 redo log。</p>
+<p>redo log 主要记录的是数据页及其相关结构发生的修改信息，配合 WAL（Write Ahead Logging，预写日志）的核心约束——在对应的脏页被刷入磁盘数据文件之前，描述这些修改的 redo log 必须先持久化——让已经提交的修改即使没真正写进磁盘文件，也能在崩溃后恢复这笔已经提交的修改。</p>
+<h2>redo log 记的是数据页层面的物理修改</h2>
+<p>redo log 主要记录的是数据页及其相关结构发生的修改信息：</p>
+<p>它关注的不是&quot;执行了哪条 SQL&quot;，而是&quot;哪些底层数据发生了什么修改&quot;。</p>
+<p>打个比方。</p>
+<p>你执行一条 update，把 id=1 这行的某个字段从 100 改成 200。</p>
+<p>undo log 主要用于事务回滚和 MVCC 所需的旧版本维护；</p>
+<p>redo log 则更关注&quot;崩溃之后，如何把已经发生但尚未写入数据文件的修改重新做出来&quot;——它记录的是数据页层面的修改信息，恢复时不需要重新解析 SQL，也不需要重新走一遍索引查找。</p>
+<p>这个差别很关键。</p>
+<p>逻辑日志描述的是&quot;做了什么事&quot;，恢复时往往得重新走一遍逻辑；</p>
+<p>而 redo 记录的是数据页层面的修改，InnoDB 可以直接根据 redo 记录定位到相关的数据页，并重新执行对应的页面修改，而不需要重新解析和执行原始 SQL。</p>
+<p>崩溃恢复时，InnoDB 直接扫描 redo log，把记录的修改重新应用到对应数据页上，恢复过程因此更加直接、高效，不必重新执行 SQL 逻辑。</p>
+<h2>redo log：先进入 log buffer，再写入磁盘</h2>
+<p>redo 产生后，会先进入 InnoDB 的 log buffer；</p>
+<p>随后根据提交策略和后台刷新机制，被写入 redo log 文件。</p>
+<p>内存里有一块叫 log buffer 的区域，专门缓存还没落盘的日志。</p>
+<p>每次产生 redo 记录，先写进这块内存，速度很快，目的就是别让每次写操作都直接落盘，把写入性能顶上去。</p>
+<p>磁盘上则是 redo log 文件，它们组成了一块固定大小、循环使用的日志空间：一个文件写满，就切到下一个；</p>
+<p>当某段 redo 所对应的数据页已经通过 checkpoint 刷入数据文件后，那部分日志空间就可以被重新复用。</p>
+<p>在现在主流的 MySQL 8.x 里，redo log 的总容量由 <code>innodb_redo_log_capacity</code> 统一管理，相关文件位于 <code>#innodb_redo</code> 目录。</p>
+<h2>一个事务怎么落盘：先日志，后数据</h2>
+<p>那一个事务执行的时候，日志和数据到底谁先谁后？</p>
+<p>真实的顺序是这样的：</p>
+<p>当事务修改数据时，InnoDB 会在内存中修改 Buffer Pool 中的数据页，同时生成对应的 redo 记录并写入 log buffer。</p>
+<p>WAL 真正保证的是——在对应的脏页被刷入磁盘数据文件之前，描述这次修改的 redo log 必须先持久化。</p>
+<p>之后，InnoDB 再挑个合适的时机，把缓冲池里的脏页刷到真正的磁盘数据文件里。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1787829571488-12a3e68b-be2f-438f-a6f9-c772c56037ec.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>重点在最后这半句：</p>
+<p>在存储系统能够正确兑现持久化语义的前提下，只要描述这次修改的 redo log 已经先于脏页安全落盘，即使数据页还没写进数据文件，重启后也可以通过 redo 恢复这笔已经提交的修改。</p>
+<h2>为什么非要先写日志：用顺序写换安全和性能</h2>
+<p>这套&quot;redo 先持久化、数据页后落盘&quot;的约束，表面看多此一举，本质是在性能和安全性之间做平衡。</p>
+<p>性能上：</p>
+<p>直接改磁盘数据文件，得先定位到哪一页哪一行的位置再写，这是随机写，慢。</p>
+<p>redo log 是按 LSN 顺序追加写入的循环日志空间，整体上具有顺序写的特征。</p>
+<p>相比频繁修改分散在数据文件中不同位置的数据页，顺序追加可以显著减少随机 I/O 带来的开销，WAL 就是用这种&quot;优先顺序写&quot;的方式，把大量随机写挡在门外。</p>
+<p>安全上：</p>
+<p>哪怕缓冲池里的数据改完了、还没来得及刷盘，服务器就宕机了，只要 redo log 已经持久化到磁盘，重启之后 InnoDB 照样能按日志记录把未刷盘的数据恢复出来，已提交的事务不会丢。</p>
+<h2>innodb_flush_log_at_trx_commit：三个值怎么选</h2>
+<p>这里有个面试里很能拉开差距的参数：</p>
+<p>innodb_flush_log_at_trx_commit。</p>
+<p>它决定的是&quot;事务提交时，redo log 什么时候写入日志文件、什么时候执行持久化操作&quot;，一共三个值。</p>
+<table>
+<thead>
+<tr>
+<th>参数值</th>
+<th>提交时做什么</th>
+<th>落盘时机</th>
+<th>安全性</th>
+<th>性能</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>将 redo 写入 redo log 文件，并执行 fsync 等持久化操作</td>
+<td>每次提交都落盘</td>
+<td>最高，宕机也不丢已提交数据</td>
+<td>有 IO 压力，最慢</td>
+</tr>
+<tr>
+<td>0</td>
+<td>不在每次提交时写/刷 redo log，由后台机制周期性处理</td>
+<td>默认约每秒一次</td>
+<td>可能丢失最近一小段已提交事务</td>
+<td>较高</td>
+</tr>
+<tr>
+<td>2</td>
+<td>把 redo 写进操作系统缓存 OS buffer，不立刻 fsync</td>
+<td>由操作系统周期性刷出</td>
+<td>介于 0 和 1 之间</td>
+<td>较高</td>
+</tr>
+</tbody>
+</table>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1787829609476-b7f54a9a-56cd-442c-89f4-a7a265d9c8e6.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>值为 2 时，redo log 在事务提交时已经写入操作系统缓存，但没有立即调用 fsync 等待真正持久化。</p>
+<p>因此单纯的 mysqld 进程崩溃通常不会因为操作系统缓存丢失这部分日志；</p>
+<p>但如果发生操作系统崩溃或突然断电，尚未持久化的数据仍可能丢失。</p>
+<p>值 0 更激进，redo 不在每次提交时刷出，而由后台机制周期性处理，发生崩溃时可能丢失最近一小段时间内已经提交的事务。</p>
+<p>实际选型很简单：</p>
+<p>绝大多数场景直接上 1，数据安全优先。</p>
+<p>只有明确能够容忍最近一小段时间事务丢失的业务，才会考虑 0 或 2。</p>
+<p>如果 MySQL 同时开启了 binlog，还需要关注 <code>sync_binlog</code>；</p>
+<p>在对持久性和复制一致性要求较高的场景，官方推荐 <code>innodb_flush_log_at_trx_commit=1</code> 并配合 <code>sync_binlog=1</code>。</p>
+<h2>真宕机了，InnoDB 怎么把数据找回来</h2>
+<p>假设最坏情况：</p>
+<p>事务已经提交，提交所需的 redo log 也已经安全落盘，但缓冲池里的数据页还没刷进磁盘数据文件，这时候 MySQL 崩了。</p>
+<p>重启之后，InnoDB 会自动进入崩溃恢复流程，根据 checkpoint 和 redo log，把需要恢复的修改重新应用到对应的数据页上。</p>
+<p>对于崩溃时尚未提交的事务，InnoDB 会利用 undo 等机制进一步进行回滚。</p>
+<p>最终，已经成功提交的事务得以保留，未提交事务不会以半完成状态留在数据库里。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "你以为隔离级别只是个开关，可 MySQL 凭什么靠它挡住幻读？", "slug": "post-1e0ca5"}, "next": {"title": "你写的每条 SQL 都没加过锁，可 MySQL 凭什么不怕两个事务打架？", "slug": "post-fc3ff2"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "MySQL 索引为什么是 B+ 树？二叉树、哈希、B 树是怎么被淘汰的", "slug": "post-9f798e", "desc": "面试被问到“MySQL 索引为什么用 B+ 树”，多数人的回答停留在“叶子节点存数据、非叶子节点不存、叶子节点用双向链表支持范围查询”。 这话没错，但没讲清“为什么非得是 B+ 树”。 二叉树不行吗？…", "date": "2026-08-13"}, {"title": "Redis 面试高频题：缓存击穿到底是什么？互斥锁和逻辑过期一次讲透", "slug": "post-fa28af", "desc": "先说结论： 缓存击穿（Cache Breakdown）指的是——某个 热点 key 刚好在过期的那一瞬间，被海量并发请求同时打中 ，缓存里没数据，请求全部砸向数据库，数据库瞬间被压垮。 说白了，它跟\"…", "date": "2026-07-28"}, {"title": "Redis 缓存和 MySQL 数据不一致怎么办？双写一致性一次讲透", "slug": "post-4aa231", "desc": "先说大前提： 面试官问\"Redis 作为缓存，MySQL 的数据怎么和 Redis 同步\"，本质就是在考 双写一致性 。 但这道题最忌讳的一点，就是上来直接背标准答案。 答题第一步，必须先交代业务背景…", "date": "2026-07-30"}, {"title": "Redis 持久化：RDB 与 AOF", "slug": "post-807c58", "desc": "为什么需要持久化？ Redis 虽然快，但它的数据主要存储在内存中，而内存属于易失性存储介质。 一旦断电或者服务重启，如果没有持久化机制，数据就可能丢失。 所以 Redis 提供了两种持久化方案： R…", "date": "2026-08-03"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

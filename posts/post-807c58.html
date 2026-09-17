@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Redis 持久化：RDB 与 AOF · 海上小飞龙</title>
+<meta name="description" content="为什么需要持久化？ Redis 虽然快，但它的数据主要存储在内存中，而内存属于易失性存储介质。 一旦断电或者服务重启，如果没有持久化机制，数据就可能丢失。 所以 Redis 提供了两种持久化方案： R…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-807c58.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Redis 持久化：RDB 与 AOF · 海上小飞龙">
+<meta property="og:description" content="为什么需要持久化？ Redis 虽然快，但它的数据主要存储在内存中，而内存属于易失性存储介质。 一旦断电或者服务重启，如果没有持久化机制，数据就可能丢失。 所以 Redis 提供了两种持久化方案： R…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/redis.html">Redis</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a><a class="tag" href="/tags/post-30d23e.html">操作系统</a><a class="tag" href="/tags/post-d11195.html">面试题</a></div>
+      <h1 class="post-title">Redis 持久化：RDB 与 AOF</h1>
+      <div class="post-meta">
+        <span>2026-08-03</span>
+        <span class="dot"></span>
+        <span>3058 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><h2>为什么需要持久化？</h2>
+<p>Redis 虽然快，但它的数据主要存储在内存中，而内存属于易失性存储介质。</p>
+<p>一旦断电或者服务重启，如果没有持久化机制，数据就可能丢失。</p>
+<p>所以 Redis 提供了两种持久化方案：<strong>RDB</strong> 和 <strong>AOF</strong>，前者是数据快照，后者是命令日志。</p>
+<p>面试的时候面试官常问这个问题，很多人只答出&quot;两种方案&quot;就结束了，其实还需要深入讲清楚原理和取舍。</p>
+<h2>RDB：数据快照</h2>
+<h3>什么是 RDB？</h3>
+<p>RDB（Redis Database Backup）就是把某一时刻的内存数据完整写入磁盘，生成一个二进制文件。下次启动时，Redis 读取这个文件，把数据恢复到内存里。</p>
+<p>说人话就是：</p>
+<p><strong>给内存拍一张照片</strong>，事后按照片还原。</p>
+<h3>手动触发</h3>
+<p>可以用两条命令手动生成 RDB 文件：</p>
+<ul>
+<li><code>SAVE</code>：由主进程执行，会阻塞所有其他操作。<strong>文件大时风险很高</strong>，生产环境基本不用。</li>
+<li><code>BGSAVE</code>：由子进程执行，异步操作，对主进程影响极小。<strong>生产环境用这个</strong>。</li>
+</ul>
+<h3>自动触发</h3>
+<p>Redis 配置文件里有三行默认规则，Redis 会周期性检查 save 配置，当任意条件满足时，会触发后台执行 BGSAVE。</p>
+<pre><code class="language-plain">save 900 1       # 900 秒内至少有 1 个 key 被修改
+save 300 10      # 300 秒内至少有 10 个 key 被修改
+save 60 10000    # 60 秒内至少有 10000 个 key 被修改
+</code></pre>
+<p>你可以根据业务情况修改这些阈值。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1785742702990-c00b7d39-9723-4700-b9a2-0c518e4d1d17.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h3>RDB 的执行原理</h3>
+<p>很多人知道 BGSAVE 用子进程，但不知道<strong>为什么不会阻塞主进程</strong>。</p>
+<p>这就要从内存模型说起。</p>
+<p>Linux 系统中，进程不能直接操作物理内存，而是通过<strong>虚拟内存 + 页表</strong>来间接访问。</p>
+<p>页表记录了虚拟地址和物理地址的映射关系。</p>
+<p>执行 BGSAVE 时，Redis 会 fork 出一个子进程。</p>
+<p><strong>关键点在于：fork 只复制页表，不复制数据</strong>。</p>
+<p>子进程拿到与主进程相同的映射关系后，就能读取相同的物理内存数据，而无需拷贝任何实际内容。 fork 本身不会复制大量数据，只需要复制页表，因此相比完整复制内存开销非常小。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1785742693336-b091c15e-f7ca-4fac-83e4-25fcc19f55bf.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h4>Copy on Write 解决了什么？</h4>
+<p>子进程在写 RDB 文件的同时，主进程也在接收用户的写请求。</p>
+<p>如果两者直接共享内存，就会出现<strong>读写冲突，产生脏数据</strong>。</p>
+<p>解决办法是 <strong>Copy on Write（写时复制）</strong>：</p>
+<p>fork 之后，共享内存被标记为只读。</p>
+<p>当主进程收到写请求时，操作系统会把被修改的内存页<strong>单独拷贝一份</strong>，主进程写新副本，子进程继续读旧副本。</p>
+<p>这样就避免了数据竞争。</p>
+<p>说人话就是：</p>
+<p><strong>有人要改，我就抄一份给你改，原文件不动</strong>。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1785749408876-4b2aeade-5ef5-4374-9c9e-c68ea26e6167.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>AOF：命令日志</h2>
+<h3>什么是 AOF？</h3>
+<p>AOF（Append Only File）记录的是 Redis 执行的每一个写命令。</p>
+<p>每次执行写操作，命令就会被追加到 AOF 文件末尾。</p>
+<p>说人话就是：</p>
+<p><strong>把所有写操作写成日记</strong>，重启时重放日记就能恢复数据。</p>
+<p>比如你执行了三条命令：</p>
+<pre><code class="language-plain">SET number 123
+SET name jack
+SET number 666
+</code></pre>
+<p>AOF 会按照 Redis 协议格式记录每一次写命令，而不是简单保存命令字符串。</p>
+<h3>开启与刷盘策略</h3>
+<p>AOF 默认是关闭的，需要在配置文件中将 <code>appendonly</code> 改为 <code>yes</code>。</p>
+<p>AOF 有三种刷盘频率：</p>
+<table>
+<thead>
+<tr>
+<th>策略</th>
+<th>说明</th>
+<th>可靠性</th>
+<th>性能</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>always</code></td>
+<td>每次写命令都立即刷盘</td>
+<td>最高，几乎不丢数据</td>
+<td>最差</td>
+</tr>
+<tr>
+<td><code>everysec</code></td>
+<td>每秒执行一次 fsync</td>
+<td>较高， 通常最多丢失约 1 秒数据</td>
+<td>适中</td>
+</tr>
+<tr>
+<td><code>no</code></td>
+<td>由操作系统决定何时刷盘</td>
+<td>最低，可能丢大量数据</td>
+<td>最好</td>
+</tr>
+</tbody>
+</table>
+<p>生产环境推荐使用<code>everysec</code>，兼顾安全性和性能。</p>
+<h3>AOF 重写</h3>
+<p>AOF 有个明显缺点：<strong>文件体积大</strong>。</p>
+<p>同一个 key 写 100 次，AOF 就记 100 行，但实际只有最后一次有效。</p>
+<p>Redis 提供了 <code>BGREWRITEAOF</code> 命令来<strong>重写 AOF 文件</strong>，用最少命令还原相同的数据状态。</p>
+<p>比如上面的例子， 重写后只保留最终状态对应的写命令，例如：</p>
+<pre><code class="language-plain">SET name jack
+SET number 666
+</code></pre>
+<p>只保留最终结果，大幅压缩文件体积。</p>
+<p>可以通过两个条件自动触发重写：</p>
+<ol>
+<li><strong>体积增长比例</strong>：当前 AOF 文件比上一次重写后的文件增长超过设定百分比（默认 100%）就触发。</li>
+<li><strong>绝对体积阈值</strong>：AOF 文件超过设定大小（默认 64MB）就触发。</li>
+</ol>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1785742665966-a383d494-c531-4d9a-9da5-53a6e1ea1a24.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>RDB vs AOF：怎么选？</h2>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>RDB</th>
+<th>AOF</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>持久化方式</strong></td>
+<td>整份内存快照</td>
+<td>逐条记录写命令</td>
+</tr>
+<tr>
+<td><strong>数据完整性</strong></td>
+<td>两次备份之间可能丢数据</td>
+<td>通常最多丢失约 1 秒数据</td>
+</tr>
+<tr>
+<td><strong>文件大小</strong></td>
+<td>小（二进制压缩）</td>
+<td>大（文本命令日志）</td>
+</tr>
+<tr>
+<td><strong>恢复速度</strong></td>
+<td>快</td>
+<td>慢（文件大）</td>
+</tr>
+<tr>
+<td><strong>默认恢复顺序</strong></td>
+<td>较低</td>
+<td>较高（开启 AOF 时优先加载）</td>
+</tr>
+<tr>
+<td><strong>资源占用</strong></td>
+<td>fork 时占用较多 CPU 和内存</td>
+<td>主要占用磁盘 I/O</td>
+</tr>
+<tr>
+<td><strong>适用场景</strong></td>
+<td>可容忍数分钟数据丢失</td>
+<td>对数据安全性要求高</td>
+</tr>
+</tbody>
+</table>
+<h3>面试加分回答</h3>
+<p>如果面试官问&quot;你们项目用哪个&quot;，推荐回答：</p>
+<blockquote>
+<p>Redis 4.0 引入混合持久化（AOF rewrite 时结合 RDB 格式），进一步提升恢复速度。</p>
+<p>AOF 保证日常数据安全性，RDB 作为后备，在 AOF 文件损坏时提供快速恢复能力。两者结合，既保数据安全，又保恢复效率。</p>
+</blockquote>
+<p>这样回答既体现了理解深度，又展示了实际工程经验。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "Redis 的数据过期策略，到底是怎么删数据的？", "slug": "post-136c78"}, "next": {"title": "Spring 自动装配的 5 种模式：byName、byType 到底有什么区别？", "slug": "post-c03622"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "Redis 面试高频题：缓存击穿到底是什么？互斥锁和逻辑过期一次讲透", "slug": "post-fa28af", "desc": "先说结论： 缓存击穿（Cache Breakdown）指的是——某个 热点 key 刚好在过期的那一瞬间，被海量并发请求同时打中 ，缓存里没数据，请求全部砸向数据库，数据库瞬间被压垮。 说白了，它跟\"…", "date": "2026-07-28"}, {"title": "Redis 集群到底有几种方案？先把主从复制讲透", "slug": "post-4f6aba", "desc": "Redis 集群到底有哪几种玩法？ 这是后端面试里出场率极高的一道题。 标准答案就三个： 主从复制、哨兵模式、分片集群。 三者各自解决不同的痛点，而且彼此之间还能牵出一串延伸问题。 比如主从数据到底怎…", "date": "2026-08-07"}, {"title": "Redis 哨兵模式：它到底是怎么保证高可用的", "slug": "post-09c2db", "desc": "主从复制有个绕不开的短板： 它撑不起 Redis 的高可用。 主节点一旦宕机，整个集群就失去了写入能力。 哨兵模式就是为解决这个问题而生的，它能让主从集群自动完成故障恢复。 哨兵到底是什么 哨兵节点本…", "date": "2026-08-08"}, {"title": "Redis 面试高频题：缓存雪崩到底是什么？四种解决方案一次讲清", "slug": "post-6165a4", "desc": "先给结论： 缓存雪崩，说的是大量缓存数据在同一时间失效，或者缓存服务整体不可用，导致大量请求绕过缓存直接访问数据库，最终把数据库压垮。 说白了，它跟\"单个 key 出问题\"不是一回事，而是 成片地崩…", "date": "2026-07-29"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

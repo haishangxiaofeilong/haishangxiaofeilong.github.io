@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>传统 KV cache：显存明明够，为什么并发就是上不去 · 海上小飞龙</title>
+<meta name="description" content="上篇讲到，一种很直接的做法是给每个请求按&quot;可能的最大长度&quot;预留一块连续的显存空间。这种传统预分配，最大的问题就是这块空间常常用不满。 这一篇就把这件事拆开看：KV cache 到底占了多少显存，传统分…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-a64775.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="传统 KV cache：显存明明够，为什么并发就是上不去 · 海上小飞龙">
+<meta property="og:description" content="上篇讲到，一种很直接的做法是给每个请求按&quot;可能的最大长度&quot;预留一块连续的显存空间。这种传统预分配，最大的问题就是这块空间常常用不满。 这一篇就把这件事拆开看：KV cache 到底占了多少显存，传统分…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/rag.html">RAG</a><a class="tag" href="/tags/post-2dc9b4.html">大模型</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a><a class="tag" href="/tags/post-30d23e.html">操作系统</a></div>
+      <h1 class="post-title">传统 KV cache：显存明明够，为什么并发就是上不去</h1>
+      <div class="post-meta">
+        <span>2026-09-11</span>
+        <span class="dot"></span>
+        <span>2845 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>上篇讲到，一种很直接的做法是给每个请求按&quot;可能的最大长度&quot;预留一块连续的显存空间。这种传统预分配，最大的问题就是这块空间常常用不满。</p>
+<p>这一篇就把这件事拆开看：KV cache 到底占了多少显存，传统分配又为什么让这么多显存白白空着，以及它为什么会成为企业级部署的瓶颈。</p>
+<p>我在<a href="https://mp.weixin.qq.com/s/sLHJTqWyQc7vMxar61ksFA">《大模型推理到了推理引擎这一步，到底要管哪些事》</a>里讲过，KV cache 的空间分配、写入和读取，主要由推理引擎负责；</p>
+<p>在<a href="https://mp.weixin.qq.com/s/xHwa7n3WHJ1VZa3vZicSkg">《Decode 每轮都重算一遍历史 token 吗：聊聊 KV cache》</a>里也带过，Decode 每轮都要把历史的 K 和 V 读出来参与注意力计算。</p>
+<h2>KV cache 为什么是个显存吞金兽</h2>
+<p>先说清楚一件事：</p>
+<p>KV cache 不是存一点就完事，序列越长，要留在显存里的 K 和 V 就越多。</p>
+<p>模型里有一层一层的注意力层，每一层都会为当前 token 算出 K 和 V 两个向量。</p>
+<p>一个请求从输入 prompt 开始，到后续不断生成 token，每一层、每一个需要参与后续注意力计算的历史 token 的 K 和 V 都得留在显存里，下一轮 Decode 才不用重算。</p>
+<p>所以 KV cache 的大小，基本等于：</p>
+<blockquote>
+<p>序列长度 × 层数 × KV head 数 × head_dim × 2 × 每个元素的字节数</p>
+</blockquote>
+<p>这里是为了说明量级的简化公式；</p>
+<p>实际大小还会受到模型架构、KV cache 数据类型等因素影响。</p>
+<p>序列越长，占的显存就越多，而且几乎是线性往上爬。</p>
+<p>举个量级上的例子：</p>
+<p>一个 70 亿参数级别的模型，每个 token 对应的 KV cache 可能就是几十 KB 到几百 KB，具体取决于模型的层数、KV head 数和 KV cache 数据类型；</p>
+<p>一个请求跑到几千个 token，光 KV cache 就可能占掉几百 MB 甚至上 GB 的显存。</p>
+<p>这还没算模型权重本身占的那一大块。</p>
+<p>类比一下：</p>
+<p>KV cache 像你记课堂笔记，每听一句话就往本子上添一行；</p>
+<p>本子页数是有限的，话却越说越长，写着写着就不够用了。</p>
+<p>那问题就来了：</p>
+<p>既然它这么占地方，推理引擎到底是怎么给每个请求安排空间的？</p>
+<h2>最直觉的做法：按最大长度，提前留够</h2>
+<p>最直觉、最省事的办法，就是&quot;按最坏情况预留&quot;。</p>
+<p>一个请求进来，引擎并不知道它最终会生成多少个 token。</p>
+<p>如果采用按最大长度预分配的连续 KV cache，就可以直接按照模型允许的最大序列长度（比如 8192 个 token）预留一整块空间。</p>
+<p>它的好处很简单：</p>
+<p>后面 Decode 一路追加 K 和 V，空间永远够用，不用在生成中途发现不够了再去扩容、把已有的 KV cache 挪到别处，引擎实现起来最省心。</p>
+<p>代价呢？</p>
+<p>也恰恰藏在这个&quot;按最大长度&quot;里。</p>
+<h2>浪费从哪来：预留了，用不上，还独占</h2>
+<p>关键矛盾是：</p>
+<p>绝大多数请求，根本到不了最大长度。</p>
+<p>设想同一时刻有三个请求 A、B、C 一起进来。</p>
+<p>引擎给 A 划了 8192 个 token 的 KV 空间，给 B、C 也是同样大小——因为&quot;按最大长度&quot;对所有请求一视同仁。</p>
+<p>可 A 实际上只问了一个很短的问题，整个请求最终也就用了十几个 token 就结束了。</p>
+<p>于是 A 那块 8192 的额度里，前面一小段写满了 K 和 V，后面绝大部分都空着。</p>
+<p>空着不要紧，要紧的是：</p>
+<p>这块空间已经被 A 占下了，别的请求用不了。</p>
+<p>这些还没写入 KV 的空间，从内存管理的角度看，会形成严重的内部碎片。</p>
+<p>越是短的请求，浪费的比例越高。</p>
+<p>一个只需要十几个 token 就结束的短请求，却占着 8192 的额度，利用率连 1% 都不到；</p>
+<p>旁边那个长文档摘要任务可能用到了 6000，也还是没填满。</p>
+<p>如果请求平均只跑到最大长度的两三成，那么这部分预留 KV cache 的实际使用率也可能只有两三成。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1789126138538-09c0a2b8-a0df-45f6-bac5-b9b9ac0c08cc.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>低利用率，为什么让并发上不去</h2>
+<p>低利用率的代价，不只是浪费显存。</p>
+<p>显存就那么多，KV cache 占掉一大半预留额度却空着，等于同一张卡能同时服务的请求数被硬生生压低了。</p>
+<p>回到上篇说的批处理：</p>
+<p>企业级推理靠把多个请求拼成一批来提吞吐。</p>
+<p>可批处理的前提，是显存里能同时放下更多请求的 KV cache。</p>
+<p>传统预分配下，每个请求都先占住一整块最大长度的 KV cache 额度，实际却只用其中一小部分，显存里能同时放下的请求数自然就少。</p>
+<p>结果就是：</p>
+<p>很多时候，单张显卡真正卡住并发的，不只是算力，而是 KV cache 的显存容量：</p>
+<p>大量空间被提前预留却空着，新请求进不来，吞吐自然也上不去。</p>
+<p>另外，在需要动态调整连续 KV cache 空间的分配方案里，还可能出现外部碎片。</p>
+<p>请求进进出出，占用的连续空间大小不一，释放之后就在显存里散落成一些零碎的空闲区间。</p>
+<p>这些区间即使加起来已经够放下一个新请求，也可能因为彼此不连续，凑不出一整块连续空间。</p>
+<p>于是，总显存明明还有，新的请求却不一定塞得进去——这又进一步限制了并发。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1789126154550-3f8a81bc-7783-4b64-8522-5f6cfd285e5e.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>显存被吃空，根源在传统分配</h2>
+<p>问题已经很清楚：</p>
+<p>这里的核心问题，不是 KV cache 本身太浪费，而是那套&quot;按最大长度一刀切预留连续空间&quot;的分配方式。</p>
+<p>真正需要解决的是 KV cache 的显存分配效率。</p>
+<p>要破这个局，思路得换：</p>
+<p>与其给每个请求锁死一整块大显存，不如把 KV cache 也像操作系统管内存那样，切成固定大小的小块，按实际用多少、动态分给谁。</p>
+<p>这正是 PagedAttention、分块管理这一类解法想做的事——把&quot;整块预留&quot;换成&quot;按需分页&quot;，大幅减少连续预分配带来的显存浪费，并缓解传统连续内存分配中的碎片问题。</p>
+<p>到这儿，大模型推理核心原理这一阶段就讲完了：</p>
+<p>从 Prefill 和 Decode 两阶段、一次完整推理要过的几道工序、TTFT 和 ITL 两个速度指标，到 KV cache 为什么必须存在、推理引擎怎么把它们跑起来，一直到传统 KV cache 在显存上踩的坑。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "分布式和微服务，一次讲清", "slug": "post-f2f94b"}, "next": {"title": "大模型推理到了推理引擎这一步，到底要管哪些事", "slug": "post-2f357a"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "大模型推理的两阶段：一次 Prefill，加上多次 Decode", "slug": "post-902fd6", "desc": "你跟 DeepSeek、通义、GPT 这类大模型聊过天，应该都见过那个画面—— 问完问题，字是一个一个往外蹦的，像有人在你对面现想现说。 可模型没有意识，它不会现想现说。 你敲下回车的那一刻，它其实是…", "date": "2026-09-06"}, {"title": "Agent Skill 和 MCP，到底有什么区别？", "slug": "post-ee1018", "desc": "做 AI 应用开发，经常会遇到两个概念：Agent Skill 和 MCP（Model Context Protocol）。 虽然都是让 AI 能调用工具，但它们根本不是一个维度的东西。 简单来说：…", "date": "2026-06-30"}, {"title": "RAG 面试高频题：召回率太低怎么办？一套完整优化方案讲透", "slug": "post-0b66cc", "desc": "很多人做 RAG 系统，遇到召回率低的问题，第一反应就是换模型——换一个参数更大的、换一个号称语义理解更强的。 结果呢？ 效果提升微乎其微。 根本原因不是模型不够强，而是模型拿到的参考材料本身就是错的…", "date": "2026-07-23"}, {"title": "Redis 的数据过期策略，到底是怎么删数据的？", "slug": "post-136c78", "desc": "给 Redis 的 key 设了过期时间，时间一到，这条数据会瞬间从内存里消失吗？ 这个问题问的其实就是 Redis 的 数据过期策略 。 说白了，当我们给一个 key 指定了 TTL（比如 set…", "date": "2026-08-04"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

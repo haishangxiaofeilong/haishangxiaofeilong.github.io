@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Redis 面试高频题：缓存雪崩到底是什么？四种解决方案一次讲清 · 海上小飞龙</title>
+<meta name="description" content="先给结论： 缓存雪崩，说的是大量缓存数据在同一时间失效，或者缓存服务整体不可用，导致大量请求绕过缓存直接访问数据库，最终把数据库压垮。 说白了，它跟&quot;单个 key 出问题&quot;不是一回事，而是 成片地崩…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-6165a4.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Redis 面试高频题：缓存雪崩到底是什么？四种解决方案一次讲清 · 海上小飞龙">
+<meta property="og:description" content="先给结论： 缓存雪崩，说的是大量缓存数据在同一时间失效，或者缓存服务整体不可用，导致大量请求绕过缓存直接访问数据库，最终把数据库压垮。 说白了，它跟&quot;单个 key 出问题&quot;不是一回事，而是 成片地崩…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/redis.html">Redis</a><a class="tag" href="/tags/spring.html">Spring</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a><a class="tag" href="/tags/post-d11195.html">面试题</a></div>
+      <h1 class="post-title">Redis 面试高频题：缓存雪崩到底是什么？四种解决方案一次讲清</h1>
+      <div class="post-meta">
+        <span>2026-07-29</span>
+        <span class="dot"></span>
+        <span>1682 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>先给结论：</p>
+<p>缓存雪崩，说的是大量缓存数据在同一时间失效，或者缓存服务整体不可用，导致大量请求绕过缓存直接访问数据库，最终把数据库压垮。</p>
+<p>说白了，它跟&quot;单个 key 出问题&quot;不是一回事，而是<strong>成片地崩</strong>。</p>
+<p>那问题来了——好好的缓存，怎么就&quot;成片&quot;失效了？</p>
+<p>原因其实就两类。</p>
+<p>第一类，是大量 key 在同一时刻过期。</p>
+<p>原因在于：</p>
+<p>当初给这些 key 设缓存时，用的<strong>是同一个过期时间</strong>。</p>
+<p>比如大促商品页统一设 30 分钟过期，到点那一刻几万个 key 一起消失，请求瞬间全打到库上。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1785316408605-ade02ae8-afc2-457f-9fd4-0f52cc48816a.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>这一类最好治。</p>
+<p>既然是&quot;过期时间撞车&quot;导致的，那就让它们<strong>错峰过期</strong>。</p>
+<p>做法很简单：</p>
+<p>在原本的失效时间上，叠加一个随机值，比如 1~5 分钟的随机偏移。</p>
+<p>这样每个 key 的过期时间被打散，可以大幅降低大量 key 同时失效的概率。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1785316424652-ad33f333-2a9b-4426-b0ac-653a3ad0de2c.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>第二类原因，是 Redis 自己挂了。</p>
+<p>服务宕机，缓存整体不可用，请求自然全涌向数据库。</p>
+<p>这一类要从&quot;让 Redis 别挂、挂了也能顶住&quot;入手，下面给三招。</p>
+<p><strong>解法二：上 Redis 高可用集群。</strong></p>
+<p>单点最怕的就是&quot;一挂全完&quot;。</p>
+<p>换成哨兵模式或集群模式，节点互相兜底，一台宕机还有别的顶着，缓存整体不塌。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1785316441288-b72fa952-bd59-4004-8343-86ef97d29128.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p><strong>解法三：降级限流做保底。</strong></p>
+<p>在系统入口拦一道：</p>
+<p>如果是单体应用，可以在 Nginx 层做限流；</p>
+<p>如果是微服务，就把限流规则配在 Spring Cloud Gateway 网关上。</p>
+<p>流量被挡掉一部分，数据库就不会被冲垮。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1785316452293-0989e614-b1ea-4174-a039-cec66c1f4dc7.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p><strong>解法四：多级缓存。</strong></p>
+<p>再往前叠一层本地缓存：</p>
+<p>用 Caffeine、Guava 这类本地缓存做<strong>一级缓存</strong>，Redis 做<strong>二级缓存</strong>。</p>
+<p>请求先打本地、再打 Redis、最后才回数据库。</p>
+<p>即便 Redis 这一级出事，本地缓存还能顶一阵，雪崩就被拆成了小浪花。</p>
+<p>不过本地缓存更适合缓存热点数据，对于强一致性要求高、变化频繁的数据，需要谨慎使用。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1785316461943-40e99d9a-8b52-4e01-8621-8f04578a5b83.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>到这里，四种解法就齐了。</p>
+<p>用一句话总结一下就是：</p>
+<p><strong>大量 key 同时过期 → 加随机过期时间；</strong></p>
+<p><strong>Redis 宕机 → 高可用集群 + 限流降级 + 多级缓存。</strong></p>
+<p>需要注意的是，实际生产中通常会组合使用，而不是只依赖某一种方案。</p>
+<p>最后补一句关键的：</p>
+<p>在缓存穿透、击穿、雪崩这&quot;三兄弟&quot;里，<strong>限流降级是通用的保底手段</strong>。</p>
+<p>前面几种解法各有侧重，但真到了极端情况，限流兜底是最后一道防线——这三个问题，最终都能靠它保命。</p>
+<p>最后多句嘴，缓存雪崩核心就一句：</p>
+<p>别让 key 一起死，也别让 Redis 孤身扛，错峰 + 集群 + 限流 + 多级，四管齐下。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "Redis 缓存和 MySQL 数据不一致怎么办？双写一致性一次讲透", "slug": "post-4aa231"}, "next": {"title": "Redis 面试高频题：缓存击穿到底是什么？互斥锁和逻辑过期一次讲透", "slug": "post-fa28af"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "Redis 面试高频题：缓存击穿到底是什么？互斥锁和逻辑过期一次讲透", "slug": "post-fa28af", "desc": "先说结论： 缓存击穿（Cache Breakdown）指的是——某个 热点 key 刚好在过期的那一瞬间，被海量并发请求同时打中 ，缓存里没数据，请求全部砸向数据库，数据库瞬间被压垮。 说白了，它跟\"…", "date": "2026-07-28"}, {"title": "Spring 自动装配的 5 种模式：byName、byType 到底有什么区别？", "slug": "post-c03622", "desc": "Spring 自动装配要回答的问题是： 给对象的属性赋值时，容器到底按什么规则把依赖注入进来。 很多人刚学 Spring 时听过 byName、byType，但真正开发久了，对这几种装配方式的细节反而…", "date": "2026-08-02"}, {"title": "Redis 持久化：RDB 与 AOF", "slug": "post-807c58", "desc": "为什么需要持久化？ Redis 虽然快，但它的数据主要存储在内存中，而内存属于易失性存储介质。 一旦断电或者服务重启，如果没有持久化机制，数据就可能丢失。 所以 Redis 提供了两种持久化方案： R…", "date": "2026-08-03"}, {"title": "Redis 集群到底有几种方案？先把主从复制讲透", "slug": "post-4f6aba", "desc": "Redis 集群到底有哪几种玩法？ 这是后端面试里出场率极高的一道题。 标准答案就三个： 主从复制、哨兵模式、分片集群。 三者各自解决不同的痛点，而且彼此之间还能牵出一串延伸问题。 比如主从数据到底怎…", "date": "2026-08-07"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

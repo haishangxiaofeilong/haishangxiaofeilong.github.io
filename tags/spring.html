@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>标签：Spring · 海上小飞龙</title>
+<meta name="description" content="Spring 相关技术文章">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="标签：Spring · 海上小飞龙">
+<meta property="og:description" content="Spring 相关技术文章">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link is-active" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<section class="page-head">
+  <div class="wrap">
+    <h1 class="page-title"><span class="tag tag-lg">Spring</span></h1>
+    <p class="page-desc">7 篇相关文章</p>
+  </div>
+</section>
+<section class="section">
+  <div class="wrap"><div class="post-list"><a class="post-card" href="/posts/post-3db7f6.html">
+  <div class="post-card-body">
+    <h2 class="post-card-title">LangChain 的九个核心组件，各管什么？</h2>
+    <p class="post-card-desc">拆开看，LangChain 日常开发里常用到的能力，可以归成九块。 组件 解决什么 模型 换模型的时候，上层代码不用跟着重写 消息 一场对话里，哪句话是谁说的，分得清 工具 模型够得着外部能力 智能体…</p>
+    <div class="post-card-meta"><span>2026-09-15</span></div>
+  </div>
+  <span class="post-card-arrow">&rarr;</span>
+</a><a class="post-card" href="/posts/post-4f84e4.html">
+  <div class="post-card-body">
+    <h2 class="post-card-title">都是调大模型，为什么中间还要加一层 LangChain？</h2>
+    <p class="post-card-desc">想用大模型做点真东西，很快会撞上一件事： 只调模型 API 还不够。 一个能跑起来的大模型应用，除了模型本身，还得管提示词、管上下文、管它该去调哪个工具、管它记不记得住前面说过什么。 如果这些活一件件…</p>
+    <div class="post-card-meta"><span>2026-09-14</span></div>
+  </div>
+  <span class="post-card-arrow">&rarr;</span>
+</a><a class="post-card" href="/posts/post-c03622.html">
+  <div class="post-card-body">
+    <h2 class="post-card-title">Spring 自动装配的 5 种模式：byName、byType 到底有什么区别？</h2>
+    <p class="post-card-desc">Spring 自动装配要回答的问题是： 给对象的属性赋值时，容器到底按什么规则把依赖注入进来。 很多人刚学 Spring 时听过 byName、byType，但真正开发久了，对这几种装配方式的细节反而…</p>
+    <div class="post-card-meta"><span>2026-08-02</span></div>
+  </div>
+  <span class="post-card-arrow">&rarr;</span>
+</a><a class="post-card" href="/posts/post-3ebc3d.html">
+  <div class="post-card-body">
+    <h2 class="post-card-title">Spring Bean 的生命周期到底是什么？</h2>
+    <p class="post-card-desc">Bean 的生命周期，指的是一个对象在 Spring 容器中，从创建、初始化，到被使用，再到最终销毁所经历的完整过程。 这道题是面试高频题，但很多人备考时习惯去网上找帖子背图。 其实不需要死记硬背，把…</p>
+    <div class="post-card-meta"><span>2026-08-01</span></div>
+  </div>
+  <span class="post-card-arrow">&rarr;</span>
+</a><a class="post-card" href="/posts/post-6165a4.html">
+  <div class="post-card-body">
+    <h2 class="post-card-title">Redis 面试高频题：缓存雪崩到底是什么？四种解决方案一次讲清</h2>
+    <p class="post-card-desc">先给结论： 缓存雪崩，说的是大量缓存数据在同一时间失效，或者缓存服务整体不可用，导致大量请求绕过缓存直接访问数据库，最终把数据库压垮。 说白了，它跟&quot;单个 key 出问题&quot;不是一回事，而是 成片地崩…</p>
+    <div class="post-card-meta"><span>2026-07-29</span></div>
+  </div>
+  <span class="post-card-arrow">&rarr;</span>
+</a><a class="post-card" href="/posts/post-17ba3c.html">
+  <div class="post-card-body">
+    <h2 class="post-card-title">面试官：你说懂 AOP，那 Spring 到底是怎么把方法“插进去”的？</h2>
+    <p class="post-card-desc">在之前的文章Spring Boot 核心就这 3 件事中有读者留言，问我能不能讲讲Spring AOP，今天就来聊聊Spring AOP。 AOP 要解决什么问题？ 很多人把 AOP 想得特别复杂，其…</p>
+    <div class="post-card-meta"><span>2026-07-21</span></div>
+  </div>
+  <span class="post-card-arrow">&rarr;</span>
+</a><a class="post-card" href="/posts/post-370fc0.html">
+  <div class="post-card-body">
+    <h2 class="post-card-title">Spring Boot 核心就这 3 件事</h2>
+    <p class="post-card-desc">Spring Boot 的本质 很多人把Spring Boot想得太过复杂，其实，Spring Boot 的核心底层就是 Spring IOC 容器，你完全可以把这个 IOC 容器，理解成一个 key…</p>
+    <div class="post-card-meta"><span>2026-06-05</span></div>
+  </div>
+  <span class="post-card-arrow">&rarr;</span>
+</a></div></div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

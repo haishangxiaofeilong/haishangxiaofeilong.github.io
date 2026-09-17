@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>都是调大模型，为什么中间还要加一层 LangChain？ · 海上小飞龙</title>
+<meta name="description" content="想用大模型做点真东西，很快会撞上一件事： 只调模型 API 还不够。 一个能跑起来的大模型应用，除了模型本身，还得管提示词、管上下文、管它该去调哪个工具、管它记不记得住前面说过什么。 如果这些活一件件…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-4f84e4.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="都是调大模型，为什么中间还要加一层 LangChain？ · 海上小飞龙">
+<meta property="og:description" content="想用大模型做点真东西，很快会撞上一件事： 只调模型 API 还不够。 一个能跑起来的大模型应用，除了模型本身，还得管提示词、管上下文、管它该去调哪个工具、管它记不记得住前面说过什么。 如果这些活一件件…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/spring.html">Spring</a><a class="tag" href="/tags/langchain.html">LangChain</a><a class="tag" href="/tags/rag.html">RAG</a><a class="tag" href="/tags/post-2dc9b4.html">大模型</a></div>
+      <h1 class="post-title">都是调大模型，为什么中间还要加一层 LangChain？</h1>
+      <div class="post-meta">
+        <span>2026-09-14</span>
+        <span class="dot"></span>
+        <span>2557 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>想用大模型做点真东西，很快会撞上一件事：</p>
+<p>只调模型 API 还不够。</p>
+<p>一个能跑起来的大模型应用，除了模型本身，还得管提示词、管上下文、管它该去调哪个工具、管它记不记得住前面说过什么。</p>
+<p>如果这些活一件件都得自己来，很费劲。</p>
+<p>LangChain 就是冲这件事来的。</p>
+<p>它是一个开源框架，用来开发由大语言模型驱动的应用。</p>
+<p>大语言模型也就是常说的 LLM，DeepSeek、GPT 这类都算。</p>
+<p>打个比方，做 Java 的人对 Spring Boot、Spring Cloud 不陌生，LangChain 在大模型应用开发里的角色，跟它们有点像。</p>
+<p>它把常用的接口和实现摆在明面上，你结合自己的场景去挑、去拼。</p>
+<p>有一件事得先说清楚。</p>
+<p>它并不是把模型 API 包一层就完事。</p>
+<p>它真正提供的，是一套开发大模型应用的通用抽象和智能体能力，再加上一批现成的工具和模型集成。开发者不必从零搭复杂的集成，就能把基于大模型的应用跑起来。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1789386593961-1ab632ce-1ae9-47ac-b4ef-d912be4c813a.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>它多做了哪几件事</h2>
+<p>LangChain 有四个核心特点。</p>
+<p>先说统一的模型接口。</p>
+<p>一开始，各家模型的接口没有统一标准，参数怎么传、结果怎么回，格式各不相同。</p>
+<p>你换一家模型，就得把这些差异重新摸一遍，调用代码也得跟着改。</p>
+<p>后来 LangChain 在中间加了一层统一的模型抽象，各家模型都按同一套方式调用。</p>
+<p>指定提供商和模型名就能初始化，不用再针对每家分别写一套调用代码。</p>
+<p>换模型的时候，上层调用逻辑大部分不用重写。</p>
+<p>好处也实在：</p>
+<p>技术栈不会押在某一家模型上，新模型出来也接得比较快。</p>
+<p>还有一点，是这些能力可以模块化组合。</p>
+<p>它把一个大模型应用拆成几个能复用的零件：</p>
+<ul>
+<li>模型，真正干活的那个大模型</li>
+<li>提示词，交给模型的指令和上下文</li>
+<li>工具和智能体，让模型够得着外部能力，也能把多步任务做完</li>
+<li>状态和记忆，记住当下的会话，也能跨会话保存信息</li>
+</ul>
+<p>需要什么就挑什么，像搭积木一样拼起来。</p>
+<p>智能体和工具调用这一条，是现在 LangChain 非常核心的一块。</p>
+<p>大模型本身是被动的：</p>
+<p>你问它，它回答你，答完就结束。</p>
+<p>接上智能体之后，它会按当前情况判断下一步做什么、该调哪个工具，一步步把事情推下去。</p>
+<p>典型的智能体，内部跑的就是这样一个循环：</p>
+<p>观察眼前的状况，决定下一步做什么，调用工具，再根据结果继续往下走。</p>
+<p>如此往复，直到任务完成。</p>
+<p>这种先思考、再行动、后观察的模式，和经典的 ReAct 思路很接近。</p>
+<p>状态和记忆解决的是另一个问题。</p>
+<p>大模型本身不会自动记住上一轮对话。</p>
+<p>你不把前面说过的话带进当前请求，它就不知道刚才聊到哪了。</p>
+<p>LangChain 通过状态和记忆机制保存对话上下文。</p>
+<p>短期记忆保存当前会话里的状态和上下文，长期记忆可以结合持久化存储，跨会话保存用户信息。</p>
+<p>这样一来，多轮对话才连得上，也更贴合每个人的习惯。</p>
+<table>
+<thead>
+<tr>
+<th>特点</th>
+<th>解决什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>统一的模型接口</td>
+<td>换模型时，上层调用逻辑大部分不用重写</td>
+</tr>
+<tr>
+<td>模块化组合</td>
+<td>零件可复用，按需拼装</td>
+</tr>
+<tr>
+<td>智能体和工具调用</td>
+<td>从被动回答变成能自己把事情做完</td>
+</tr>
+<tr>
+<td>状态和记忆</td>
+<td>记住当前会话的状态，也能跨会话保存信息</td>
+</tr>
+</tbody>
+</table>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1789386579141-1e25fc70-22ce-4e12-9b1b-f7fbe7328d0e.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>能拿它来做什么</h2>
+<p>落地的场景不少。</p>
+<p>常见的有检索增强生成、智能体构建、对话系统、数据连接和处理、内容生成和自动化、多模态。</p>
+<p>最经典的一类是检索增强生成，也就是大家常说的 RAG。</p>
+<p>做法是先把外部资料切分、建立索引。</p>
+<p>要回答问题时，先检索出最相关的几段，再连同问题一起交给模型。</p>
+<p>这样答案贴着资料走，模型凭印象编答案的空间就小了很多。</p>
+<p>另一大方向是做智能体。</p>
+<p>把大模型放进一个带工具和执行循环的应用里，让它一步步把复杂任务做完。</p>
+<p>如今，这也是 LangChain 非常重要的一个方向。</p>
+<p>聊天机器人是大家最熟的一类。</p>
+<p>豆包、DeepSeek、混元这些产品，都提供对话式 AI 能力。</p>
+<p>想让它连续聊、记得住用户偏好，光有模型不够，会话状态、持久化记忆这些机制都得跟上。LangChain 提供了相应的能力，接进自己的应用就行。</p>
+<p>再往数据那边走，是数据连接和处理。</p>
+<p>它能对接各种数据源，也能做数据处理：</p>
+<p>提取非结构化文档里的信息，查数据库，分析数据。</p>
+<p>这里面有个高频玩法叫 text-to-SQL。</p>
+<p>原来想查数据，得自己把 SQL 写出来，等于先学会 SQL 语法。</p>
+<p>现在用自然语言把需求讲清楚，模型帮你生成 SQL，经过校验和权限控制后再执行。</p>
+<p>内容生成和自动化也很常见。</p>
+<p>开发者可以把提示词模板、输出解析和业务流程组合起来，让报告、邮件、摘要这类有固定格式的内容自动生成，写日报周报月报也一样。</p>
+<p>最后一类是多模态。</p>
+<p>多模态模型这两年一直在往前走，LangChain 也可以把支持图像、视频、音频等输入的模型接进应用流程，再把这些能力和别的工具、业务逻辑组合起来。</p>
+<p>图像分析就是这么个例子：</p>
+<p>用户传一张图，交给支持视觉输入的模型分析，再结合问题生成回答。</p>
+<p>语音交互也是常见的一类，一种做法是先把语音转成文字，处理完再转回语音。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1789386559733-870d7982-b8d9-4eda-85a5-5ac29a9abad8.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>绕一圈看下来，LangChain 的位置很像 Java 里的 Spring。</p>
+<p>它做的是模型能力和具体业务应用之间的通用编排和支撑。</p>
+<p>具体做成什么产品，取决于你要解决什么问题。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "LangChain 的九个核心组件，各管什么？", "slug": "post-3db7f6"}, "next": {"title": "要不要上 TypeScript，先算这两个数", "slug": "post-4417b2"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "LangChain 的九个核心组件，各管什么？", "slug": "post-3db7f6", "desc": "拆开看，LangChain 日常开发里常用到的能力，可以归成九块。 组件 解决什么 模型 换模型的时候，上层代码不用跟着重写 消息 一场对话里，哪句话是谁说的，分得清 工具 模型够得着外部能力 智能体…", "date": "2026-09-15"}, {"title": "Agent Skill 和 MCP，到底有什么区别？", "slug": "post-ee1018", "desc": "做 AI 应用开发，经常会遇到两个概念：Agent Skill 和 MCP（Model Context Protocol）。 虽然都是让 AI 能调用工具，但它们根本不是一个维度的东西。 简单来说：…", "date": "2026-06-30"}, {"title": "面试官：你说懂 AOP，那 Spring 到底是怎么把方法“插进去”的？", "slug": "post-17ba3c", "desc": "在之前的文章Spring Boot 核心就这 3 件事中有读者留言，问我能不能讲讲Spring AOP，今天就来聊聊Spring AOP。 AOP 要解决什么问题？ 很多人把 AOP 想得特别复杂，其…", "date": "2026-07-21"}, {"title": "RAG 面试高频题：召回率太低怎么办？一套完整优化方案讲透", "slug": "post-0b66cc", "desc": "很多人做 RAG 系统，遇到召回率低的问题，第一反应就是换模型——换一个参数更大的、换一个号称语义理解更强的。 结果呢？ 效果提升微乎其微。 根本原因不是模型不够强，而是模型拿到的参考材料本身就是错的…", "date": "2026-07-23"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

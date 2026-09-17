@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Linux 的「一切皆文件」：硬盘、键盘、打印机，是怎么变成文件的？ · 海上小飞龙</title>
+<meta name="description" content="「一切皆文件」这句话，你大概率是听过的。 但真要你讲清楚它到底在说什么，多数人只能说出「硬盘是文件、键盘是文件」这种表层比喻。 它真正的重心不在「什么东西是文件」，而在于 Linux 怎么用同一套接口…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-bbd13e.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Linux 的「一切皆文件」：硬盘、键盘、打印机，是怎么变成文件的？ · 海上小飞龙">
+<meta property="og:description" content="「一切皆文件」这句话，你大概率是听过的。 但真要你讲清楚它到底在说什么，多数人只能说出「硬盘是文件、键盘是文件」这种表层比喻。 它真正的重心不在「什么东西是文件」，而在于 Linux 怎么用同一套接口…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/post-2dc9b4.html">大模型</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a><a class="tag" href="/tags/post-30d23e.html">操作系统</a></div>
+      <h1 class="post-title">Linux 的「一切皆文件」：硬盘、键盘、打印机，是怎么变成文件的？</h1>
+      <div class="post-meta">
+        <span>2026-08-16</span>
+        <span class="dot"></span>
+        <span>1985 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>「一切皆文件」这句话，你大概率是听过的。</p>
+<p>但真要你讲清楚它到底在说什么，多数人只能说出「硬盘是文件、键盘是文件」这种表层比喻。</p>
+<p>它真正的重心不在「什么东西是文件」，而在于 Linux 怎么用同一套接口去操作这些东西。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1786872721203-956e53c0-b657-4abe-a77d-297057a12b33.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>文件在 Linux 眼里到底是什么</h2>
+<p>平时你眼里的文件，是文档、图片、视频这些躺在磁盘上的东西。</p>
+<p>Linux 把这件事放大了。</p>
+<p>它背后的核心思想是：</p>
+<p>很多不同类型的资源，都可以通过统一的文件接口来访问。</p>
+<p>普通文件、设备、管道等资源，程序往往可以通过文件描述符和 <code>read</code>、<code>write</code>、<code>close</code> 等接口进行操作；</p>
+<p>Socket 则通过 <code>socket</code> 创建，同样会得到文件描述符。</p>
+<p>这就像墙上的标准插座。</p>
+<p>电视、冰箱、台灯的插头长得不一样，但插进墙里取电这件事是统一的。</p>
+<p>Linux 干的就是把硬盘、键盘、打印机都接上同一个「插座」，操作它们的方式差不多。</p>
+<h2>举个最实在的例子：硬盘</h2>
+<p>Linux 会把磁盘这类硬件暴露成设备文件，比如 <code>/dev/sda</code>。</p>
+<p>不过普通程序保存文件时，通常不会直接去操作 <code>/dev/sda</code>。</p>
+<p>它写的是普通文件，再由内核和文件系统把数据最终落到磁盘设备上。</p>
+<p>你根本不用管底下是 SATA 还是 NVMe，是机械盘还是固态盘，接口长一个样。</p>
+<h2>键盘和打印机也一样</h2>
+<p>键盘输入也能通过文件接口被程序读取。</p>
+<p>但这里要纠正一个常见的误解：</p>
+<p><code>/dev/tty</code> 并不等于「键盘设备」。</p>
+<p>它指的是当前进程关联的控制终端。</p>
+<p>你敲下键盘后，输入事件要经过 Linux 的输入子系统和终端驱动处理，程序最终通过标准输入或终端设备读到这些数据。</p>
+<p>打印机也有相应的设备接口，但现代 Linux 中，应用通常通过 CUPS 等打印系统完成打印，而不是直接 <code>write</code> 到设备文件。</p>
+<p>这种抽象的威力在于，你不用给硬盘、键盘、打印机各学一套完全不同的操作方式，很多场景走的思路是统一的。</p>
+<h2>统一接口到底香在哪</h2>
+<p>好处最容易看到的，是命令行。</p>
+<p>统一接口的好处，并不是所有资源都能拿 <code>cp</code> 随便操作，而是很多不同类型的资源，都可以通过类似的文件描述符和 I/O 机制来读写。</p>
+<p>普通文件、管道、终端、套接字，程序都能用相对统一的方式处理数据。</p>
+<p>更典型的例子是重定向和管道。</p>
+<p>命令的输出，本质上是写进「标准输出」这个文件描述符。</p>
+<p>你可以把它重定向到普通文件，也可以通过管道交给下一个程序继续处理。</p>
+<pre><code class="language-plain">命令 A
+  ↓
+pipe
+  ↓
+命令 B
+</code></pre>
+<p>数据的流动方式因此能被组合起来，这也是 Linux 命令行灵活的原因。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1786843235560-97e416f7-cb46-4ea2-80c4-83eee594f699.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>不同类型的资源，在 Linux 里的常见访问方式，摊开看长这样：</p>
+<table>
+<thead>
+<tr>
+<th>资源类型</th>
+<th>Linux 中常见的访问方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>普通文件</td>
+<td><code>open</code> / <code>read</code> / <code>write</code></td>
+</tr>
+<tr>
+<td>终端</td>
+<td>文件描述符读写</td>
+</tr>
+<tr>
+<td>管道</td>
+<td>文件描述符读写</td>
+</tr>
+<tr>
+<td>Socket</td>
+<td><code>socket</code> 后通过文件描述符收发数据</td>
+</tr>
+<tr>
+<td>设备</td>
+<td>通过设备文件或专用系统接口访问</td>
+</tr>
+</tbody>
+</table>
+<p>代码层面看，把终端敲出来的内容存成文件，就是一条命令的事：</p>
+<pre><code class="language-bash"><span class="c1"># 把终端输入保存到文件，按 Ctrl + D 结束</span>
+cat<span class="w"> </span>&gt;<span class="w"> </span>what_i_typed.txt
+</code></pre>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1786843249851-c826f6bd-1025-4e6d-a3e0-24050d87bba7.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>一句话看清本质</h2>
+<p>说到这，一切皆文件的事就算讲透了。</p>
+<p>「一切皆文件」真正想表达的，并不是 Linux 里所有东西都真的等同于普通文件。</p>
+<p>更重要的是，Linux 会尽可能把不同类型的资源，都纳入统一的 I/O 模型里。</p>
+<p>普通文件、设备、管道、Socket，程序通常都可以通过文件描述符，以及 <code>read</code>、<code>write</code> 这些统一接口来处理数据。</p>
+<p>不同资源底层实现完全不同，但程序跟它们交互的方式可以尽量保持一致。</p>
+<p>这才是「一切皆文件」最核心的思想。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "MySQL 回表：为什么走了索引还要再查一次 B+ 树？", "slug": "post-bdc914"}, "next": {"title": "为什么大模型总记不住你的文档？聊聊向量数据库", "slug": "post-c65602"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "Redis 的数据过期策略，到底是怎么删数据的？", "slug": "post-136c78", "desc": "给 Redis 的 key 设了过期时间，时间一到，这条数据会瞬间从内存里消失吗？ 这个问题问的其实就是 Redis 的 数据过期策略 。 说白了，当我们给一个 key 指定了 TTL（比如 set…", "date": "2026-08-04"}, {"title": "大模型推理的两阶段：一次 Prefill，加上多次 Decode", "slug": "post-902fd6", "desc": "你跟 DeepSeek、通义、GPT 这类大模型聊过天，应该都见过那个画面—— 问完问题，字是一个一个往外蹦的，像有人在你对面现想现说。 可模型没有意识，它不会现想现说。 你敲下回车的那一刻，它其实是…", "date": "2026-09-06"}, {"title": "传统 KV cache：显存明明够，为什么并发就是上不去", "slug": "post-a64775", "desc": "上篇讲到，一种很直接的做法是给每个请求按\"可能的最大长度\"预留一块连续的显存空间。这种传统预分配，最大的问题就是这块空间常常用不满。 这一篇就把这件事拆开看：KV cache 到底占了多少显存，传统分…", "date": "2026-09-11"}, {"title": "Agent Skill 和 MCP，到底有什么区别？", "slug": "post-ee1018", "desc": "做 AI 应用开发，经常会遇到两个概念：Agent Skill 和 MCP（Model Context Protocol）。 虽然都是让 AI 能调用工具，但它们根本不是一个维度的东西。 简单来说：…", "date": "2026-06-30"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

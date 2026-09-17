@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MySQL 索引下推（ICP）：为什么能少回几次表？ · 海上小飞龙</title>
+<meta name="description" content="MySQL 面试里有个题，单独问的时候不算多，但一问就容易露馅： 索引下推（ICP）是什么？ 很多人能背出&quot;减少回表次数&quot;这六个字，再往下就被问住了——为什么能减少？省的是哪一步 IO？它跟覆盖索引又…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-e45b67.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="MySQL 索引下推（ICP）：为什么能少回几次表？ · 海上小飞龙">
+<meta property="og:description" content="MySQL 面试里有个题，单独问的时候不算多，但一问就容易露馅： 索引下推（ICP）是什么？ 很多人能背出&quot;减少回表次数&quot;这六个字，再往下就被问住了——为什么能减少？省的是哪一步 IO？它跟覆盖索引又…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/mysql.html">MySQL</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a><a class="tag" href="/tags/post-d11195.html">面试题</a></div>
+      <h1 class="post-title">MySQL 索引下推（ICP）：为什么能少回几次表？</h1>
+      <div class="post-meta">
+        <span>2026-08-20</span>
+        <span class="dot"></span>
+        <span>3563 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>MySQL 面试里有个题，单独问的时候不算多，但一问就容易露馅：</p>
+<p>索引下推（ICP）是什么？</p>
+<p>很多人能背出&quot;减少回表次数&quot;这六个字，再往下就被问住了——为什么能减少？省的是哪一步 IO？它跟覆盖索引又是什么关系？</p>
+<p>索引下推（Index Condition Pushdown，简称 ICP）是 MySQL 5.6 引入的查询优化。</p>
+<p>当你用二级索引查数据时，MySQL 会把本该在 server 层做的条件判断，下推到存储引擎层，在数据遍历的那一刻就顺手筛掉，少回几次表。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1787218352561-55fc9f09-596c-43ce-a6c3-6b2069076eee.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>先看清 MySQL 的三层架构</h2>
+<p>一条 SQL 从你敲下回车，到拿到结果，MySQL 内部是分三层跑的。</p>
+<p>最上面是 Client 层，就是你接触到的那些东西：</p>
+<p>JDBC 代码、Navicat、命令行、各种 SQL 客户端都算。</p>
+<p>中间是 Server 层，负责 SQL 的解析、优化和执行。</p>
+<p>这里可以重点关注几个核心组件：</p>
+<p>连接器、解析器、优化器和执行器。</p>
+<p>连接器管连接、验权限。</p>
+<p>解析器负责词法分析和语法分析，把 SQL 解析成 MySQL 能理解的内部结构。</p>
+<p>优化器负责选择执行计划，比如决定走哪个索引、采用什么访问方式。</p>
+<p>执行器拿着计划去跟存储引擎打交道。</p>
+<p>最底下是存储引擎层，InnoDB、MyISAM、Memory 都属于存储引擎，负责数据的实际存储和读写。</p>
+<p>为什么特意提这个？</p>
+<p>因为索引下推玩的就是&quot;Server 层把活分给存储引擎层&quot;——没有这层分工，根本谈不上&quot;下推&quot;两个字。</p>
+<h2>没有 ICP，回表是这样发生的</h2>
+<p>用二级索引查数据时，存储引擎会遍历那棵索引 B+ 树，把满足索引条件的记录逐条找出来。</p>
+<p>每条二级索引记录里都带着它对应的主键值。</p>
+<p>剩下的条件判断在哪儿做？</p>
+<p>在 server 层。</p>
+<p>但 server 层不会直接拿到过滤好的结果。</p>
+<p>存储引擎得先根据这些主键值回到聚簇索引，把完整行捞出来交给 server 层，server 层才能去判断其余条件成不成立。</p>
+<p>问题就出在这儿：</p>
+<p>如果第一个字段匹配出了很多行，交上来的主键就很多，回表次数就跟着暴涨。</p>
+<p>明明大部分行在后面的条件上就会被淘汰，可它们已经白白回表走了一趟。</p>
+<h2>一张 user 表，看清差距</h2>
+<p>拿一张 user 表举例，字段有 id、name、age、gender、address，id 是主键，建了一个 (age, name) 的联合索引。</p>
+<pre><code class="language-sql"><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="k">user</span><span class="w"> </span><span class="p">(</span>
+<span class="w">  </span><span class="n">id</span><span class="w">      </span><span class="nb">INT</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="p">,</span>
+<span class="w">  </span><span class="n">name</span><span class="w">    </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">50</span><span class="p">),</span>
+<span class="w">  </span><span class="n">age</span><span class="w">     </span><span class="nb">INT</span><span class="p">,</span>
+<span class="w">  </span><span class="n">gender</span><span class="w">  </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">10</span><span class="p">),</span>
+<span class="w">  </span><span class="n">address</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">200</span><span class="p">),</span>
+<span class="w">  </span><span class="k">INDEX</span><span class="w"> </span><span class="n">idx_age_name</span><span class="w"> </span><span class="p">(</span><span class="n">age</span><span class="p">,</span><span class="w"> </span><span class="n">name</span><span class="p">)</span>
+<span class="p">);</span>
+</code></pre>
+<p>现在跑这条查询：</p>
+<pre><code class="language-sql"><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="k">user</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">age</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">10</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="s1">&#39;%张%&#39;</span><span class="p">;</span>
+</code></pre>
+<p><strong>没有 ICP 的时候</strong>，执行分两步。</p>
+<p>第一步，存储引擎用 <code>age &gt; 10</code> 在二级索引上圈出一段扫描区间。</p>
+<p>因为 age 是索引最左列、记录按 age 排好序，所以 <code>age &gt; 10</code> 能直接定位到一段连续的范围，不必全表扫。</p>
+<p>这段区间里假定有 1000 条索引记录。</p>
+<p>接下来要查 <code>name LIKE '%张%'</code>。</p>
+<p><code>name</code> 是索引第二列，可 <code>%张%</code> 是前缀模糊匹配——前缀都不知道，自然没法靠索引的有序性继续往下缩范围，所以这 1000 条区间只能一条条扫过去。</p>
+<p>但有个关键事实：</p>
+<p><code>name</code> 本身<strong>就写在每一条二级索引记录里</strong>（二级索引不只存 age 和主键，也存了 name）。</p>
+<p>也就是说，扫到每条记录时，name 的值是现成能读到的。</p>
+<p>可没有 ICP 时，存储引擎不会顺便拿它来过滤，而是老老实实把这 1000 条记录的主键逐个拿去聚簇索引回表、取回完整行，再交给 Server 层判断 name 是否成立。</p>
+<p>于是出现了浪费：</p>
+<p>这 1000 条里最终可能只有 10 条 name 带&quot;张&quot;，剩下 990 条本该在索引层就被刷掉，却已经白白回表走了一趟。</p>
+<p>性能开销主要就花在这些无效回表上。</p>
+<p><strong>有了 ICP 之后</strong>，第一步就变了。</p>
+<p>存储引擎先根据 <code>age &gt; 10</code> 确定二级索引的扫描范围。</p>
+<p>在扫描 <code>(age, name)</code> 索引记录的过程中，由于 <code>name</code> 也保存在索引记录里，存储引擎可以直接判断 <code>name LIKE '%张%'</code>。</p>
+<p>不满足条件的记录就地跳过，不再根据其中的主键去聚簇索引读取完整行；</p>
+<p>只有同时满足条件的记录，才需要继续回表取 <code>SELECT *</code> 需要的其他字段。</p>
+<p>这里也正是 ICP 和覆盖索引的分界：</p>
+<p>如果查询改成只取索引里已有的字段，比如 <code>SELECT age, name ...</code>，那可能直接走覆盖索引就完成，连最后这次回表都不需要——当然，具体是否采用覆盖索引仍由优化器根据成本决定。</p>
+<p>在这个示例里，ICP 大致可以避免 990 次无效回表。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1787218365349-51892e57-fbe7-4759-aba3-9f87bf3c50f3.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>用个比方再串一遍</h2>
+<p>还是这个场景，换个说法更好记。</p>
+<p>你要从仓库里找出&quot;尺寸大于 10、并且是红色&quot;的零件。</p>
+<p>仓库管理员手里的索引卡按尺寸排了序，每张卡上还记了这件零件的颜色和它在货架上的箱号——但卡上只有这三项，零件本身仍在货架上。</p>
+<p>没有下推时：</p>
+<p>管理员把所有尺寸 &gt; 10 的零件整箱从货架搬到你办公室，你再一个个开箱看颜色，红色的留下、其他的扔掉。</p>
+<p>1000 个候选里其实只有 10 个是红的——也就是说有 990 个箱子白搬了。</p>
+<p>有下推时：</p>
+<p>你提前把&quot;红色&quot;也写进取货单。</p>
+<p>管理员翻索引卡时，颜色就写在卡上、不用开箱就能看到，于是他先把非红色的剔掉，只把 10 个红零件的箱子从货架搬出来。</p>
+<p>那 990 个非红的，连箱子都没开、更没搬。</p>
+<p>少搬出来的那 990 个零件，对应的就是 ICP 省掉的 990 次无效回表。</p>
+<p>这里要和覆盖索引分清：</p>
+<p>覆盖索引相当于索引卡上把查询要的所有信息都写全了，管理员连货架都不用去。</p>
+<p>ICP 不一样——卡上只有部分字段，所以最后那 10 个红零件还是得从货架搬出来（回表），只是不用再为被淘汰的 990 个白跑一趟。</p>
+<h2>减少回表，不等于不回表</h2>
+<p>这里有个特别容易混的点，必须掰清楚。</p>
+<p>ICP 减少了回表次数，但回表这一步并没有被彻底消灭。</p>
+<p>上面那条查询是 <code>SELECT *</code>，要的是整行，存储引擎层筛完之后，照样得去聚簇索引把完整行捞出来。</p>
+<p>它省掉的是&quot;根据二级索引中的主键去聚簇索引读取完整行&quot;这一步里、最终会被 WHERE 条件淘汰的那部分读取——也就是不必要的回表读取。</p>
+<p>覆盖索引才是真正的不回表——要查的字段刚好全在索引里，连聚簇索引都不用去。</p>
+<p>它俩经常被一起考，记住一句话就够了：</p>
+<p>覆盖索引是&quot;不用去&quot;，索引下推是&quot;少去几次&quot;。</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>覆盖索引</th>
+<th>索引下推 ICP</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>核心作用</td>
+<td>利用索引直接返回查询结果</td>
+<td>在扫描索引时提前过滤记录</td>
+</tr>
+<tr>
+<td>是否回表</td>
+<td>查询被索引完全覆盖时不需要回表</td>
+<td>如果还需要读取非索引字段，仍然可能回表</td>
+</tr>
+<tr>
+<td>优化重点</td>
+<td>避免回表</td>
+<td>减少不必要的回表</td>
+</tr>
+<tr>
+<td>条件</td>
+<td>SELECT 所需字段都能从索引获得</td>
+<td>WHERE 中部分条件可以直接利用当前扫描的索引记录判断</td>
+</tr>
+</tbody>
+</table>
+<p>索引下推说到底就一件事：</p>
+<p>在使用索引扫描数据时，原本需要拿到完整记录后再判断的一部分条件，如果所需字段本身就在当前扫描的索引里，就可以提前下推到存储引擎层进行过滤。</p>
+<p>这样，不满足条件的记录会在索引扫描阶段被淘汰，不再触发后续的回表读取。</p>
+<p>它减少的是<strong>不必要的回表次数</strong>，不是彻底消灭回表；</p>
+<p>而覆盖索引解决的是<strong>查询结果完全可以从索引中获得，从而根本不需要回表</strong>。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "MySQL 索引有哪些设计原则？", "slug": "post-b9d602"}, "next": {"title": "MySQL 联合索引：最左列为什么不能跳过", "slug": "post-e09f15"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "面试官：MySQL 索引是什么？这道题答全的人真不多", "slug": "post-78822c", "desc": "面试被问到 MySQL 索引，多数人的回答停留在\"加快查询\"四个字。 这话对，但没用。 索引真正要讲清楚的，是一份排好序的目录： 索引可以理解成一份排好序的目录，它通过维护特定的数据结构，让数据库能够…", "date": "2026-08-12"}, {"title": "MySQL 索引为什么是 B+ 树？二叉树、哈希、B 树是怎么被淘汰的", "slug": "post-9f798e", "desc": "面试被问到“MySQL 索引为什么用 B+ 树”，多数人的回答停留在“叶子节点存数据、非叶子节点不存、叶子节点用双向链表支持范围查询”。 这话没错，但没讲清“为什么非得是 B+ 树”。 二叉树不行吗？…", "date": "2026-08-13"}, {"title": "MySQL 聚簇索引和非聚簇索引：为什么二级索引查完还要回表？", "slug": "post-acebb2", "desc": "MySQL 的索引底层是一棵 B+ 树，这个说法你应该听过。 但一张表往往建了好几个索引，每个索引都是一棵独立的 B+ 树。 那问题来了，每棵树的叶子节点，都存一份完整的行数据吗？ 不是。 有的索引叶…", "date": "2026-08-14"}, {"title": "MySQL 回表：为什么走了索引还要再查一次 B+ 树？", "slug": "post-bdc914", "desc": "MySQL 面试里有一个绕不开的问题： 为什么走了索引，还需要回表？ 官方文档并没有给它正式定义，但它连着聚簇索引、非聚簇索引、覆盖索引一整条线，查询优化时经常撞上。 一句话说清楚： 回表就是用二级索…", "date": "2026-08-17"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

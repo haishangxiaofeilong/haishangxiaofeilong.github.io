@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Redis 分布式锁原理：从 SET NX 到 Redisson 看门狗 · 海上小飞龙</title>
+<meta name="description" content="一、加锁靠的是 SET NX EX 的原子性 Redis 给了个 setNX，名字拆开就是 set if not exists——只有 key 不存在才写进去。 具体加锁时，我们直接一条 set 命令…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-11ef9d.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Redis 分布式锁原理：从 SET NX 到 Redisson 看门狗 · 海上小飞龙">
+<meta property="og:description" content="一、加锁靠的是 SET NX EX 的原子性 Redis 给了个 setNX，名字拆开就是 set if not exists——只有 key 不存在才写进去。 具体加锁时，我们直接一条 set 命令…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/redis.html">Redis</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a><a class="tag" href="/tags/post-30d23e.html">操作系统</a><a class="tag" href="/tags/java.html">Java</a></div>
+      <h1 class="post-title">Redis 分布式锁原理：从 SET NX 到 Redisson 看门狗</h1>
+      <div class="post-meta">
+        <span>2026-08-06</span>
+        <span class="dot"></span>
+        <span>3861 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><h2>一、加锁靠的是 SET NX EX 的原子性</h2>
+<p>Redis 给了个 <code>setNX</code>，名字拆开就是 set if not exists——只有 key 不存在才写进去。</p>
+<p>具体加锁时，我们直接一条 <code>set</code> 命令搞定：</p>
+<p>key 叫 <code>lock</code>，value 随便给，后面跟上 <code>NX</code> 表示不存在才设，再跟 <code>EX</code> 指定过期时间。</p>
+<p>有人问，为啥非得塞进一条命令？分开先 <code>set</code> 再 <code>expire</code> 不行吗？</p>
+<p>行是行，可那是两条命令，保证不了<strong>原子性</strong>。</p>
+<p>合到一条里执行，才保证要么全成、要么全不成。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1786010446906-a3cc997b-6a8a-409c-afbe-9fe0a29382b0.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>二、过期时间不是可有可无，是防死锁的命门</h2>
+<p>加锁流程很简单：</p>
+<p>线程来了先抢锁，返回 <code>OK</code> 就是抢到了，接着跑业务，跑完用 <code>del</code> 把 key 删掉，锁就释放了。</p>
+<p>抢锁失败后，当前线程不会自动阻塞，需要业务代码或者 Redisson 自己实现等待和重试。</p>
+<p>那不设置过期时间行不行？</p>
+<p>想想极端情况：</p>
+<p>你刚抢到锁、业务还没跑完，服务器突然宕机，锁没人来 <code>del</code>。</p>
+<p>这锁就永远挂着了，其他线程再也不可能拿到——<strong>死锁</strong>就这么来了。</p>
+<p>所以必须给锁加失效时间。</p>
+<p>哪怕中途宕机，到点自动过期，别的线程照样能进来。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1786010746352-0a02c039-9274-4858-b669-eee4cb40a3bd.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>三、锁时长失控，比死锁更隐蔽</h2>
+<p>过期时间兜底了死锁，可又引出新麻烦。</p>
+<p>你加锁时给了个失效时间，万一业务执行时间超过了它，锁是不是自己就释放了？</p>
+<p>可你的业务还没跑完啊。</p>
+<p>这时候别的新线程一来，轻轻松松拿到锁。</p>
+<p>分布式锁失效，导致多个线程同时进入临界区，业务逻辑的互斥性失效。</p>
+<p>怎么治？</p>
+<p>两条路：</p>
+<p>第一，按业务耗时预估去设过期时间。</p>
+<p>听着合理，实则悬——网络抖动、卡顿一来，时长就失控，根本压不准。</p>
+<p>第二，给锁续期。</p>
+<p>思路是另起一个线程盯着业务跑了多久，发现快超时了就把它持有的时长往上加。</p>
+<p>这条才靠谱。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1786012264241-db0949fc-9f77-474b-96bc-2436d2a3ea85.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>四、Redisson 的看门狗，把续期自动化了</h2>
+<p>自己起线程做监控太麻烦，市面上有现成方案——Redisson。</p>
+<p>它底层基于 Redis 命令实现加锁，本质思想仍然是“只有不存在才能创建”，但 Redisson 通过 Lua 脚本实现了更加复杂的锁逻辑。</p>
+<p>加锁成功后，它会<strong>自动另开一个线程当看门狗（watchdog）</strong>，专门盯着持锁线程，不断把锁的持有时间往长续。</p>
+<p>Redisson 默认锁过期时间为30秒，看门狗会每隔约10秒检查一次，并把锁重新续期到30秒。</p>
+<p>你手动释放锁时，会通知看门狗别再监听了——毕竟 key 都删了，没必要续。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1786013099078-267f3787-2a81-4d64-9aa1-5966fe6b7845.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>五、抢不到锁？那就重试，别直接放弃</h2>
+<p>普通实现里，抢锁失败后通常直接返回失败，需要业务自己决定等待、重试或者退出。</p>
+<p>Redisson 不一样，它更灵活。</p>
+<p>它内部通过等待机制和重试逻辑不断尝试获取锁。</p>
+<p>线程一要是很快就释放了，线程二几乎立刻就能拿到。</p>
+<p>当然也不会无限循环。</p>
+<p>它设了重试次数的阈值，超过就宣告获取失败。</p>
+<p>业务本来也就几十毫秒，所以线程二通常等不了多久。</p>
+<p>这层等待机制让高并发下锁的利用率高了不少，也就是所谓的<strong>重试机制</strong>。</p>
+<p>代码上先拿 <code>RedissonClient</code>，调 <code>getLock</code> 起一个锁，再调 <code>tryLock</code> 去抢。</p>
+<p><code>tryLock</code> 有两个常用版本：</p>
+<ul>
+<li><code>tryLock(waitTime, unit)</code>：第一个参数是最大等待时长，比如 10 秒。</li>
+<li><code>tryLock(waitTime, leaseTime, unit)</code>：多了中间的 <code>leaseTime</code>，即锁的失效时间。</li>
+</ul>
+<p>这里有个坑要注意：</p>
+<p>当 leaseTime 没有指定（默认 -1）时，Redisson 使用看门狗自动续期；</p>
+<p>如果主动指定 leaseTime，则按照指定时间自动释放。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1786014081507-3d39bac2-3169-4781-88f1-8c4fdbd6b661.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>六、原子性真正的基石：Lua 脚本</h2>
+<p>Redisson 的核心锁操作（例如加锁、释放锁、判断锁归属）大量依赖 Lua 脚本保证原子性。</p>
+<p>Lua 脚本最大的价值，就是能打包多条 Redis 命令一起执行，保证它们整体原子。</p>
+<p>这点面试时别忘了提一嘴。</p>
+<p>所以 Redisson 分布式锁的重点就三个：看门狗负责续期、抢不到的线程会重试等待、所有命令基于 Lua 保证原子。</p>
+<h2>七、可重入：同一线程能反复拿锁</h2>
+<p>面试官常追问：</p>
+<p>这把锁能重入吗？</p>
+<p>判断方法很简单：</p>
+<p>看同一个线程能不能再次获取自己已经持有的锁。</p>
+<p>比如：</p>
+<pre><code class="language-java"><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">add1</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">lock</span><span class="p">.</span><span class="na">lock</span><span class="p">();</span>
+<span class="w">    </span><span class="k">try</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">add2</span><span class="p">();</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">finally</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">lock</span><span class="p">.</span><span class="na">unlock</span><span class="p">();</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">add2</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">lock</span><span class="p">.</span><span class="na">lock</span><span class="p">();</span>
+<span class="w">    </span><span class="k">try</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// 业务代码</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">finally</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">lock</span><span class="p">.</span><span class="na">unlock</span><span class="p">();</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre>
+<p>线程执行 <code>add1()</code> 时已经持有 <code>myLock</code>，进入 <code>add2()</code> 后又尝试获取同一把锁。</p>
+<p>如果第二次加锁成功，说明锁支持可重入；<br />
+如果第二次加锁阻塞，说明锁不可重入。</p>
+<p>简单基于 <code>SET NX EX</code> 实现的 Redis 分布式锁，通常不支持重入，因为 Redis 只记录“锁存在”，不知道是谁持有、持有了几次。</p>
+<p>而 Redisson 会在 Redis 中记录线程标识和重入次数，因此同一个线程可以多次获取同一把锁。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1786002505225-d2597f3b-c489-4030-9f85-8de2f957bd97.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>八、主从一致性：Redlock 与 ZooKeeper 的取舍</h2>
+<p>企业里 Redis 通常搭主从集群：</p>
+<p>一个主节点负责写（增删改），两个从节点负责读。</p>
+<p>主节点写完要把数据同步给从节点。</p>
+<p>问题就出在同步窗口上。</p>
+<p>Java 应用建分布式锁是写操作，先落到主节点。</p>
+<p>还没等同步，主节点宕机了。</p>
+<p>哨兵机制从两个从里选一个新的主。</p>
+<p>新线程直接打新主，因为旧数据没同步过来，它也能加锁成功。</p>
+<p>这下两个线程同时持同一把锁，<strong>互斥性没了</strong>，业务在跑就容易出脏数据。</p>
+<p>Redis 提出了 Redlock 算法，用于降低单节点故障导致锁失效的风险。</p>
+<p>别只在一个实例上加锁，要在多个实例上加。</p>
+<p>有个公式：<code>N / 2 + 1</code>，N 是节点总数。3 个节点情况下，需要超过半数，也就是至少 2 个节点加锁成功。</p>
+<p>这样可以降低单节点故障导致锁失效的风险，提高分布式锁的可靠性。</p>
+<p>但红锁毛病也不少，项目里其实很少用：</p>
+<p>实现复杂、高并发下性能差、要维护多个独立 Redis 节点、运维繁琐，连 Redis 官方都不建议直接拿它解主从不一致。</p>
+<p>如果业务更关注强一致性，可以考虑 ZooKeeper 等 CP 系统实现分布式锁。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1786004587102-9a3573d0-25a1-404b-b214-18f90fe740d9.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>九、面试怎么把这套讲完整</h2>
+<p>回到最开始的提问：Redis 分布式锁怎么实现的？</p>
+<p>先讲业务场景，比如当时做了个抢券，才用上分布式锁。</p>
+<p>再说项目里用的是 Redisson，底层 <code>setNX</code> 加 <code>Lua</code> 脚本，Lua 保证命令原子。</p>
+<p>被追问&quot;怎么控制锁时长&quot;，就抛看门狗：给持锁线程续期，默认每 10 秒续一次。</p>
+<p>再被问&quot;锁能重入吗&quot;，答能，靠线程 ID 判断，存储用哈希记线程标识和重入次数。</p>
+<p>最后被追&quot;主从一致能解决吗&quot;，答红锁能但很少用，真要强一致上 ZooKeeper。</p>
+<p>这套答下来，核心信息基本就齐了。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "Redis 集群到底有几种方案？先把主从复制讲透", "slug": "post-4f6aba"}, "next": {"title": "为什么 synchronized 管不了集群？Redis 分布式锁到底解决了什么问题？", "slug": "post-416895"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "为什么 synchronized 管不了集群？Redis 分布式锁到底解决了什么问题？", "slug": "post-416895", "desc": "面试官最爱顺藤摸瓜的一连串 面试官问你 Redis 用在项目哪些地方，你若答\"分布式锁\"，他八成追一句：那它怎么实现的？ 这种题有个坑： 别急着背原理， 得先把使用背景讲清楚 ——什么业务、什么场景，…", "date": "2026-08-05"}, {"title": "Redis 分片集群：它到底是怎么把数据分片又路由的？", "slug": "post-d06a94", "desc": "主从复制和哨兵能解决高并发读和高可用，但有两个天花板它俩都够不着。 一个是海量数据存储，一个是高并发写。 面试的时候，Redis 分片集群是必问的一题，这篇文章就把这条线彻底讲透。 一、为什么主从不够…", "date": "2026-08-09"}, {"title": "Redis 面试高频题：缓存击穿到底是什么？互斥锁和逻辑过期一次讲透", "slug": "post-fa28af", "desc": "先说结论： 缓存击穿（Cache Breakdown）指的是——某个 热点 key 刚好在过期的那一瞬间，被海量并发请求同时打中 ，缓存里没数据，请求全部砸向数据库，数据库瞬间被压垮。 说白了，它跟\"…", "date": "2026-07-28"}, {"title": "Redis 缓存和 MySQL 数据不一致怎么办？双写一致性一次讲透", "slug": "post-4aa231", "desc": "先说大前提： 面试官问\"Redis 作为缓存，MySQL 的数据怎么和 Redis 同步\"，本质就是在考 双写一致性 。 但这道题最忌讳的一点，就是上来直接背标准答案。 答题第一步，必须先交代业务背景…", "date": "2026-07-30"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

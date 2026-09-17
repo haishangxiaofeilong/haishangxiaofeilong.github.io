@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>大模型推理时，到底在干一件什么事？ · 海上小飞龙</title>
+<meta name="description" content="你肯定跟 ChatGPT、DeepSeek 这类大模型聊过天。 在输入框里打完问题，点一下发送，它就开始一个字一个字往外蹦。 有没有想过，这一行字蹦出来的背后，它到底在干什么？ 如果只看语言模型最核心…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-bd5fe3.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="大模型推理时，到底在干一件什么事？ · 海上小飞龙">
+<meta property="og:description" content="你肯定跟 ChatGPT、DeepSeek 这类大模型聊过天。 在输入框里打完问题，点一下发送，它就开始一个字一个字往外蹦。 有没有想过，这一行字蹦出来的背后，它到底在干什么？ 如果只看语言模型最核心…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/post-2dc9b4.html">大模型</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a></div>
+      <h1 class="post-title">大模型推理时，到底在干一件什么事？</h1>
+      <div class="post-meta">
+        <span>2026-09-05</span>
+        <span class="dot"></span>
+        <span>3500 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>你肯定跟 ChatGPT、DeepSeek 这类大模型聊过天。</p>
+<p>在输入框里打完问题，点一下发送，它就开始一个字一个字往外蹦。</p>
+<p>有没有想过，这一行字蹦出来的背后，它到底在干什么？</p>
+<p>如果只看语言模型最核心的生成机制，它做的事情其实非常简单：</p>
+<p><strong>根据前面的内容，预测下一个 token</strong>。</p>
+<h2>它猜的 token，到底是什么</h2>
+<p>大模型吐出来的每一个片段，在圈里叫 token。</p>
+<p>全国科技名词委在 2026 年已经推荐把它译作&quot;词元&quot;，目前还在推广试用阶段。</p>
+<p>你可以把它理解成模型处理文本时使用的一种基本单位——有时候是一个字，有时候是一个词的一部分，也可能是完整的词、标点等。</p>
+<p>它生成的逻辑，可以理解成一个不断把新生成的 token 接到上下文末尾的循环。</p>
+<p>你输入的提示词，会先作为起点整体送进模型。</p>
+<p>模型根据这段上下文计算出下一个 token；</p>
+<p>这个新 token 加入上下文后，模型再基于更新后的上下文预测下一个 token，一直持续到它输出特殊标记 EOS（End of Sequence，序列结束符），或者触发最大输出长度等停止条件。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1788579809980-18a2102d-3622-4b0a-9d46-6024cdaa460d.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>所以你看到的&quot;流式输出&quot;，本质上就是它一边算、一边把猜到的 token 往外扔。</p>
+<h2>一次典型推理，其实分两步</h2>
+<p>你按下回车那一刻，模型做的第一件事，是把你整段提问一次性读进去、算一遍。</p>
+<p>这个阶段叫 <strong>Prefill</strong>（预填充）。</p>
+<p>Prefill 会把整个输入序列完整地跑一遍模型，在各层计算对应的 Key、Value，并把它们缓存下来，这就是 KV Cache（Key-Value Cache，键值缓存）。</p>
+<p>之后模型才进入 <strong>Decode</strong>（解码）阶段：</p>
+<p>一个 token 一个 token 地往外生成。</p>
+<p>每生成一个新 token，模型都会计算它对应的 Key、Value，并把它们追加到 KV Cache 中；</p>
+<p>同时复用之前已经缓存的 KV，不需要把历史内容重新算一遍。</p>
+<p>所以你眼睛看到的&quot;一个字一个字往外蹦&quot;，主要发生在 Decode 阶段。</p>
+<p>这也顺带解释了几个现象：</p>
+<p>输入越长，Prefill 通常需要处理的计算量越大，首 token 延迟（Time to First Token，TTFT）也可能随之增加；</p>
+<p>进入 Decode 后，模型才会持续一个 token 一个 token 地生成。</p>
+<p>而 vLLM、SGLang 这些推理引擎，也会围绕 KV Cache 管理、批处理、调度和计算优化等做大量工作，目标就是提高吞吐、降低延迟，并尽可能提高显存利用率。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1788579830379-a827b663-5b44-4010-90f9-078d6c393f45.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>为什么现在主流大模型多是 Decoder-only</h2>
+<p>现在的大语言模型，普遍采用 Decoder-only 架构。</p>
+<p>它的技术源头，可以追溯到 2017 年 Google 团队提出的 Transformer 架构。</p>
+<p>当年的 Transformer 是 encoder-decoder 两截结构：</p>
+<p>前半截 encoder 负责&quot;读明白输入&quot;，后半截 decoder 负责&quot;生成输出&quot;。</p>
+<p>后来做大规模文本生成的人发现，对于&quot;根据前面的内容预测下一个 token&quot;这件事，并不一定需要完整的 Encoder-Decoder 结构。</p>
+<p>于是 GPT 一类模型采用了更简单的 Decoder-only Transformer:</p>
+<p>保留 Decoder 里带因果掩码的自注意力机制，去掉依赖 Encoder 输出的 Cross-Attention。</p>
+<p>因果掩码做的事很简单:</p>
+<p>算注意力时,把当前位置之后的 token 全遮住。</p>
+<p>模型预测第 N 个 token 时,能参考的只有前面的内容。</p>
+<p>训练时它看不到后面的答案,只能老老实实学预测;</p>
+<p>推理时后面的 token 本来就还没生成,遮住正好符合实情。</p>
+<p>所以，<strong>GPT 这一类主流生成式语言模型，本质上采用的是 Decoder-only 的 Transformer 架构</strong>。</p>
+<p>打个比方：</p>
+<p>encoder 像帮厨，负责把食材理解清楚；</p>
+<p>decoder 像掌勺，负责把菜炒出来。</p>
+<p>生成式模型要的是后者，帮厨那一步它不需要。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1788580180632-3e47a204-1a21-4656-803d-fae629c0f85a.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>它凭什么猜出下一个 token</h2>
+<p>你可能会问:</p>
+<p>它怎么就知道&quot;床前明月光，疑是&quot;后面该接&quot;地上霜&quot;?</p>
+<p>其实它没在&quot;回忆&quot;答案，每个时刻都在算一笔账——算每个候选 token 接下来出现的概率。</p>
+<p>模型会先对词表里的每一个候选 token 算一个分数，叫 <strong>logit</strong>。</p>
+<p>这个词表有多大？</p>
+<p>现在很多主流模型的词表规模，都在十万量级甚至更大。</p>
+<p>不同模型的 tokenizer 差别不小，不能一概而论。</p>
+<p>然后靠 softmax 函数，把这一堆原始打分压成一个概率分布：</p>
+<p>所有候选 token 的概率加起来正好等于 1。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1788578717164-3fb61271-cbf0-4ab0-9fb2-9639b81df912.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>接下来怎么选？</p>
+<p>两条路。</p>
+<p>一种是贪心，直接拿概率最大的那个 token——最稳，但也最没惊喜。</p>
+<p>另一种是按概率随机抽：</p>
+<p>概率越高的 token 越容易中奖，但不保证每次都是票数最多的那个胜出。</p>
+<p>所以在开启随机采样的时候，你同样的问题问两遍，答案可能不太一样。</p>
+<p>实际采样时，还可以通过 temperature、top-k、top-p 等参数控制随机程度。</p>
+<h2>这套本事，到底是从哪来的</h2>
+<p>它能猜对，是因为发布前已经在海量数据上&quot;预训练&quot;过了。</p>
+<p>典型的预训练，是从随机初始化的模型开始，在海量文本数据上不断训练。</p>
+<p>许多现代大模型的预训练数据已经达到万亿 token 甚至更高的规模，训练周期长、计算成本高，是非常重的工程。</p>
+<p>那你在企业里做的&quot;微调&quot;又是什么？</p>
+<p>微调是在预训练模型的基础上继续训练，让模型更贴合你的业务。</p>
+<p>它用到的数据量通常比预训练小得多，有些业务场景用几千条高质量数据就可以开始尝试，具体需要多少，则取决于任务难度、数据质量和训练方式。</p>
+<p>也正因为这个量级差，大家才把这一步叫作&quot;微调&quot;，而不是重新预训练。</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>预训练</th>
+<th>微调</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>数据量</td>
+<td>万亿 token 甚至更高规模</td>
+<td>远小于预训练</td>
+</tr>
+<tr>
+<td>目标</td>
+<td>学会通用的语言能力</td>
+<td>适配特定任务或领域</td>
+</tr>
+<tr>
+<td>训练过程</td>
+<td>从随机初始化开始学习</td>
+<td>在已有模型基础上继续更新</td>
+</tr>
+<tr>
+<td>谁来做</td>
+<td>通常需要大规模算力团队</td>
+<td>普通团队也可以根据场景开展</td>
+</tr>
+</tbody>
+</table>
+<h2>回到岗位：大模型工程师要会什么</h2>
+<p>聊完原理，回到最实际的问题——做这一行，到底得具备什么。</p>
+<p>如果想往大模型工程方向发展，通常需要同时补两类能力：</p>
+<p>一类是把模型跑起来、用起来的工程能力；</p>
+<p>另一类是理解模型训练、微调和推理优化的原理。</p>
+<p>工程落地这一侧，你得把模型部署到推理引擎上，比如 vLLM、SGLang，让它真正跑起来。</p>
+<p>部署好之后，再基于它做业务侧的二次开发。</p>
+<p>模型与优化这一侧，你得懂微调怎么调、量化和蒸馏怎么把模型压小提速，甚至了解模型是怎么从 0 训练出来的。</p>
+<p>现在很多模型采用 MoE（Mixture of Experts，多专家混合）架构。</p>
+<p>它本身属于模型架构的一部分，但也会直接影响推理时的计算、显存和通信，因此也是大模型工程师需要理解的内容。</p>
+<p>所以你看，大模型工程师远不止调调 API 那么简单。</p>
+<p>懂应用，能把模型落地；</p>
+<p>懂原理，才知道它为什么这样答、哪里能优化。</p>
+<p>这两手，缺一不可。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "大模型推理的两阶段：一次 Prefill，加上多次 Decode", "slug": "post-902fd6"}, "next": {"title": "大模型幻觉：它不是记错了，而是压根就没在记", "slug": "post-6f34d1"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "Agent Skill 和 MCP，到底有什么区别？", "slug": "post-ee1018", "desc": "做 AI 应用开发，经常会遇到两个概念：Agent Skill 和 MCP（Model Context Protocol）。 虽然都是让 AI 能调用工具，但它们根本不是一个维度的东西。 简单来说：…", "date": "2026-06-30"}, {"title": "RAG 面试高频题：召回率太低怎么办？一套完整优化方案讲透", "slug": "post-0b66cc", "desc": "很多人做 RAG 系统，遇到召回率低的问题，第一反应就是换模型——换一个参数更大的、换一个号称语义理解更强的。 结果呢？ 效果提升微乎其微。 根本原因不是模型不够强，而是模型拿到的参考材料本身就是错的…", "date": "2026-07-23"}, {"title": "Redis 的数据过期策略，到底是怎么删数据的？", "slug": "post-136c78", "desc": "给 Redis 的 key 设了过期时间，时间一到，这条数据会瞬间从内存里消失吗？ 这个问题问的其实就是 Redis 的 数据过期策略 。 说白了，当我们给一个 key 指定了 TTL（比如 set…", "date": "2026-08-04"}, {"title": "为什么大模型总记不住你的文档？聊聊向量数据库", "slug": "post-c65602", "desc": "不管是搭 RAG 知识库、做推荐系统，还是搞以图搜图，你迟早会撞上同一个词：向量数据库。 很多人把它想得很玄，觉得是某种更高端的 MySQL。 说白了，它干的事特别单纯： 存一堆高维向量，然后帮你找出…", "date": "2026-08-15"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

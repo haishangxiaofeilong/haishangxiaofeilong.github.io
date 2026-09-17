@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>全部文章 · 海上小飞龙</title>
+<meta name="description" content="海上小飞龙全部技术文章列表">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="全部文章 · 海上小飞龙">
+<meta property="og:description" content="海上小飞龙全部技术文章列表">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link is-active" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<section class="page-head">
+  <div class="wrap">
+    <h1 class="page-title">全部文章</h1>
+    <p class="page-desc">共 55 篇 · 后端 · 大模型深度拆解</p>
+  </div>
+</section>
+<section class="section">
+  <div class="wrap">
+    <div class="post-list"><a class="post-card" href="/posts/post-6f34d1.html">
+  <div class="post-card-body">
+    <div class="post-card-tags"><span class="tag tag-sm">RAG</span><span class="tag tag-sm">大模型</span><span class="tag tag-sm">网络</span></div>
+    <h2 class="post-card-title">大模型幻觉：它不是记错了，而是压根就没在记</h2>
+    <p class="post-card-desc">它编得那么顺，恰恰因为没人教过它什么是真 问大模型某篇论文的结果，它没见过也能写出数据齐全的一段话，但数字是编的。 这种情况大家都踩过，俗称&quot;幻觉&quot;。 大模型在预训练阶段，核心任务只有一件： next…</p>
+    <div class="post-card-meta"><span>2026-09-04</span></div>
+  </div>
+  <span class="post-card-arrow">&rarr;</span>
+</a><a class="post-card" href="/posts/post-60f4d8.html">
+  <div class="post-card-body">
+    <div class="post-card-tags"><span class="tag tag-sm">RAG</span><span class="tag tag-sm">大模型</span><span class="tag tag-sm">gRPC</span></div>
+    <h2 class="post-card-title">gRPC 为什么比 HTTP+JSON 快：快不是某一个技术，是4件事叠出来的</h2>
+    <p class="post-card-desc">内部调用的钱花在哪了 服务之间一次普通的 HTTP+JSON 调用，真正有用的数据占了多少？ 一个 user 对象，id、name、email 这几个字段名每条消息都得原样抄一遍。 接口还靠文档约定。…</p>
+    <div class="post-card-meta"><span>2026-09-03</span></div>
+  </div>
+  <span class="post-card-arrow">&rarr;</span>
+</a><a class="post-card" href="/posts/post-d9bb97.html">
+  <div class="post-card-body">
+    <div class="post-card-tags"><span class="tag tag-sm">大模型</span><span class="tag tag-sm">网络</span></div>
+    <h2 class="post-card-title">Skill 上线之后，怎么知道它悄悄退化了？</h2>
+    <p class="post-card-desc">你写了个 Skill，本地测着挺顺，就让它上岗了。 结果一周后，有同事跑来说： 你那个东西把我项目整个重搭了一遍。 你这才反应过来，它早就不对劲了，只是你一直没察觉。 问题不在 Skill 写得好不好…</p>
+    <div class="post-card-meta"><span>2026-09-02</span></div>
+  </div>
+  <span class="post-card-arrow">&rarr;</span>
+</a><a class="post-card" href="/posts/post-30ef93.html">
+  <div class="post-card-body">
+    <div class="post-card-tags"><span class="tag tag-sm">大模型</span><span class="tag tag-sm">网络</span></div>
+    <h2 class="post-card-title">SFT 数据到底喂到什么火候，才轮得到 RL？</h2>
+    <p class="post-card-desc">核心结论 在典型的 RLHF（Reinforcement Learning from Human Feedback，基于人类反馈的强化学习） / 在线 RL（Reinforcement Learnin…</p>
+    <div class="post-card-meta"><span>2026-09-01</span></div>
+  </div>
+  <span class="post-card-arrow">&rarr;</span>
+</a><a class="post-card" href="/posts/post-8a760e.html">
+  <div class="post-card-body">
+    <div class="post-card-tags"><span class="tag tag-sm">MySQL</span><span class="tag tag-sm">网络</span></div>
+    <h2 class="post-card-title">redo log 和 binlog 的两阶段提交：崩溃了到底谁说了算？</h2>
+    <p class="post-card-desc">MySQL 里有两个日志经常被放在一起说：redo log 和 binlog。 它们一个管崩溃恢复，一个管主从复制，平时各记各的，偏偏一个事务提交时又得同时落盘。 两阶段提交就是来解决&quot;两条日志怎么对…</p>
+    <div class="post-card-meta"><span>2026-08-31</span></div>
+  </div>
+  <span class="post-card-arrow">&rarr;</span>
+</a><a class="post-card" href="/posts/post-0f275b.html">
+  <div class="post-card-body">
+    <div class="post-card-tags"><span class="tag tag-sm">MySQL</span><span class="tag tag-sm">网络</span><span class="tag tag-sm">操作系统</span></div>
+    <h2 class="post-card-title">MySQL 事务原子性：undo log 记什么、存哪、何时清</h2>
+    <p class="post-card-desc">事务原子性说白了就一句话： 一个事务里的一连串操作，要么全部做完提交，要么中间哪一步翻车了，就全部退回原样，不能停在改了一半的状态。 InnoDB 主要依靠 undo log 实现事务回滚，从而保证事…</p>
+    <div class="post-card-meta"><span>2026-08-29</span></div>
+  </div>
+  <span class="post-card-arrow">&rarr;</span>
+</a><a class="post-card" href="/posts/post-1e0ca5.html">
+  <div class="post-card-body">
+    <div class="post-card-tags"><span class="tag tag-sm">MySQL</span><span class="tag tag-sm">网络</span><span class="tag tag-sm">面试题</span></div>
+    <h2 class="post-card-title">你以为隔离级别只是个开关，可 MySQL 凭什么靠它挡住幻读？</h2>
+    <p class="post-card-desc">MySQL 的隔离性由 MVCC（多版本并发控制） 和 锁机制 共同保证。 MVCC 主要让普通快照读和写操作尽量互不阻塞，锁则负责处理写与写之间、以及当前读与写之间的冲突。 两套东西在不同隔离级别下…</p>
+    <div class="post-card-meta"><span>2026-08-28</span></div>
+  </div>
+  <span class="post-card-arrow">&rarr;</span>
+</a><a class="post-card" href="/posts/post-f3f218.html">
+  <div class="post-card-body">
+    <div class="post-card-tags"><span class="tag tag-sm">MySQL</span><span class="tag tag-sm">网络</span><span class="tag tag-sm">操作系统</span></div>
+    <h2 class="post-card-title">你更新的数据明明还在内存里，可 MySQL 重启后凭什么没丢？</h2>
+    <p class="post-card-desc">你提交了一个事务，MySQL 回了你一句 &quot;commit ok&quot;。 下一秒机房断电、进程崩溃，等数据库重启，这笔数据还在吗？ 对已经成功提交的事务来说，只要提交所依赖的 redo log 已经安全落盘…</p>
+    <div class="post-card-meta"><span>2026-08-27</span></div>
+  </div>
+  <span class="post-card-arrow">&rarr;</span>
+</a><a class="post-card" href="/posts/post-fc3ff2.html">
+  <div class="post-card-body">
+    <div class="post-card-tags"><span class="tag tag-sm">MySQL</span><span class="tag tag-sm">网络</span><span class="tag tag-sm">操作系统</span></div>
+    <h2 class="post-card-title">你写的每条 SQL 都没加过锁，可 MySQL 凭什么不怕两个事务打架？</h2>
+    <p class="post-card-desc">一个事务在查、另一个事务在改同一张表，你怎么保证读到的不是别人改到一半的数据？ 一种思路是读写之间通过锁互相协调，但读操作如果频繁等待写锁，吞吐量就会受到影响。 InnoDB 用 MVCC 解决了这个…</p>
+    <div class="post-card-meta"><span>2026-08-26</span></div>
+  </div>
+  <span class="post-card-arrow">&rarr;</span>
+</a><a class="post-card" href="/posts/post-bc8872.html">
+  <div class="post-card-body">
+    <div class="post-card-tags"><span class="tag tag-sm">MySQL</span><span class="tag tag-sm">网络</span><span class="tag tag-sm">面试题</span></div>
+    <h2 class="post-card-title">你建表时引擎那栏从没改过，可 InnoDB 凭什么把 MyISAM 挤成了老古董？</h2>
+    <p class="post-card-desc">建表的时候，引擎那一栏你大概率从没改过，因为从 MySQL 5.5 开始，InnoDB 就是默认存储引擎； 到了现在的 MySQL 版本，它依然是默认且官方推荐的通用型引擎。 可你翻老项目，偶尔还能看…</p>
+    <div class="post-card-meta"><span>2026-08-25</span></div>
+  </div>
+  <span class="post-card-arrow">&rarr;</span>
+</a><a class="post-card" href="/posts/post-f8e846.html">
+  <div class="post-card-body">
+    <div class="post-card-tags"><span class="tag tag-sm">MySQL</span><span class="tag tag-sm">网络</span><span class="tag tag-sm">面试题</span></div>
+    <h2 class="post-card-title">明明建了索引，MySQL 却不用？这 8 种情况它悄悄放弃了</h2>
+    <p class="post-card-desc">索引失效这件事，面试八股里几乎人手能背几条： like 左边加 %、对字段套函数、隐式转换…… 这些都没错。 但很少有人被追问一句，“它们为什么会让索引失效？”，还能答得让面试官满意。 把原因拆开看，…</p>
+    <div class="post-card-meta"><span>2026-08-24</span></div>
+  </div>
+  <span class="post-card-arrow">&rarr;</span>
+</a><a class="post-card" href="/posts/post-26ac16.html">
+  <div class="post-card-body">
+    <div class="post-card-tags"><span class="tag tag-sm">网络</span><span class="tag tag-sm">操作系统</span><span class="tag tag-sm">Java</span></div>
+    <h2 class="post-card-title">你调的接口几乎都返回 JSON，可它凭什么干掉了 XML？</h2>
+    <p class="post-card-desc">你调过的每一个后端接口，返回的数据几乎都是 JSON。 你大概会觉得，这是因为 JSON 在技术上&quot;天生最强&quot;。 这个直觉是错的。 JSON 能赢，并不靠某项碾压级的技术指标，而是刚好踩中了 Web…</p>
+    <div class="post-card-meta"><span>2026-08-23</span></div>
+  </div>
+  <span class="post-card-arrow">&rarr;</span>
+</a></div>
+    <nav class="pager"><a class="pager-link" href="/posts/">1</a><a class="pager-link is-current" href="/posts/page2.html">2</a><a class="pager-link" href="/posts/page3.html">3</a><a class="pager-link" href="/posts/page4.html">4</a><a class="pager-link" href="/posts/page5.html">5</a></nav>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

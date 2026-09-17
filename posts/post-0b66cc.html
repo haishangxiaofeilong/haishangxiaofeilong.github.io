@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAG 面试高频题：召回率太低怎么办？一套完整优化方案讲透 · 海上小飞龙</title>
+<meta name="description" content="很多人做 RAG 系统，遇到召回率低的问题，第一反应就是换模型——换一个参数更大的、换一个号称语义理解更强的。 结果呢？ 效果提升微乎其微。 根本原因不是模型不够强，而是模型拿到的参考材料本身就是错的…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-0b66cc.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="RAG 面试高频题：召回率太低怎么办？一套完整优化方案讲透 · 海上小飞龙">
+<meta property="og:description" content="很多人做 RAG 系统，遇到召回率低的问题，第一反应就是换模型——换一个参数更大的、换一个号称语义理解更强的。 结果呢？ 效果提升微乎其微。 根本原因不是模型不够强，而是模型拿到的参考材料本身就是错的…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/rag.html">RAG</a><a class="tag" href="/tags/post-2dc9b4.html">大模型</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a><a class="tag" href="/tags/post-d11195.html">面试题</a></div>
+      <h1 class="post-title">RAG 面试高频题：召回率太低怎么办？一套完整优化方案讲透</h1>
+      <div class="post-meta">
+        <span>2026-07-23</span>
+        <span class="dot"></span>
+        <span>4058 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>很多人做 RAG 系统，遇到召回率低的问题，第一反应就是换模型——换一个参数更大的、换一个号称语义理解更强的。</p>
+<p>结果呢？</p>
+<p>效果提升微乎其微。</p>
+<p><strong>根本原因不是模型不够强，而是模型拿到的参考材料本身就是错的。</strong></p>
+<p>打个比方，这就像开卷考试——你翻遍了整本书，但答案那页你压根没翻到。</p>
+<p>这种情况下，再聪明的考生也写不出正确答案。</p>
+<p>RAG 系统的检索环节就是这个&quot;翻书&quot;的过程。</p>
+<p>如果底层数据没有对齐到正确的语义空间，后面生成阶段做得再好也是白搭。</p>
+<h2>一、先检查数据和检索基础建设</h2>
+<p>数据质量决定了召回的上限。</p>
+<p>这一步没做好，后面怎么优化都是事倍功半。</p>
+<h3>切块策略：别再用固定字符数了</h3>
+<p>很多项目里，文档切块用的是固定字符数——一段话还没说完就给掐断了，语义直接断裂。</p>
+<p><strong>智能语义切块 + 滑动窗口重叠。</strong></p>
+<p>利用段落边界、标题层级或者句子级分割符来切分文档，同时让相邻块之间保留一定程度的内容重叠。</p>
+<p>这样每个块的语义是完整的，检索时模型也能拿到足够的上下文线索。</p>
+<p>打个比方，这就像切蛋糕——你不能随便一刀下去，得顺着纹路切，而且每块之间留一点粘连，保证拿起来不会散架。</p>
+<h3>元数据增强：别只存向量</h3>
+<p>很多人有个误区，觉得只要把文档变成向量存进去就行了。</p>
+<p>其实文档本身携带了大量结构化属性——发布时间、作者、所属业务模块、文档类型等等。</p>
+<p>在检索阶段引入元数据预过滤，可以在向量匹配之前先排除掉明显不相关的文档集合。</p>
+<p><strong>在数据规模较大的企业知识库中，合理的元数据过滤通常可以显著缩小候选范围。</strong></p>
+<p>说人话就是：</p>
+<p>先筛一遍再搜，比大海捞针效率高多了。</p>
+<h3>向量模型微调：通用模型听不懂你的行话</h3>
+<p>通用向量模型在开放域文本上表现不错，但一旦进入垂直领域（医疗、法律、金融），专业术语和表达习惯跟训练数据差距巨大。</p>
+<p>模型的嵌入空间抓不住领域内的语义关系，检索结果当然跑偏。</p>
+<p><strong>解决方案：用领域语料做对比学习微调。</strong></p>
+<p>构造正负样本对，让模型学到你们圈子里的语义相似性结构。</p>
+<p>这一步在专业领域场景中，往往能够明显改善语义匹配效果。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1784810312505-3c82e2ef-91d9-4565-b6a4-1abbdcfdb4c5.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h3>小结</h3>
+<table>
+<thead>
+<tr>
+<th>优化方向</th>
+<th>核心做法</th>
+<th>效果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>切块策略</td>
+<td>智能语义切块 + 滑动窗口</td>
+<td>保持语义完整，避免上下文断裂</td>
+</tr>
+<tr>
+<td>元数据增强</td>
+<td>预过滤（时间/作者/模块）</td>
+<td>缩小候选范围，提高检索效率</td>
+</tr>
+<tr>
+<td>向量模型微调</td>
+<td>领域语料对比学习</td>
+<td>让模型听懂行业黑话</td>
+</tr>
+</tbody>
+</table>
+<h2>二、用户的问题，真的好吗？</h2>
+<p>换位思考一下——用户问的问题，真的好吗？</p>
+<p>很多时候用户很懒，提问就几个词，还可能词不达意。</p>
+<p>这时候你得帮他把问题变得更&quot;可搜索&quot;。</p>
+<h3>多路 Query 改写</h3>
+<p>单一查询形式很难覆盖所有可能的表达方式。</p>
+<p>一个有效策略是让大模型帮用户把原始问题重写成三五个同义版本，多路并发去搜，<strong>只要有一路命中了目标文档，就算成功。</strong></p>
+<p>举个例子，用户问&quot;怎么部署 Kafka&quot;，改写后可以变成：</p>
+<ul>
+<li>&quot;Kafka 集群部署步骤&quot;</li>
+<li>&quot;Kafka 安装配置教程&quot;</li>
+<li>&quot;消息队列 Kafka 搭建方法&quot;</li>
+</ul>
+<p>三路并发检索，总有一路命中目标文档。</p>
+<h3>HyDE：假设性回答——缓解查询与文档之间的语义鸿沟</h3>
+<p>这个有点意思。</p>
+<p>咱先让模型针对问题<strong>盲猜一个答案</strong>，虽然这个答案可能不对，但它的向量特征和我们要找的文档非常接近。</p>
+<p>用假答案去搜真文档，这就是 HyDE（Hypothetical Document Embeddings）的核心思想。</p>
+<p><strong>为什么有效？</strong></p>
+<p>因为用户原始提问往往高度压缩、缺乏细节，而假设性答案包含了更丰富的语义信号，向量空间中的距离度量更加可靠。</p>
+<p>表面上是在猜答案，实际上是在填语义鸿沟。</p>
+<h3>复杂查询拆解：一个大坑拆成几个小坑</h3>
+<p>遇到复杂问题怎么办？</p>
+<p>比如&quot;某人的公司法人是谁&quot;——这得先找公司，再找法人，一步到位基本找不到。</p>
+<p><strong>把大问题拆成几个子查询，一步步检索，这才叫专业。</strong></p>
+<p>拆解的关键在于识别查询中的实体依赖链。</p>
+<p>上一步的检索结果可能成为下一步的输入条件，形成链式检索流程。</p>
+<p>虽然增加了系统复杂度，但在处理多跳推理类问题时几乎是必要的。</p>
+<p>到这里，查询已经变得足够好搜了。</p>
+<p>但问题来了：单纯依赖向量检索，真的足够吗？</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1784810418225-6613eec1-3157-4f03-bf4b-8d9e409f3c61.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>三、向量检索不是万能药</h2>
+<p>很多同学迷信向量检索，觉得语义万岁。</p>
+<p>但如果用户搜的是一个特定的设备型号，向量检索可能给你一堆长得像的错误结果。</p>
+<p>所以必须上多路混合检索。</p>
+<h3>多路混合检索：向量 + BM25，双管齐下</h3>
+<p>纯向量检索擅长语义匹配，但关键词敏感型查询它就抓瞎了。</p>
+<p>BM25 擅长精确关键词匹配，但不懂语义。</p>
+<p><strong>两者结合，既能理解你的意图，又能精准命中关键词。</strong></p>
+<p>向量检索负责捕捉语义层面的相关性，BM25 负责确保关键词的精确命中。</p>
+<p>两者通过加权排序或重排机制融合。</p>
+<h3>父子文档架构：小块匹配，大块补充上下文</h3>
+<p>这是我非常推荐的一种设计。</p>
+<p>具体做法是：</p>
+<p>检索时用切得极碎的<strong>子文档</strong>去匹配，保证精度。</p>
+<p>但喂给大模型的时候，把完整的<strong>父文档</strong>送过去。</p>
+<p><strong>小块检索，大块召回。</strong> 既准又全。</p>
+<p>子文档的小粒度保证了检索时的匹配精度，父文档的大粒度确保了传递给生成模型的上下文完整连贯。</p>
+<p>检索阶段追求精准，生成阶段追求全面，两者通过父子映射关系有机统一。</p>
+<h3>GraphRAG：知识图谱来救场</h3>
+<p>如果文档之间的关系特别乱，传统的扁平化检索就力不从心了。</p>
+<p>这时候得祭出 GraphRAG——引入知识图谱，通过实体和关系的游走，把那些藏在角落里的关联信息一把抓回来。</p>
+<p>检索时通过在图谱上进行游走和遍历，可以发现那些在传统向量空间中距离较远但在语义上紧密关联的文档。</p>
+<p>不过 GraphRAG 并不是普通 RAG 的替代方案，它更适合实体关系复杂、需要跨文档关联分析的场景。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1784810449613-ca8c989e-443d-472c-8062-92c800d68634.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h3>方案对比</h3>
+<table>
+<thead>
+<tr>
+<th>检索方案</th>
+<th>擅长场景</th>
+<th>局限性</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>向量检索</td>
+<td>语义匹配、模糊查询</td>
+<td>关键词精确匹配差</td>
+</tr>
+<tr>
+<td>BM25</td>
+<td>精确关键词、型号编号</td>
+<td>不懂语义</td>
+</tr>
+<tr>
+<td>混合检索</td>
+<td>通用场景（推荐）</td>
+<td>需要权重调优</td>
+</tr>
+<tr>
+<td>父子文档</td>
+<td>兼顾精度与上下文</td>
+<td>需要维护父子映射</td>
+</tr>
+<tr>
+<td>GraphRAG</td>
+<td>实体关联挖掘</td>
+<td>构建成本高</td>
+</tr>
+</tbody>
+</table>
+<h2>四、宽进严出的漏斗哲学</h2>
+<p>前面为了尽可能不漏掉答案，召回阶段通常会扩大候选范围，比如先取 Top-50 文档。</p>
+<p>但这些候选中，真正与问题高度相关的可能只有少数几个，这时候就需要最后一道筛选工序——交叉重排。</p>
+<h3>交叉重排：精度极高，虽然慢点但很准</h3>
+<p>与双塔模型（查询和文档分别编码后计算相似度）不同，交叉编码器会把查询和文档拼接后输入同一个 Transformer 模型，通过更细粒度的语义交互判断两者相关性。</p>
+<p>代价是计算成本显著更高，所以通常只在精排阶段使用。</p>
+<p>先用快速的双塔模型从全量索引中召回 Top-50，再用交叉编码器从中选出最终的 Top-5。</p>
+<p><strong>两阶段架构，效率和精度都照顾到了。</strong></p>
+<p>需要注意，Rerank 主要提升的是检索结果的准确性，而不是扩大召回范围。</p>
+<p>真正影响 Recall 的主要是前面的数据质量、Query 改写、多路召回策略。</p>
+<h3>上下文压缩：别让大模型被无效信息干扰</h3>
+<p>拿到了 Top-5 还没完。</p>
+<p>大模型也有注意力分散现象——文档太长时，中间部分的有用信息容易被忽略，只关注开头和结尾。</p>
+<p><strong>把文档里无关的噪声剔除掉，只留精华。</strong></p>
+<p>具体方法包括提取核心段落、剔除重复或低信息量的片段、保留与查询最直接相关的内容。</p>
+<p>这本质上是一次针对生成模型注意力特性的二次筛选。</p>
+<h3>闭环评估：别凭感觉说召回率高了</h3>
+<p>最关键的一点：<strong>你要有闭环评估机制。</strong></p>
+<p>盯着 Recall@K 这种量化指标看，没有指标的优化都是在蒙眼狂奔。</p>
+<p>记录每次检索的查询-结果对，定期抽样人工标注，追踪指标随时间变化趋势。</p>
+<p>只有形成&quot;优化-评估-再优化&quot;的闭环，召回率改进才是可持续的。</p>
+<h2>五、一张图总结：全链路漏斗</h2>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1784816529555-cba7de37-a123-4c79-9dc6-42ce50130f80.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>解决召回率不是一个单点问题，而是一个<strong>全链路的漏斗工程</strong>。</p>
+<p>前期靠数据基建和查询改写保底，中期靠混合检索和父子架构提效，后期靠重排模型强制提纯。</p>
+<p>成熟的 RAG 工程师不会寄希望于某个单一模型的突破，而是通过组合策略来系统性降低整个检索链路的不确定性。</p>
+<p>需要注意，RAG 的最终效果并不只取决于 Recall，还受到检索准确率、排序质量以及上下文构建方式影响。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "Redis 面试高频题：缓存击穿到底是什么？互斥锁和逻辑过期一次讲透", "slug": "post-fa28af"}, "next": {"title": "面试官：你说懂 AOP，那 Spring 到底是怎么把方法“插进去”的？", "slug": "post-17ba3c"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "Agent Skill 和 MCP，到底有什么区别？", "slug": "post-ee1018", "desc": "做 AI 应用开发，经常会遇到两个概念：Agent Skill 和 MCP（Model Context Protocol）。 虽然都是让 AI 能调用工具，但它们根本不是一个维度的东西。 简单来说：…", "date": "2026-06-30"}, {"title": "为什么大模型总记不住你的文档？聊聊向量数据库", "slug": "post-c65602", "desc": "不管是搭 RAG 知识库、做推荐系统，还是搞以图搜图，你迟早会撞上同一个词：向量数据库。 很多人把它想得很玄，觉得是某种更高端的 MySQL。 说白了，它干的事特别单纯： 存一堆高维向量，然后帮你找出…", "date": "2026-08-15"}, {"title": "gRPC 为什么比 HTTP+JSON 快：快不是某一个技术，是4件事叠出来的", "slug": "post-60f4d8", "desc": "内部调用的钱花在哪了 服务之间一次普通的 HTTP+JSON 调用，真正有用的数据占了多少？ 一个 user 对象，id、name、email 这几个字段名每条消息都得原样抄一遍。 接口还靠文档约定。…", "date": "2026-09-03"}, {"title": "大模型幻觉：它不是记错了，而是压根就没在记", "slug": "post-6f34d1", "desc": "它编得那么顺，恰恰因为没人教过它什么是真 问大模型某篇论文的结果，它没见过也能写出数据齐全的一段话，但数字是编的。 这种情况大家都踩过，俗称\"幻觉\"。 大模型在预训练阶段，核心任务只有一件： next…", "date": "2026-09-04"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

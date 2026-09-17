@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Redis 集群到底有几种方案？先把主从复制讲透 · 海上小飞龙</title>
+<meta name="description" content="Redis 集群到底有哪几种玩法？ 这是后端面试里出场率极高的一道题。 标准答案就三个： 主从复制、哨兵模式、分片集群。 三者各自解决不同的痛点，而且彼此之间还能牵出一串延伸问题。 比如主从数据到底怎…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-4f6aba.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Redis 集群到底有几种方案？先把主从复制讲透 · 海上小飞龙">
+<meta property="og:description" content="Redis 集群到底有哪几种玩法？ 这是后端面试里出场率极高的一道题。 标准答案就三个： 主从复制、哨兵模式、分片集群。 三者各自解决不同的痛点，而且彼此之间还能牵出一串延伸问题。 比如主从数据到底怎…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/redis.html">Redis</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a><a class="tag" href="/tags/post-30d23e.html">操作系统</a><a class="tag" href="/tags/post-d11195.html">面试题</a></div>
+      <h1 class="post-title">Redis 集群到底有几种方案？先把主从复制讲透</h1>
+      <div class="post-meta">
+        <span>2026-08-07</span>
+        <span class="dot"></span>
+        <span>4094 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>Redis 集群到底有哪几种玩法？</p>
+<p>这是后端面试里出场率极高的一道题。</p>
+<p>标准答案就三个：</p>
+<p>主从复制、哨兵模式、分片集群。</p>
+<p>三者各自解决不同的痛点，而且彼此之间还能牵出一串延伸问题。</p>
+<p>比如主从数据到底怎么同步？</p>
+<p>怎么让 Redis 又高并发又高可用？</p>
+<p>你们线上用的是单点还是集群？</p>
+<p>分片集群里数据怎么落、怎么取？</p>
+<p>还有最棘手的集群脑裂怎么防？</p>
+<p>本文先把主从复制这条线彻底讲透。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1786086946600-2d66b732-6a32-4dc1-97db-265dbd1b2e93.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>一、主从复制解决什么问题</h2>
+<p>单台 Redis 不是不能扛，是扛不到太高，并发能力有明显的天花板。</p>
+<p>想往上抬，最常规的做法是搭一套主从集群，同时把读写拆开。</p>
+<p>这时候就不止一台 Redis 了，而是一个主节点领着若干从节点。</p>
+<p>主节点叫 master，从节点叫 slave，也可以叫 replica。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1786086959794-350b1767-f35a-4cd6-b52c-947f37e4c91e.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>二、读写分离怎么提升并发</h2>
+<p>master 专职接写请求，也就是增删改。</p>
+<p>slave 专职接读请求。</p>
+<p>Redis 的真实业务基本都是读多写少，让多个 slave 去分摊读，并发上限自然就抬上去了。</p>
+<p>举个直观例子：</p>
+<p>如果单台 Redis 的读请求成为瓶颈，可以通过增加多个 slave 分担读压力，从而提升整体读吞吐能力。</p>
+<p>但实际提升效果还会受到网络、机器配置、热点数据等因素影响。</p>
+<h2>三、主从同步的第一种模式：全量同步</h2>
+<p>同步分两种情况：</p>
+<p>全量同步和增量同步。</p>
+<p>先看全量。</p>
+<p>我们拿一主一从举例，左边 master，右边 slave。</p>
+<p>第一步，slave 主动向 master 发起同步请求。</p>
+<p>接着 master 会根据 slave 携带的 replid 和 offset 判断当前同步状态。</p>
+<p>如果 slave 是第一次同步，或者 master 无法根据已有信息进行增量同步，就会触发全量同步。</p>
+<p>此时 master 会返回 FULLRESYNC 响应，其中包含新的 replid 和当前复制偏移量 offset，slave 收到后保存这些信息，之后再开始加载 RDB 文件。</p>
+<p>接着 master 执行一次 BGSAVE，也就是 fork 一个子进程去生成 RDB 文件。</p>
+<p>RDB 生成完就推给 slave，slave 收到 RDB 文件后，会根据全量同步流程替换本地数据集，然后加载 RDB 内容。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1786090027832-325bf5a5-5773-47eb-bcc6-89a443024f9c.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>但还差最后一脚。</p>
+<p>master 在生成 RDB 的这段时间里，要是又接到了新的写请求，刚才那份 RDB 就已经过时了。</p>
+<p>怎么办？</p>
+<p>master 会把这段期间的新命令先写进一个叫 repl backlog 的日志缓冲区，等 RDB 发完，再把这份增量日志发给 slave 执行。</p>
+<p>两边才算真正完全同步。</p>
+<p>全量同步的完整过程就是这样。</p>
+<p>repl backlog 是 master 维护的环形缓冲区，并不是永久日志。</p>
+<p>不过这里藏着两个必须说清的问题。</p>
+<p>第一，master 凭什么知道 slave 是不是第一次来同步？</p>
+<p>第二，后面再次同步时，基本都从 repl backlog 里取命令，它怎么保证每次不多取也不少取，刚好是 slave 缺的那部分？</p>
+<p>要回答这两个问题，得先认识两个概念。</p>
+<h2>四、replication id：判断是不是第一次同步</h2>
+<p>第一个概念叫 replication id，简称 replid，它是数据集的身份标记。</p>
+<p>如果 master 和 slave 的 replid 相同，说明他俩属于同一个数据集。</p>
+<p>想一想，主和从的数据是不是得是同一份？</p>
+<p>那当然必须一致。</p>
+<p>每个 Redis 主节点都有自己的 replid，它用于标识当前数据集的复制历史。</p>
+<p>slave 完成同步后，会保存 master 的 replid，后续再次同步时会携带这个 replid 和 offset。</p>
+<p>当 slave 再次发起同步时，会携带之前保存的 replid 和 offset。</p>
+<p>master 会根据这两个值判断，是否可以从 repl backlog 中继续增量同步。</p>
+<p>如果 replid 不匹配，或者 offset 已经不在 repl backlog 的有效范围内，master 会触发全量同步，并通过 FULLRESYNC 返回新的 replid 和 offset，slave 保存后建立新的复制关系。</p>
+<p>master 返回 FULLRESYNC 后，slave 保存新的 replid 和 offset，随后 master 执行 BGSAVE 开始全量数据同步。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1786086989224-6830b92b-f6c0-4cfd-be98-1b0250ae2a0e.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>现在第一个问题解决了。</p>
+<p>再看第二个：</p>
+<p>如果 slave 再来同步时，两边 replid 一样，说明之前同步过，master 就不会再生成 RDB，而是直接走 repl backlog。</p>
+<p>可问题是，第二次、第三次同步，到底该从这份日志里取多少数据？</p>
+<p>这就引出第二个概念：offset。</p>
+<p>offset 是一个偏移量，你可以把它理解成一个只增不减的整数计数器。</p>
+<p>replication offset 表示复制流中的位置，用于标识主从双方复制进度。</p>
+<p>它的用处正在于此：</p>
+<p>主从同步版本信息时，会顺带携带 offset。</p>
+<p>比如 slave 记录的 offset 是 50，master 的 offset 是 80，那就说明 50 到 80 这段数据还没同步过去。</p>
+<p>所以 master 再次同步时，只要把 50 到 80 这段发给 slave 就行。</p>
+<p>第二个问题也就解决了。</p>
+<h2>五、全量同步三步总结</h2>
+<p>把全量同步串起来，其实就是三步走。</p>
+<p>第一，slave 向 master 发起同步请求，master 根据 slave 携带的 replid 和 offset 判断是否可以增量同步。</p>
+<p>如果无法继续同步，则进入全量同步流程。</p>
+<p>第二，master 执行 BGSAVE 生成 RDB 文件，推给 slave 加载。</p>
+<p>第三，master 在生成 RDB 期间接到的新命令，会记进 repl backlog，最后把这份日志发给 slave 执行，流程结束。</p>
+<h2>六、主从同步的第二种模式：增量同步</h2>
+<p>增量同步的触发时机，主要是 slave 重启，或者主从数据发生了变动。</p>
+<p>流程是这样的：</p>
+<p>slave 重启后向 master 发起同步，这次带了两个值，一个是 replid，一个是 offset。</p>
+<p>master 先比对 slave 携带的 replid。</p>
+<p>如果 replid 一致，并且 offset 仍然存在于 repl backlog 中，就可以继续执行增量同步。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1786090272574-4c52a448-33e0-4729-a651-0c152ab2f8dd.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>master 会从 repl backlog 里取 offset 之后的数据。</p>
+<p>还是那个例子，slave 的 offset 是 50，master 的 offset 是 80，master 就把 50 到 80 这段取出来发给 slave。</p>
+<p>增量同步到这就结束了，总共只要两步。</p>
+<p>把增量同步也拆开看，就是两步。</p>
+<p>第一步，slave 发起请求，master 判断不是第一次，拿到 slave 带过来的 offset。</p>
+<p>第二步，master 从 repl backlog 里取 offset 之后的数据，同步给 slave，结束。</p>
+<p>到这里，主从数据同步的整套机制就讲完了。</p>
+<h2>七、回到面试：这道题怎么答</h2>
+<p>最后回到开头那道面试题。</p>
+<p>第一问，介绍一下 Redis 的主从同步。</p>
+<p>单节点 Redis 并发有上限，想提并发就得搭主从集群，做读写分离，通常是一主多从：</p>
+<p>master 负责写，slave 负责读。</p>
+<p>第二问，主从同步数据的流程是什么？这里分全量和增量两种情况。</p>
+<p>先说全量同步。</p>
+<p>第一，slave 向 master 请求同步，带上 replid 和 offset 两个参数。</p>
+<p>master 根据 slave 携带的 replid 和 offset 判断是否可以增量同步。如果无法继续同步，则进入全量同步流程。</p>
+<p>第二，master 执行 BGSAVE 生成 RDB 发给 slave 加载。</p>
+<p>第三，生成 RDB 期间 master 可能又接到命令，这些命令会记进一个缓冲区，也就是 repl backlog 日志，最后把这份日志发给 slave 执行，主从同步完成。</p>
+<p>增量同步更简单。</p>
+<p>还是 slave 先请求同步，master 根据 replid 和 offset 判断可以继续增量同步。</p>
+<p>第二步，master 从 repl backlog 里取 offset 之后的数据发给 slave，同步完成。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "Redis 哨兵模式：它到底是怎么保证高可用的", "slug": "post-09c2db"}, "next": {"title": "Redis 分布式锁原理：从 SET NX 到 Redisson 看门狗", "slug": "post-11ef9d"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "Redis 面试高频题：缓存击穿到底是什么？互斥锁和逻辑过期一次讲透", "slug": "post-fa28af", "desc": "先说结论： 缓存击穿（Cache Breakdown）指的是——某个 热点 key 刚好在过期的那一瞬间，被海量并发请求同时打中 ，缓存里没数据，请求全部砸向数据库，数据库瞬间被压垮。 说白了，它跟\"…", "date": "2026-07-28"}, {"title": "Redis 持久化：RDB 与 AOF", "slug": "post-807c58", "desc": "为什么需要持久化？ Redis 虽然快，但它的数据主要存储在内存中，而内存属于易失性存储介质。 一旦断电或者服务重启，如果没有持久化机制，数据就可能丢失。 所以 Redis 提供了两种持久化方案： R…", "date": "2026-08-03"}, {"title": "Redis 哨兵模式：它到底是怎么保证高可用的", "slug": "post-09c2db", "desc": "主从复制有个绕不开的短板： 它撑不起 Redis 的高可用。 主节点一旦宕机，整个集群就失去了写入能力。 哨兵模式就是为解决这个问题而生的，它能让主从集群自动完成故障恢复。 哨兵到底是什么 哨兵节点本…", "date": "2026-08-08"}, {"title": "Redis 面试高频题：缓存雪崩到底是什么？四种解决方案一次讲清", "slug": "post-6165a4", "desc": "先给结论： 缓存雪崩，说的是大量缓存数据在同一时间失效，或者缓存服务整体不可用，导致大量请求绕过缓存直接访问数据库，最终把数据库压垮。 说白了，它跟\"单个 key 出问题\"不是一回事，而是 成片地崩…", "date": "2026-07-29"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

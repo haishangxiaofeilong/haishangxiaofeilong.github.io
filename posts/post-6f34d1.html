@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>大模型幻觉：它不是记错了，而是压根就没在记 · 海上小飞龙</title>
+<meta name="description" content="它编得那么顺，恰恰因为没人教过它什么是真 问大模型某篇论文的结果，它没见过也能写出数据齐全的一段话，但数字是编的。 这种情况大家都踩过，俗称&quot;幻觉&quot;。 大模型在预训练阶段，核心任务只有一件： next…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-6f34d1.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="大模型幻觉：它不是记错了，而是压根就没在记 · 海上小飞龙">
+<meta property="og:description" content="它编得那么顺，恰恰因为没人教过它什么是真 问大模型某篇论文的结果，它没见过也能写出数据齐全的一段话，但数字是编的。 这种情况大家都踩过，俗称&quot;幻觉&quot;。 大模型在预训练阶段，核心任务只有一件： next…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/rag.html">RAG</a><a class="tag" href="/tags/post-2dc9b4.html">大模型</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a></div>
+      <h1 class="post-title">大模型幻觉：它不是记错了，而是压根就没在记</h1>
+      <div class="post-meta">
+        <span>2026-09-04</span>
+        <span class="dot"></span>
+        <span>3469 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><h2>它编得那么顺，恰恰因为没人教过它什么是真</h2>
+<p>问大模型某篇论文的结果，它没见过也能写出数据齐全的一段话，但数字是编的。</p>
+<p>这种情况大家都踩过，俗称&quot;幻觉&quot;。</p>
+<p>大模型在预训练阶段，核心任务只有一件：</p>
+<p>next token prediction，预测下一个 token。</p>
+<p>给它上半句，它算每个候选词的概率，挑一个接上，再算下一个。</p>
+<p>训练反馈只有：</p>
+<p>下一个 token 应该是什么。</p>
+<p>没有人逐句告诉它，这句话是真的还是编的。</p>
+<p>事实会学进去，但训练目标本身没有一个独立的&quot;事实核验&quot;项。</p>
+<p>你问某公司 2025 年第三季度营收，正确答案在语料中可能只出现两三次，&quot;数亿元&quot;&quot;同比增长&quot;这类套话却大量出现。</p>
+<p>模型不知哪个真，只能按上下文和学到的模式判断什么更可能出现，于是它给出的答案读着专业，数字却可能是猜的。</p>
+<p>不是它故意骗你，是评分标准里压根没有&quot;真假&quot;这一项。</p>
+<h2>它脑子里根本没有一张表</h2>
+<p>大模型压根不用数据库那种存法。</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>显式存储（数据库）</th>
+<th>参数化存储（模型参数）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>怎么存</td>
+<td>一条数据一个条目</td>
+<td>分布式编码在大量参数里，不对应某条独立记录</td>
+</tr>
+<tr>
+<td>怎么取</td>
+<td>按主键直接定位</td>
+<td>输入经网络层层计算，形成下一 token 概率分布</td>
+</tr>
+<tr>
+<td>拿出来是什么</td>
+<td>查到就是它，查不到返回空</td>
+<td>按当前上下文生成最可能的内容</td>
+</tr>
+<tr>
+<td>怎么改</td>
+<td>改一条立刻生效</td>
+<td>通常要额外训练、微调或外部机制</td>
+</tr>
+</tbody>
+</table>
+<p>你要的具体值，是网络算出来的，不是从参数里翻出一条记录。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1788509763992-3454f72a-3b94-4b71-850c-a0836fb8cea8.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>链条上没有&quot;跳过&quot;这个按钮</h2>
+<p>生成是自回归：</p>
+<p>算一个 token 接上，再算下一个，过程里没有&quot;我不知道，跳过&quot;。</p>
+<p>输出空间里能生成&quot;我不知道&quot;，但基础生成机制没有天然的&quot;知识不足，自动停止&quot;状态。</p>
+<p>模型可以经后训练学会说不知道，但那是学出来的行为，不是预测下一个 token 自带的能力。</p>
+<p>碰到盲区它仍接着按概率生成。</p>
+<p>填满是默认行为。</p>
+<h2>一步偏，后面跟着一起歪</h2>
+<p>训练时每一步前面都是标准答案，叫 teacher forcing。</p>
+<p>推理时没人给标准答案，它吃自己上一步吐的词。</p>
+<p>这一步偏一点，就会进入后面的上下文，成为后续生成的条件之一。</p>
+<p>后续生成又可能继续建立在这个偏差上。</p>
+<p>在依赖前文状态的任务里，链条越长，开头那点偏差能波及的后续步骤就越多，前面还像样、往后越易出问题，一个重要原因就是这种自回归误差传播。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1788514066749-22e38684-b020-407e-9f11-c23f7d05da8b.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>注意力也会照错地方</h2>
+<p>就算相关信息进了上下文，模型处理时也可能抓错重点。</p>
+<p>注意力按当前 token 和上下文其他位置的关系做加权聚合，有时叫&quot;软检索&quot;，但不是数据库查询：</p>
+<p>不是拿 key 翻唯一记录，而是动态决定哪些位置更值得参考、各参考多少。</p>
+<p>上下文一长、信息分散，定位关键证据的难度上升，真正关键位置没得到足够关注，旁边相关却不够准的信息反而可能带偏结果。</p>
+<p>证据明明摆在上下文里，最后给出的答案却读着通顺、事实错位。</p>
+<h2>有限参数，装不下所有细节</h2>
+<p>模型参数规模有限，而训练语料极其庞大。</p>
+<p>但这不是&quot;多少 token 要多少参数&quot;——模型不是逐条原样存数据，而是压缩、抽象重复出现的模式。</p>
+<p>高频通用模式反复出现，更易形成稳定表示；</p>
+<p>低频细节（某会议日期、某论文数值）训练信号少，更易受其他知识干扰。</p>
+<p>问到这类细节又必须生成，它就可能用通用模式补一个看着合理的答案。</p>
+<p>这分两种情况：</p>
+<p>一种是语料里压根没有，模型没见过；</p>
+<p>另一种是出现过，但没形成稳定记忆，可能是容量限制，也可能是信号不足和知识干扰。</p>
+<h2>对齐训练，有时也会把&quot;说不知道&quot;变成劣势</h2>
+<p>RLHF、DPO 这些后训练方法，初衷是让回答更有用、更安全、更符合人的偏好。</p>
+<p>RLHF 通常先训奖励模型再做强化学习；</p>
+<p>DPO 直接拿偏好数据调输出倾向。</p>
+<p>问题出在打分的人：</p>
+<p>更看重&quot;完整、有帮助&quot;，却不够看重&quot;没依据时承认不知道&quot;，完整但错误的回答就可能比诚实拒答更容易拿分。</p>
+<p>于是说&quot;我不知道&quot;反而主动丢分，奖励信号客观上偏心&quot;编得像&quot;，冷落&quot;承认不会&quot;。</p>
+<p>这只是一种倾向：</p>
+<p>对齐不会自动解决幻觉，过度偏向&quot;完整、流畅、笃定&quot;时还可能放大过度自信。</p>
+<h2>工程上怎么给它兜底</h2>
+<p>模型自己管不住，工程上在外面加约束。</p>
+<p><strong>RAG</strong>，把资料递到手上：</p>
+<p>先检索外部知识库，命中片段塞进上下文再让模型照答，相当于从闭卷考试改成开卷。</p>
+<p>主要补知识时效和参数记忆不可靠，边界是检索没命中照样编、资料错跟着错。</p>
+<p><strong>思维链</strong>，把中间步骤写出来。</p>
+<p>它不保证推对，但每一步都能单独查；</p>
+<p>步骤本身也可能错，而且输出变长、成本更高。</p>
+<p><strong>不确定性拦截</strong>，补上模型没给的不确定性信号：</p>
+<p>每生成一个 token，词表上就有一组概率（logits 经 softmax）。</p>
+<p>这个概率只反映生成倾向，跟这句话对不对无关。</p>
+<p>下面是简化的伪代码，实际实现取决于模型服务是否暴露 logits：</p>
+<pre><code class="language-python"><span class="k">def</span><span class="w"> </span><span class="nf">generate_with_guard</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">uncertainty_threshold</span><span class="p">):</span>
+    <span class="n">answer</span><span class="p">,</span> <span class="n">uncertainty</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">generate_with_uncertainty</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span>
+    <span class="c1"># 只当风险信号，不代表模型答对了</span>
+    <span class="c1"># 阈值需按业务数据校准，不宜套固定数字</span>
+    <span class="k">if</span> <span class="n">uncertainty</span> <span class="o">&gt;</span> <span class="n">uncertainty_threshold</span><span class="p">:</span>
+        <span class="n">evidence</span> <span class="o">=</span> <span class="n">retriever</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">evidence</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">model</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="n">evidence</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s2">&quot;这部分我没有可靠依据，暂时不下结论。&quot;</span>
+    <span class="k">return</span> <span class="n">answer</span>
+</code></pre>
+<p>不确定性超过阈值，就不直接采用模型的回答，转去查资料、调工具核实。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1788514156073-5b642ac5-1235-4b3e-b21d-863af4b08288.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>三招各自的边界</h2>
+<table>
+<thead>
+<tr>
+<th>手段</th>
+<th>主要补哪块</th>
+<th>怎么做</th>
+<th>边界</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RAG</td>
+<td>知识缺失、参数记忆不可靠</td>
+<td>先检索再照答</td>
+<td>没命中照样编；资料错跟着错</td>
+</tr>
+<tr>
+<td>思维链</td>
+<td>复杂任务过程可检查</td>
+<td>展开中间推导</td>
+<td>步骤也会错；输出更长、成本更高</td>
+</tr>
+<tr>
+<td>不确定性拦截</td>
+<td>生成风险缺外部判断</td>
+<td>超阈值转检索/工具/拒答</td>
+<td>自信的错话信号照常；阈值按场景调</td>
+</tr>
+</tbody>
+</table>
+<p>最易被忽略的是不确定性拦截：</p>
+<p>token 概率高不等于答案对。</p>
+<p>模型一本正经地编时，每个 token 都是顺着前文挑出的高概率词，信号看不出异常。</p>
+<p>所以它挡得住没把握的回答，挡不住自信满满的错话，单个 token 的概率也说明不了整句可不可信。</p>
+<h2>哪些场景必须自己接手</h2>
+<p>涉及金额、剂量、法条、工期这些硬性约束，模型输出只能当草稿，必须有外部系统或人复核。</p>
+<p>代码也一样：</p>
+<p>模型擅长编一个不存在的 API，名字还规范；</p>
+<p>缺编译、类型或契约校验，问题未必在生成阶段就暴露。</p>
+<p>问题超出知识截止时间，调提示词没用，只能靠检索喂新信息。</p>
+<p>回到开头。</p>
+<p>模型会编，不只是因为它&quot;记错了&quot;。</p>
+<p>更根本的是，从训练目标到参数化表示，再到自回归生成和对齐信号，模型机制没有天然提供可靠的事实核验环节。</p>
+<p>一句话是不是真的，需要额外训练和外部机制约束。</p>
+<p>把链路想明白就知道每招补哪个窟窿。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "大模型推理时，到底在干一件什么事？", "slug": "post-bd5fe3"}, "next": {"title": "gRPC 为什么比 HTTP+JSON 快：快不是某一个技术，是4件事叠出来的", "slug": "post-60f4d8"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "Agent Skill 和 MCP，到底有什么区别？", "slug": "post-ee1018", "desc": "做 AI 应用开发，经常会遇到两个概念：Agent Skill 和 MCP（Model Context Protocol）。 虽然都是让 AI 能调用工具，但它们根本不是一个维度的东西。 简单来说：…", "date": "2026-06-30"}, {"title": "RAG 面试高频题：召回率太低怎么办？一套完整优化方案讲透", "slug": "post-0b66cc", "desc": "很多人做 RAG 系统，遇到召回率低的问题，第一反应就是换模型——换一个参数更大的、换一个号称语义理解更强的。 结果呢？ 效果提升微乎其微。 根本原因不是模型不够强，而是模型拿到的参考材料本身就是错的…", "date": "2026-07-23"}, {"title": "为什么大模型总记不住你的文档？聊聊向量数据库", "slug": "post-c65602", "desc": "不管是搭 RAG 知识库、做推荐系统，还是搞以图搜图，你迟早会撞上同一个词：向量数据库。 很多人把它想得很玄，觉得是某种更高端的 MySQL。 说白了，它干的事特别单纯： 存一堆高维向量，然后帮你找出…", "date": "2026-08-15"}, {"title": "gRPC 为什么比 HTTP+JSON 快：快不是某一个技术，是4件事叠出来的", "slug": "post-60f4d8", "desc": "内部调用的钱花在哪了 服务之间一次普通的 HTTP+JSON 调用，真正有用的数据占了多少？ 一个 user 对象，id、name、email 这几个字段名每条消息都得原样抄一遍。 接口还靠文档约定。…", "date": "2026-09-03"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

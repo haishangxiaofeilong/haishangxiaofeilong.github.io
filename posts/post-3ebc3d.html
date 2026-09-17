@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spring Bean 的生命周期到底是什么？ · 海上小飞龙</title>
+<meta name="description" content="Bean 的生命周期，指的是一个对象在 Spring 容器中，从创建、初始化，到被使用，再到最终销毁所经历的完整过程。 这道题是面试高频题，但很多人备考时习惯去网上找帖子背图。 其实不需要死记硬背，把…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-3ebc3d.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Spring Bean 的生命周期到底是什么？ · 海上小飞龙">
+<meta property="og:description" content="Bean 的生命周期，指的是一个对象在 Spring 容器中，从创建、初始化，到被使用，再到最终销毁所经历的完整过程。 这道题是面试高频题，但很多人备考时习惯去网上找帖子背图。 其实不需要死记硬背，把…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/spring.html">Spring</a><a class="tag" href="/tags/rag.html">RAG</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a><a class="tag" href="/tags/java.html">Java</a></div>
+      <h1 class="post-title">Spring Bean 的生命周期到底是什么？</h1>
+      <div class="post-meta">
+        <span>2026-08-01</span>
+        <span class="dot"></span>
+        <span>2598 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>Bean 的生命周期，指的是一个对象在 Spring 容器中，从创建、初始化，到被使用，再到最终销毁所经历的完整过程。</p>
+<p>这道题是面试高频题，但很多人备考时习惯去网上找帖子背图。</p>
+<p>其实不需要死记硬背，把核心阶段理解透，自然能用自己的话讲清楚。</p>
+<p>BeanFactory 接口的源码注释中明确说明，它的实现类应当支持标准的 Bean 生命周期接口，并给出了标准初始化方法及其顺序。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1785571270585-0c1d78b6-c369-4e60-8e06-338757ec0325.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>一、源码入口：从 refresh 到 doCreateBean</h2>
+<p>在 <code>refresh()</code> 流程中，Bean 的创建最终会进入 <code>finishBeanFactoryInitialization()</code>。</p>
+<p>这里会遍历容器中所有需要初始化的 Bean（Bean 名先被收集进 <code>beanNames</code> 集合），并依次调用 <code>getBean()</code> 完成实例化。</p>
+<p><code>getBean()</code> 内部继续进入 <code>doGetBean()</code>。</p>
+<p>当缓存中不存在目标 Bean 时，会进一步调用 <code>createBean()</code>，最终来到真正负责创建对象的 <code>doCreateBean()</code>。</p>
+<p>Spring 源码中很多以 do 开头的方法承担核心执行逻辑，分析源码时通常需要重点关注。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1785571288971-2711640f-2056-4d57-ab2e-71c452b0bf9d.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>二、实例化：靠反射生成对象</h2>
+<p><code>createBeanInstance()</code> 的职责就是完成 Bean 实例化。</p>
+<p>Spring 底层仍然采用 Java 反射创建对象，本质流程与手写反射一致：</p>
+<p>先获取 <code>Class</code> 对象，再获取构造器，最后通过反射调用构造方法生成实例。</p>
+<p>实际代码中多数是无参构造，因此会通过 <code>getDeclaredConstructor()</code> 获取无参构造器，再交由 <code>BeanUtils</code> 工具类调用 <code>ctor.newInstance()</code> 完成实例化。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1785571486173-de370b57-3ac4-44f3-bd74-fc77d7609419.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>三、填充属性：populateBean</h2>
+<p>实例化完成后进入 <code>populateBean()</code>，负责为 Bean 注入依赖和属性值。</p>
+<p>属性注入完成后，Bean 还不能立即对外提供服务。</p>
+<p>接下来进入初始化阶段，这也是 Bean 生命周期最重要的一部分。</p>
+<h2>四、初始化：Aware、后置处理器与初始化方法</h2>
+<p>初始化阶段首先处理各种 Aware 接口，例如 <code>BeanNameAware</code>、<code>BeanFactoryAware</code> 等。</p>
+<p>Spring 会把容器相关信息注入 Bean，使其能够感知自身所处的运行环境。</p>
+<p>随后执行 <code>BeanPostProcessor</code> 的前置方法 <code>postProcessBeforeInitialization()</code>。</p>
+<p>之后进入初始化方法：</p>
+<ul>
+<li>如果 Bean 实现了 <code>InitializingBean</code> 接口，会调用 <code>afterPropertiesSet()</code>。Bean 的创建全程由容器完成，若需要在属性装配完成后执行收尾逻辑，<code>afterPropertiesSet()</code> 是常用的扩展点。</li>
+<li>如果配置中指定了 <code>init-method</code>，会执行对应的自定义初始化方法，不过这种方式相对少用。</li>
+</ul>
+<p>最后执行 <code>BeanPostProcessor</code> 的后置方法 <code>postProcessAfterInitialization()</code>。</p>
+<p>如果 Bean 需要增强，例如使用 AOP，这一步会返回代理对象，而不是最初创建的原始对象。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1785583437555-2da08425-4843-420a-8e00-bfca57824ec4.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<table>
+<thead>
+<tr>
+<th>初始化方式</th>
+<th>使用方式</th>
+<th>推荐程度</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>InitializingBean</strong></td>
+<td>实现接口，重写 <code>afterPropertiesSet()</code></td>
+<td>常用扩展点，属性装配后的收尾机会</td>
+</tr>
+<tr>
+<td><strong>init-method</strong></td>
+<td>配置中指定自定义方法名</td>
+<td>相对少用</td>
+</tr>
+</tbody>
+</table>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1785571532702-c7af85ec-a157-4338-acc3-ef55e7286ba2.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>后置方法执行完毕，Bean 的创建流程就全部完成。</p>
+<h2>五、使用与销毁</h2>
+<p>初始化完成后，Bean 即可对外提供服务，通过 <code>getBean()</code> 获取使用。</p>
+<p>容器关闭时，Bean 进入销毁阶段，销毁方式与初始化对应：</p>
+<ul>
+<li>如果 Bean 实现了 <code>DisposableBean</code> 接口，会调用 <code>destroy()</code> 方法，释放资源一类的收尾逻辑通常放在这里。</li>
+<li>如果配置中指定了 <code>destroy-method</code>，会执行对应的自定义销毁方法，同样相对少用。</li>
+</ul>
+<p>需要注意的是，容器只负责单例 Bean 的销毁，prototype 作用域的 Bean 交出实例后便不再归容器管理。</p>
+<hr />
+<p>整个 Bean 生命周期可以归纳为下面八个阶段：</p>
+<p><strong>实例化（反射生成对象）→ 填充属性 → 调用 Aware 接口 → 执行 BeanPostProcessor 前置 → 初始化（afterPropertiesSet / init-method）→ 执行 BeanPostProcessor 后置（AOP 代理通常在此阶段生成）→ 使用 → 销毁。</strong></p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "Spring 自动装配的 5 种模式：byName、byType 到底有什么区别？", "slug": "post-c03622"}, "next": {"title": "奇怪，为什么Agnes API用不了了？", "slug": "post-80460f"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "面试官：你说懂 AOP，那 Spring 到底是怎么把方法“插进去”的？", "slug": "post-17ba3c", "desc": "在之前的文章Spring Boot 核心就这 3 件事中有读者留言，问我能不能讲讲Spring AOP，今天就来聊聊Spring AOP。 AOP 要解决什么问题？ 很多人把 AOP 想得特别复杂，其…", "date": "2026-07-21"}, {"title": "Agent Skill 和 MCP，到底有什么区别？", "slug": "post-ee1018", "desc": "做 AI 应用开发，经常会遇到两个概念：Agent Skill 和 MCP（Model Context Protocol）。 虽然都是让 AI 能调用工具，但它们根本不是一个维度的东西。 简单来说：…", "date": "2026-06-30"}, {"title": "一个登录框，如何让黑客绕过密码？聊聊 SQL 注入", "slug": "post-99da0d", "desc": "面试官问： \"你做Web项目的时候，后台接口肯定要跟数据库打交道。那你知道什么是SQL注入吗？\" 一句话： SQL注入就是攻击者通过构造恶意的输入参数，拼进你的SQL语句里，让数据库执行他想要的任何操…", "date": "2026-07-16"}, {"title": "RAG 面试高频题：召回率太低怎么办？一套完整优化方案讲透", "slug": "post-0b66cc", "desc": "很多人做 RAG 系统，遇到召回率低的问题，第一反应就是换模型——换一个参数更大的、换一个号称语义理解更强的。 结果呢？ 效果提升微乎其微。 根本原因不是模型不够强，而是模型拿到的参考材料本身就是错的…", "date": "2026-07-23"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LangChain 的九个核心组件，各管什么？ · 海上小飞龙</title>
+<meta name="description" content="拆开看，LangChain 日常开发里常用到的能力，可以归成九块。 组件 解决什么 模型 换模型的时候，上层代码不用跟着重写 消息 一场对话里，哪句话是谁说的，分得清 工具 模型够得着外部能力 智能体…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-3db7f6.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="LangChain 的九个核心组件，各管什么？ · 海上小飞龙">
+<meta property="og:description" content="拆开看，LangChain 日常开发里常用到的能力，可以归成九块。 组件 解决什么 模型 换模型的时候，上层代码不用跟着重写 消息 一场对话里，哪句话是谁说的，分得清 工具 模型够得着外部能力 智能体…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/spring.html">Spring</a><a class="tag" href="/tags/langchain.html">LangChain</a><a class="tag" href="/tags/post-2dc9b4.html">大模型</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a></div>
+      <h1 class="post-title">LangChain 的九个核心组件，各管什么？</h1>
+      <div class="post-meta">
+        <span>2026-09-15</span>
+        <span class="dot"></span>
+        <span>3383 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>拆开看，LangChain 日常开发里常用到的能力，可以归成九块。</p>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>解决什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>模型</td>
+<td>换模型的时候，上层代码不用跟着重写</td>
+</tr>
+<tr>
+<td>消息</td>
+<td>一场对话里，哪句话是谁说的，分得清</td>
+</tr>
+<tr>
+<td>工具</td>
+<td>模型够得着外部能力</td>
+</tr>
+<tr>
+<td>智能体</td>
+<td>多步任务里，下一步做什么由谁定</td>
+</tr>
+<tr>
+<td>短期记忆</td>
+<td>这一场对话里，前面说过的话带得上</td>
+</tr>
+<tr>
+<td>长期记忆</td>
+<td>换一场对话，它还认得你</td>
+</tr>
+<tr>
+<td>流式处理</td>
+<td>结果边生成边往外送，不用干等</td>
+</tr>
+<tr>
+<td>结构化输出</td>
+<td>程序能直接吃下模型的话</td>
+</tr>
+<tr>
+<td>中间件</td>
+<td>不改业务代码，统一加规矩</td>
+</tr>
+</tbody>
+</table>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1789468746585-d708f815-0d65-40c4-85b0-ca89020b5c1b.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>先搭起能跑的四块</h2>
+<p>一个应用要真能干活，核心就是这四块：</p>
+<p>模型、消息、工具、智能体。</p>
+<h3>模型</h3>
+<p>大模型本身会输出文本，但应用要的不只是这个，还得能把它稳稳地调起来。</p>
+<p>LangChain 在模型这一块做的事，就是提供一套标准化的推理接口：</p>
+<p>不管换到哪家供应商，都按同一套方式调用。</p>
+<p>最常用的调用方式有三种。</p>
+<ul>
+<li><code>invoke</code>，发一次请求，等一个完整结果</li>
+<li><code>stream</code>，结果边生成边往回送</li>
+<li><code>batch</code>，一次处理一批输入</li>
+</ul>
+<p>好处是上层调用代码通常不用跟着大改，把模型的提供商和配置换一下就行。</p>
+<p>各家接口的差异，都被这一块挡在外面。</p>
+<h3>消息</h3>
+<p>一场对话里，说话的不只是你和大模型。</p>
+<p>有系统提前定下的规矩，也有工具返回的结果。</p>
+<p>最常见的消息类型，可以先看这四种：</p>
+<ul>
+<li>系统消息，开场先定规矩，比如&quot;你是一个客服助手&quot;</li>
+<li>用户消息，人说的话</li>
+<li>AI 消息，模型回的话</li>
+<li>工具消息，工具执行完返回的结果</li>
+</ul>
+<p>好处是每条消息都标着角色，多轮对话的上下文边界分明，不会串。</p>
+<p>哪句话是谁说的，归这一块管。</p>
+<h3>工具</h3>
+<p>模型关在自己的世界里，够不着外面。</p>
+<p>工具组件就是给模型接上外部能力：</p>
+<p>查数据库、调接口、搜网页。</p>
+<p>写起来不复杂，在 Python 里，普通函数加上 <code>@tool</code> 就能定义成工具。</p>
+<p>真正要交代清楚的有三样：</p>
+<p>名字、描述、参数结构。</p>
+<p>三样都重要，但描述尤其关键。</p>
+<p>模型主要靠这三样判断：</p>
+<p>这个工具是干什么的、什么时候该用、参数怎么填。</p>
+<p>描述写得含糊，模型就容易挑错工具。</p>
+<p>所以在真实项目里，可以让大模型帮忙生成描述初稿，再人工检查和验证。</p>
+<p>自己练手的时候，可以省掉这一步，但用途和参数还是得说清楚。</p>
+<p>模型够不够得着外面的世界，靠的就是这一块。</p>
+<h3>智能体</h3>
+<p>上篇<a href="https://mp.weixin.qq.com/s/NoD6eLJ5DMYfF6ThIhrPsQ">《都是调大模型，为什么中间还要加一层 LangChain？》</a>里讲过，大模型本身是被动的：</p>
+<p>你问它，它回答你，答完就结束。</p>
+<p>智能体不一样，它是个带循环的部件。</p>
+<p>你把请求和目标交给它，它结合可用的工具，让模型判断下一步该调哪个、参数怎么填。</p>
+<p>调完看结果，再判断下一步。</p>
+<p>如此往复，直到任务完成，或者触发停止条件。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1789470825353-4b21e195-f738-4f62-bf9a-b9d12b546d66.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>工具提供能力，智能体决定什么时候用、用哪一个。</p>
+<h2>再给它加上记性</h2>
+<h3>短期记忆</h3>
+<p>一场对话里，前面说过的话得带着走。</p>
+<p>大模型自己不会记，你不把历史带进这次请求，它就不知道刚才聊到哪。</p>
+<p>短期记忆管的就是这件事。</p>
+<p>它的范围是一条会话线程，也就是这一场对话。</p>
+<p>在 LangChain 里，短期记忆是挂在 Agent 的状态上的，配一个保存器（checkpointer）就能存下来。</p>
+<p>Agent 运行过程中会不断保存状态，下一次可以接着读。</p>
+<p>对话长了，总有撑爆上下文窗口的时候。</p>
+<p>常见的处理办法有三种：</p>
+<p>截断、删除、总结。</p>
+<p>也可以自己写策略。</p>
+<p>存在哪儿也有讲究。</p>
+<p>开发阶段用内存实现就够，重启丢了也无所谓；</p>
+<p>上了生产，再换成数据库持久化实现，比如 PostgreSQL。</p>
+<h3>长期记忆</h3>
+<p>短期记忆出了这场对话就不管用了。</p>
+<p>长期记忆是跨会话的那一层：</p>
+<p>这次聊出来的用户偏好，下次还能取出来用。</p>
+<p>它把数据放在 Store（存储）里，按命名空间和键来组织。</p>
+<p>命名空间一般拿用户 ID 这类东西来分，键指向具体那一条。</p>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>短期记忆</th>
+<th>长期记忆</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>范围</td>
+<td>一场会话内</td>
+<td>跨会话</td>
+</tr>
+<tr>
+<td>管什么</td>
+<td>当前对话的状态和上下文</td>
+<td>用户偏好、业务事实这类要长期留着的信息</td>
+</tr>
+<tr>
+<td>存在哪</td>
+<td>内存或数据库</td>
+<td>Store，按命名空间和键组织</td>
+</tr>
+<tr>
+<td>解决什么</td>
+<td>对话连得上</td>
+<td>换一场对话还认得你</td>
+</tr>
+</tbody>
+</table>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1789473483083-675201f5-e1d4-422d-a602-abeded90995b.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>让它好用一点</h2>
+<h3>流式处理</h3>
+<p>用户等结果的时候，屏幕空着和一直在动，体感差很远。</p>
+<p>流式处理就是让结果边生成边往外送。</p>
+<p>好处有两个：</p>
+<p>用户很快就能看到字，等待的焦虑就小；</p>
+<p>过程看得见，出问题也能早点发现。</p>
+<p>常用的流式输出有三种：</p>
+<ul>
+<li><code>updates</code>，每一步的状态变化</li>
+<li><code>messages</code>，模型逐字往外蹦的内容</li>
+<li><code>custom</code>，你自己往里塞的事件</li>
+</ul>
+<p>按需要挑，也可以几种一起用。</p>
+<h3>结构化输出</h3>
+<p>模型默认的回复是一段自然语言。</p>
+<p>人读没问题，程序读就麻烦了。</p>
+<p>同一件事，模型这次多说一句，下次换个措辞，程序只能靠猜。</p>
+<p>结构化输出的办法是先给它一个结构定义，让它照着填。</p>
+<p>最终拿到的是符合指定结构的数据，字段名、类型都可以提前定义。</p>
+<p>程序拿到就能直接用，不用再去猜。</p>
+<h2>最后一块</h2>
+<h3>中间件</h3>
+<p>中间件管的是那些跟某一步无关、但很多步都要做的事。</p>
+<p>写过 Java 的对这个概念应该不陌生。</p>
+<p>Spring 里的 AOP，面向切面编程，也是类似的做法：</p>
+<p>不改业务代码，在外围把这些事加上。</p>
+<p>LangChain 的中间件思路也相近，只不过它挂在 Agent 的运行过程上。</p>
+<p>Agent 跑起来之后，常见的生命周期钩子有这些：</p>
+<table>
+<thead>
+<tr>
+<th>钩子</th>
+<th>什么时候执行</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>before_agent</code></td>
+<td>整个 Agent 开始之前，一次</td>
+</tr>
+<tr>
+<td><code>before_model</code></td>
+<td>每次调模型之前</td>
+</tr>
+<tr>
+<td><code>after_model</code></td>
+<td>每次模型返回之后</td>
+</tr>
+<tr>
+<td><code>after_agent</code></td>
+<td>整个 Agent 结束之后，一次</td>
+</tr>
+</tbody>
+</table>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1789468406701-24782e21-27d7-4a95-87d3-0160af646642.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>除了这四个生命周期钩子，还可以用 <code>wrap_model_call</code> 和 <code>wrap_tool_call</code> 把模型调用、工具调用包起来，在调用前后统一处理。</p>
+<p>中间件能做的事不少：</p>
+<ul>
+<li>按用户身份挂不同的提示词</li>
+<li>限制模型能看到哪些工具</li>
+<li>约束输出的格式</li>
+<li>失败了重试，或者换个模型顶上</li>
+<li>到次数了就提前收手</li>
+<li>检测敏感信息</li>
+<li>记日志，做分析</li>
+</ul>
+<p>不用改业务代码，换一套中间件就换一套规矩。</p>
+<p>到这里，九个组件就都讲完了。</p>
+<p>上手的时候不用一次配齐。</p>
+<p>模型和消息是起步的地方，剩下几块，等你真遇到那个问题再回来加。</p>
+<p>记不住上一轮，就回来加记忆；</p>
+<p>页面上一直空着，就回来加流式；</p>
+<p>程序接不住那段文字，就回来加结构化输出。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "LangChain 模型调用：invoke、stream、batch 到底该怎么选？", "slug": "post-69ffa5"}, "next": {"title": "都是调大模型，为什么中间还要加一层 LangChain？", "slug": "post-4f84e4"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "都是调大模型，为什么中间还要加一层 LangChain？", "slug": "post-4f84e4", "desc": "想用大模型做点真东西，很快会撞上一件事： 只调模型 API 还不够。 一个能跑起来的大模型应用，除了模型本身，还得管提示词、管上下文、管它该去调哪个工具、管它记不记得住前面说过什么。 如果这些活一件件…", "date": "2026-09-14"}, {"title": "Agent Skill 和 MCP，到底有什么区别？", "slug": "post-ee1018", "desc": "做 AI 应用开发，经常会遇到两个概念：Agent Skill 和 MCP（Model Context Protocol）。 虽然都是让 AI 能调用工具，但它们根本不是一个维度的东西。 简单来说：…", "date": "2026-06-30"}, {"title": "面试官：你说懂 AOP，那 Spring 到底是怎么把方法“插进去”的？", "slug": "post-17ba3c", "desc": "在之前的文章Spring Boot 核心就这 3 件事中有读者留言，问我能不能讲讲Spring AOP，今天就来聊聊Spring AOP。 AOP 要解决什么问题？ 很多人把 AOP 想得特别复杂，其…", "date": "2026-07-21"}, {"title": "RAG 面试高频题：召回率太低怎么办？一套完整优化方案讲透", "slug": "post-0b66cc", "desc": "很多人做 RAG 系统，遇到召回率低的问题，第一反应就是换模型——换一个参数更大的、换一个号称语义理解更强的。 结果呢？ 效果提升微乎其微。 根本原因不是模型不够强，而是模型拿到的参考材料本身就是错的…", "date": "2026-07-23"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

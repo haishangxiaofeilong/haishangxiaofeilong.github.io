@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SSH 这么好用，公司为什么还要上堡垒机？ · 海上小飞龙</title>
+<meta name="description" content="SSH 解决的是「怎么安全地连上服务器」。 堡垒机解决的是「谁能连、能连哪些、连上之后做了什么，以及出了事怎么追溯」。 很多人以为堡垒机只是个更高级的远程连接工具，这个理解从根上就偏了。 它们俩根本不…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-7ef5f2.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="SSH 这么好用，公司为什么还要上堡垒机？ · 海上小飞龙">
+<meta property="og:description" content="SSH 解决的是「怎么安全地连上服务器」。 堡垒机解决的是「谁能连、能连哪些、连上之后做了什么，以及出了事怎么追溯」。 很多人以为堡垒机只是个更高级的远程连接工具，这个理解从根上就偏了。 它们俩根本不…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/post-7ddbe1.html">网络</a></div>
+      <h1 class="post-title">SSH 这么好用，公司为什么还要上堡垒机？</h1>
+      <div class="post-meta">
+        <span>2026-08-22</span>
+        <span class="dot"></span>
+        <span>2670 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>SSH 解决的是「怎么安全地连上服务器」。</p>
+<p>堡垒机解决的是「谁能连、能连哪些、连上之后做了什么，以及出了事怎么追溯」。</p>
+<p>很多人以为堡垒机只是个更高级的远程连接工具，这个理解从根上就偏了。</p>
+<p>它们俩根本不是同一个层面的东西：</p>
+<p>SSH 是一种网络协议，而堡垒机是一类运维安全管理与审计系统。</p>
+<h2>SSH 和堡垒机，根本不是一层的东西</h2>
+<p>SSH 是一种加密网络协议。</p>
+<p>说人话，它就是你电脑通往服务器的一把安全钥匙，能让你从本地直接打开服务器的门。</p>
+<p>堡垒机通常也被称为「运维审计系统」或「运维安全审计系统」。</p>
+<p>它更像公司前台，不是那种只管开门的，是带监控和登记功能的那种。</p>
+<p>所有人想进服务器，不能直接拿钥匙去开门，必须先过前台：</p>
+<p>前台核实你的身份，再带你进指定的房间。</p>
+<p>SSH 管的是「怎么安全地建立远程连接、怎么证明你是谁」，堡垒机管的是「进了门之后你去了哪、碰了什么、留下了什么痕迹」。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1787392722067-a638ea54-269f-44d6-980c-9684f15c6910.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>更准确地说，SSH 和堡垒机甚至不是互斥关系。</p>
+<p>很多企业的实际架构恰恰是：</p>
+<p>员工先登录堡垒机，再由堡垒机通过 SSH 等协议连接后端服务器。</p>
+<p>SSH 负责建立安全连接，堡垒机负责把「谁、访问什么、做了什么」这套管理体系建立起来。</p>
+<h2>第一道闸：权限管控</h2>
+<p>小公司三五个人，彼此知根知底，往往共用几个最高权限密码，谁要谁就去拿。这在人少、互信的环境里不算问题。</p>
+<p>大公司运维、开发、测试加起来几百号人。</p>
+<p>要是还把 root 密码群发到群里，风险就彻底失控了，任何一个人拿到密码，就能动生产环境的全部东西。</p>
+<p>堡垒机通常会把后端服务器的登录凭据统一托管起来，员工不需要直接掌握服务器的真实密码或密钥。</p>
+<p>员工登录时，它按人员、角色、资源和策略分配访问权限，而且还可以根据权限策略限制你能执行的命令。</p>
+<p>一个开发岗的人，通过堡垒机可能只能连到指定的某两台应用服务器，连不上数据库，也碰不到生产。</p>
+<p>越权的路从源头就被堵死了。</p>
+<p>这就像公司门禁：</p>
+<p>运维只能刷开某几层，测试只能进测试区，你拿不到整栋楼的万能钥匙。</p>
+<h2>第二道闸：操作审计</h2>
+<p>直接 SSH 登录，服务器当然也可以通过 auditd、shell history 等机制记录部分操作，但 SSH 本身并不提供一套统一、完整的运维操作审计能力。</p>
+<p>一旦没有额外配置审计机制，很多操作就很难完整还原，更难把一次运维会话和具体人员、具体资源关联起来。</p>
+<p>通过堡垒机登录后，通常可以对运维会话进行录像，并记录命令、登录账号、目标资源、操作时间等审计信息。</p>
+<p>部分产品还支持对终端交互进行更细粒度的审计和回放。</p>
+<p>更狠的是高危指令。</p>
+<p>部分堡垒机产品支持配置高危操作策略，例如对删除、清库等高风险命令进行拦截或告警。</p>
+<p>这相当于银行柜台：</p>
+<p>你办的每笔业务都被录音录像，遇到异常操作当场拦下来，事后还能一笔笔查回去。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1787392852705-dea73b8c-f53d-401b-bf3a-50328c81bba7.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>直接 SSH 和堡垒机，差在哪？</h2>
+<p>把两件事放在一起看会更清楚：</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>直接 SSH</th>
+<th>堡垒机</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>谁在登录</td>
+<td>自己心里有数</td>
+<td>实名核验、按岗位授权</td>
+</tr>
+<tr>
+<td>密码怎么管</td>
+<td>可能共用 root</td>
+<td>统一托管凭据，用户通常无需直接掌握服务器凭据</td>
+</tr>
+<tr>
+<td>操作记录</td>
+<td>没有统一的集中式运维审计</td>
+<td>可进行会话录像和操作日志审计</td>
+</tr>
+<tr>
+<td>高危命令</td>
+<td>默认由服务器执行策略决定</td>
+<td>可按策略拦截并告警</td>
+</tr>
+<tr>
+<td>出事追责</td>
+<td>难以追溯到具体人员</td>
+<td>操作可回溯到具体个人</td>
+</tr>
+<tr>
+<td>合规要求</td>
+<td>需要自行满足相关审计要求</td>
+<td>可集中支撑运维审计与权限管控</td>
+</tr>
+</tbody>
+</table>
+<p>左边那一列，是人员少、资产少、权限关系简单时还能扛得住的状态。</p>
+<p>右边那一列，则更适合人员、服务器和权限关系越来越复杂的企业环境。</p>
+<h2>那小公司为什么不上堡垒机？</h2>
+<p>核心是管理成本和效率的权衡。</p>
+<p>堡垒机不是装个软件就完事：</p>
+<p>要买软件许可，要专门部署服务器，还得有人专门维护权限体系和日志。</p>
+<p>对几个人的初创团队来说，业务跑得快、漏洞改得快才是生死线。</p>
+<p>引入堡垒机，可能会增加统一认证、授权甚至审批等流程，反而拖慢开发节奏。</p>
+<p>在人数少、业务风险较低、又没有额外合规要求的环境里，直接 SSH 往往是成本更低、效率更高的选择。</p>
+<p>安全风险始终存在，只是团队规模较小时，依靠明确的账号权限、密钥管理和基础审计，往往比引入完整的堡垒机体系更具性价比。</p>
+<h2>什么时候 SSH 就不够了？</h2>
+<p>公司规模、服务器数量和权限复杂度一旦上升，或者业务涉及金融、医疗等敏感数据，单纯依赖直接 SSH 登录，管理和审计风险就会明显增加。</p>
+<p>人员流动带来的密码交接漏洞、多团队并行开发时的误操作，都会让系统变得很脆。</p>
+<p>更硬的一条是合规：</p>
+<p>像网络安全等级保护这类规定，确实包含身份鉴别、访问控制、安全审计等要求。</p>
+<p>到这一步，企业需要满足相应的身份鉴别、访问控制和安全审计要求。</p>
+<p>堡垒机是实现集中式运维权限管理和审计留痕的常见方案，但并不是所有等保要求都只能通过堡垒机实现。</p>
+<p>这里有个常见的误区：</p>
+<p>很多小公司觉得「等到了 50 人再上也不迟」。</p>
+<p>现实里，很多小公司真正开始上堡垒机，并不是因为团队到了 50 人。</p>
+<p>更常见的触发点是外部门槛：</p>
+<p>客户是金融机构、要做等保并满足相应审计要求、或者接政企外包时，对方直接把堡垒机写进了准入条件。</p>
+<p>那时候再补，成本和阵痛都比提前规划大得多。</p>
+<p>表面上看，大公司用堡垒机、小公司用 SSH，是技术选型的差异。</p>
+<p>背后的真实逻辑，是企业管理成本和安全风险之间的博弈：</p>
+<p>团队小到基础安全措施还能覆盖风险时，效率优先；</p>
+<p>团队大到必须依靠更完善的制度和工具来兜底时，安全就是底线。</p>
+<p>看清了这一层，你就能理解很多技术工具在不同规模公司里存在的真实意义。</p>
+<p>说到底，堡垒机并不是 SSH 的替代品，而是把 SSH 等远程运维访问纳入统一的身份认证、访问控制和审计体系。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "你调的接口几乎都返回 JSON，可它凭什么干掉了 XML？", "slug": "post-26ac16"}, "next": {"title": "MySQL 索引有哪些设计原则？", "slug": "post-b9d602"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "Agent Skill 和 MCP，到底有什么区别？", "slug": "post-ee1018", "desc": "做 AI 应用开发，经常会遇到两个概念：Agent Skill 和 MCP（Model Context Protocol）。 虽然都是让 AI 能调用工具，但它们根本不是一个维度的东西。 简单来说：…", "date": "2026-06-30"}, {"title": "一个登录框，如何让黑客绕过密码？聊聊 SQL 注入", "slug": "post-99da0d", "desc": "面试官问： \"你做Web项目的时候，后台接口肯定要跟数据库打交道。那你知道什么是SQL注入吗？\" 一句话： SQL注入就是攻击者通过构造恶意的输入参数，拼进你的SQL语句里，让数据库执行他想要的任何操…", "date": "2026-07-16"}, {"title": "面试官：你说懂 AOP，那 Spring 到底是怎么把方法“插进去”的？", "slug": "post-17ba3c", "desc": "在之前的文章Spring Boot 核心就这 3 件事中有读者留言，问我能不能讲讲Spring AOP，今天就来聊聊Spring AOP。 AOP 要解决什么问题？ 很多人把 AOP 想得特别复杂，其…", "date": "2026-07-21"}, {"title": "RAG 面试高频题：召回率太低怎么办？一套完整优化方案讲透", "slug": "post-0b66cc", "desc": "很多人做 RAG 系统，遇到召回率低的问题，第一反应就是换模型——换一个参数更大的、换一个号称语义理解更强的。 结果呢？ 效果提升微乎其微。 根本原因不是模型不够强，而是模型拿到的参考材料本身就是错的…", "date": "2026-07-23"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

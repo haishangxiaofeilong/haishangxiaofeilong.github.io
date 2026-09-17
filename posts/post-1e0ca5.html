@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>你以为隔离级别只是个开关，可 MySQL 凭什么靠它挡住幻读？ · 海上小飞龙</title>
+<meta name="description" content="MySQL 的隔离性由 MVCC（多版本并发控制） 和 锁机制 共同保证。 MVCC 主要让普通快照读和写操作尽量互不阻塞，锁则负责处理写与写之间、以及当前读与写之间的冲突。 两套东西在不同隔离级别下…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-1e0ca5.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="你以为隔离级别只是个开关，可 MySQL 凭什么靠它挡住幻读？ · 海上小飞龙">
+<meta property="og:description" content="MySQL 的隔离性由 MVCC（多版本并发控制） 和 锁机制 共同保证。 MVCC 主要让普通快照读和写操作尽量互不阻塞，锁则负责处理写与写之间、以及当前读与写之间的冲突。 两套东西在不同隔离级别下…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/mysql.html">MySQL</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a><a class="tag" href="/tags/post-d11195.html">面试题</a></div>
+      <h1 class="post-title">你以为隔离级别只是个开关，可 MySQL 凭什么靠它挡住幻读？</h1>
+      <div class="post-meta">
+        <span>2026-08-28</span>
+        <span class="dot"></span>
+        <span>4980 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>MySQL 的隔离性由 <strong>MVCC（多版本并发控制）</strong> 和<strong>锁机制</strong>共同保证。</p>
+<p>MVCC 主要让普通快照读和写操作尽量互不阻塞，锁则负责处理写与写之间、以及当前读与写之间的冲突。</p>
+<p>两套东西在不同隔离级别下组合方式不同，隔离性的强弱就是这么来的。</p>
+<p>并发场景下，一个事务在读，另一个事务在写，怎么保证读到的是已提交的完整结果，避免看到中间状态？</p>
+<p>这是隔离性要回答的核心问题。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1787911739818-13a882bd-ed06-4634-8b2a-4758e3f76e81.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>平时写 SQL，你多半从没主动加过锁，这事也不用你管。</p>
+<p>InnoDB 在执行 <code>UPDATE</code>、<code>DELETE</code>、<code>INSERT</code> 等写操作时，会自动获取执行这些操作所需的锁，其中常见的是排他锁；</p>
+<p>对于 <code>UPDATE</code>、<code>DELETE</code> 以及锁定读，还可能根据查询条件和索引情况涉及记录锁、Gap Lock 或 Next-Key Lock。</p>
+<p>你也可以用 <code>SELECT ... FOR UPDATE</code> 手动加排他锁，用 <code>SELECT ... LOCK IN SHARE MODE</code>（MySQL 8.0 之后叫 <code>FOR SHARE</code>）加共享锁。</p>
+<p>在很多资料里，排他锁也被称为写锁，共享锁也常被称为读锁。</p>
+<p>但要注意，普通 <code>SELECT</code> 在 InnoDB 中通常是 MVCC 快照读，不会因为读取数据就自动加共享锁；</p>
+<p>而 <code>UPDATE</code>、<code>DELETE</code>、<code>SELECT ... FOR UPDATE</code> 等操作则会根据语句和隔离级别获取相应的锁。</p>
+<p>也就是说，不是所有读都会加锁，InnoDB 会根据读的类型决定是走 MVCC，还是走锁定读。</p>
+<h2>锁的粒度：表锁和行锁</h2>
+<p>先把锁按&quot;管多大范围&quot;分一下。</p>
+<p>表锁的锁定范围是整张表，并发粒度比行锁粗，多个事务对同一张表的访问更容易互相阻塞。</p>
+<p>它简单、开销小，但并发能力远低于行锁。</p>
+<p>InnoDB 的数据并发控制主要依赖行级锁，同时也存在表级锁、意向锁等机制；</p>
+<p>而 MyISAM 的并发控制主要依赖表锁，这也是 InnoDB 在高并发事务场景下更有优势的原因之一。</p>
+<p>行级锁的锁定粒度比表锁细，通常围绕具体记录或索引范围进行控制。</p>
+<p>其他不冲突的记录通常仍然可以正常读写，因此在高并发场景下拥有更好的并发能力。</p>
+<p>打个比方：</p>
+<p>表锁像把整个仓库大门一锁，所有货架都进不去；</p>
+<p>行锁像只给某个储物柜挂了把锁，其他人还能开自己的柜子。</p>
+<p>高并发下，后者明显更省时间，要的正是这个&quot;只动该动的&quot;精度。</p>
+<h2>行锁的两种模式：共享锁和排他锁</h2>
+<p>行级锁还可以从&quot;是否允许多个事务同时持有&quot;这个角度，分成共享锁和排他锁两种模式。</p>
+<p>**共享锁（S 锁）**允许多个事务同时持有同一记录的共享锁，但持有共享锁的事务不能修改这条记录。</p>
+<p>需要注意的是，共享锁对应的是锁定读，而不是普通 <code>SELECT</code>。</p>
+<p>例如 <code>SELECT ... FOR SHARE</code> 会对读取到的记录加共享锁，而普通 <code>SELECT</code> 通常走 MVCC 快照读，并不会因为读取数据就加 S 锁。</p>
+<p><strong>排他锁（X 锁）</strong>，同一行同一时刻只能被一个事务加。</p>
+<p>加了排他锁的行，别的事务既加不了共享锁，也加不了排他锁，直到它释放。</p>
+<p>&quot;排他&quot;就是不让别人再锁。</p>
+<p>打个比方：</p>
+<p>共享锁像一个公共储物柜的&quot;只读预约&quot;，多人可以同时查看，但谁都不能在持有共享锁期间修改；</p>
+<p>排他锁则像给柜子上了私锁，其他事务不能再获取与它冲突的锁。</p>
+<pre><code class="language-sql"><span class="c1">-- 手动加共享锁（读共享，期间别人能读不能改）</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">orders</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="k">LOCK</span><span class="w"> </span><span class="k">IN</span><span class="w"> </span><span class="k">SHARE</span><span class="w"> </span><span class="k">MODE</span><span class="p">;</span>
+
+<span class="c1">-- 手动加排他锁：阻止其他事务再对该记录加冲突锁，</span>
+<span class="c1">-- 但普通 SELECT 通常仍可通过 MVCC 读取历史版本</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">orders</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="k">FOR</span><span class="w"> </span><span class="k">UPDATE</span><span class="p">;</span>
+</code></pre>
+<p>实际业务里，<code>SELECT ... FOR UPDATE</code> 经常出现在&quot;先查出来、再判断、再更新&quot;的流程里。</p>
+<p>它帮你在业务层把普通读变成当前读，读的那一刻就把行锁死，避免别人中间插队修改。</p>
+<p>一个经典的死锁模式是：</p>
+<p>两个事务都先拿到同一记录的共享锁，随后又都尝试获取排他锁，就可能互相等待对方释放共享锁，形成循环等待。</p>
+<p>实际写代码时，能直接加排他锁就别先共享再升级。</p>
+<h2>间隙锁和临键锁：专门收拾幻读</h2>
+<p>共享锁、排他锁只能管住&quot;已有这一行&quot;的冲突。</p>
+<p>别的事务要是在中间插了新行，第二次查就会多出几行——这就是幻读。</p>
+<p>光靠行锁锁不住&quot;还不存在的行&quot;，所以 InnoDB 在行锁基础上又加了两种锁。</p>
+<p><strong>间隙锁（Gap Lock）</strong>，不锁具体的数据行，而是锁住两条记录之间的&quot;缝&quot;。</p>
+<p>订单表 id 有 1、3、5 三条记录，(1,3)、(3,5)、(5,+∞) 就是缝。</p>
+<p>间隙锁把这个范围锁住，其他事务就不能在被锁定的间隙中插入新记录，从而防止当前读再次执行时出现新的匹配行。</p>
+<p><strong>临键锁（Next-Key Lock）</strong>，是 InnoDB 在 RR 隔离级别下用于范围锁定的重要锁形式，本质上等于&quot;记录锁 + 前面的间隙锁&quot;。</p>
+<p>它既锁住某条记录，又锁住它前面那条缝，组合成一个<strong>左开右闭</strong>的区间。还是上面的例子，概念上可以理解为 <code>(-∞,1]</code>、<code>(1,3]</code>、<code>(3,5]</code> 以及 <code>(5,+∞)</code>。</p>
+<p>具体加锁范围还会受到查询条件、索引类型以及是否唯一索引等因素影响。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1787909466676-14541d14-ba29-4c80-a3b2-658cfb2292c1.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>记录锁锁的是已有的行，间隙锁锁的是行与行之间的缝。</p>
+<p>临键锁把两者组合起来，既保护已有记录，又阻止其他事务向锁定范围内插入新记录。</p>
+<p>代价是锁定范围可能比单条记录更大，因此在 RR 下执行大范围更新或锁定读时，更容易扩大锁冲突范围，产生锁等待。</p>
+<p>在 InnoDB 中，Gap Lock 和 Next-Key Lock 主要出现在 RR 隔离级别的锁定读、UPDATE、DELETE 等当前读场景里，具体锁定范围高度依赖 SQL 能否利用索引。</p>
+<p>如果没有合适的索引可用于这条语句，InnoDB 可能需要扫描大量记录并对涉及的索引记录加锁——底层不一定真的升级成传统意义上的表锁，但锁定范围可能非常大，效果上接近&quot;整张表都被锁住&quot;，并发性能会明显下降。</p>
+<h2>四个隔离级别，本质是两套机制的不同组合</h2>
+<p>隔离性到底有多强，看每个级别怎么摆 MVCC 和锁。</p>
+<table>
+<thead>
+<tr>
+<th>隔离级别</th>
+<th>MVCC</th>
+<th>锁怎么用</th>
+<th>能挡住什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>读未提交（RU）</td>
+<td>不提供一致性快照隔离，普通读可以看到其他事务尚未提交的数据</td>
+<td>锁定语义较弱</td>
+<td>可能出现脏读、不可重复读、幻读</td>
+</tr>
+<tr>
+<td>读已提交（RC）</td>
+<td>用（每次一致性读生成新 ReadView）</td>
+<td>写操作和当前读主要使用记录锁，通常不使用 Gap Lock，因此范围内仍允许插入新记录</td>
+<td>防止脏读，但可能出现不可重复读和幻读</td>
+</tr>
+<tr>
+<td>可重复读（RR）</td>
+<td>用（首次快照读生成 ReadView，之后沿用）</td>
+<td>当前读配合记录锁、Gap Lock、Next-Key Lock</td>
+<td>防止脏读和不可重复读，并在锁定读场景中抑制幻读（InnoDB 默认）</td>
+</tr>
+<tr>
+<td>串行化（Serializable）</td>
+<td>普通 SELECT 也会采用锁定读语义</td>
+<td>读通常加共享锁，写加排他锁，并通过更强的锁冲突限制并发</td>
+<td>隔离性最强，并发能力最低</td>
+</tr>
+</tbody>
+</table>
+<p>读未提交最粗暴，普通读取直接能看到其他事务尚未提交的最新版本，所以会读到别的事务还没提交的脏数据。</p>
+<p>这个级别线上几乎不用，只有极端调试场景才会看到。</p>
+<p>读已提交靠 MVCC 快照读解决了脏读，但写操作主要使用记录锁，不像 RR 那样普遍用 Gap Lock 和 Next-Key Lock 来保护范围，所以别的事务仍然可以在相应范围内插入新行或修改数据，因此不可重复读和幻读仍然可能发生。</p>
+<p>Oracle 默认就是 RC，所以很多从 Oracle 转 MySQL 的团队会顺手把 MySQL 也改成 RC，但得接受这个代价。</p>
+<p>可重复读是 InnoDB 的默认级别，也是日常最常用的。</p>
+<p>它第一次快照读时生成一个 ReadView，之后整个事务都沿用这一个快照，所以多次读同一行结果一致；</p>
+<p>碰到&quot;当前读&quot;（比如 <code>FOR UPDATE</code>、UPDATE、DELETE）时，InnoDB 会根据查询条件和索引情况使用记录锁、Gap Lock 或 Next-Key Lock 来保护相应的记录和范围，从而抑制幻读。</p>
+<p>MVCC 解决&quot;读的稳定性&quot;，临键锁解决&quot;写的边界&quot;，两者配合才是完整隔离。</p>
+<p>串行化最极端。</p>
+<p>在 InnoDB 中，事务处于 SERIALIZABLE 隔离级别时，普通 <code>SELECT</code> 在非自动提交事务中也会采用锁定读语义，通常相当于隐式加上 <code>FOR SHARE</code>，从而让读写之间更容易发生锁等待，把并发执行进一步限制在接近串行的状态。</p>
+<p>隔离性最高，但并发能力也最低，只适合并发量较低、事务之间必须严格避免并发异常的特殊场景。</p>
+<p>就我的经验看，实际项目里基本在 RC 和 RR 之间二选一，串行化很少碰。</p>
+<p>这里有一个容易搞混的点：</p>
+<p>普通快照读通常走 MVCC，不获取记录锁；</p>
+<p>当前读则需要读取最新版本并获取相应的锁（<code>FOR UPDATE</code>、UPDATE、DELETE 都属于当前读）。</p>
+<p>同样是 RR，你普通的 <code>SELECT</code> 看的是 ReadView，而 <code>SELECT FOR UPDATE</code> 要抢锁。</p>
+<p>面试里问&quot;RR 到底怎么解决幻读&quot;，一定要区分快照读和当前读：</p>
+<p>快照读通过固定 ReadView 保证同一事务中多次读取看到一致的数据版本；</p>
+<p>当前读则通过记录锁、Gap Lock 和 Next-Key Lock 等机制保护查询范围，避免并发插入影响当前读结果。</p>
+<h2>想看锁到底加了没，怎么查</h2>
+<p>真遇到锁等待、死锁，别靠猜。</p>
+<p>InnoDB 给了现成的观察口：</p>
+<p><code>SHOW ENGINE INNODB STATUS</code> 可以查看 InnoDB 的运行状态，其中 <code>TRANSACTIONS</code> 部分能够帮助分析事务、锁等待以及最近检测到的死锁等信息。</p>
+<p>MySQL 8.0 之后更推荐直接查 <code>performance_schema.data_locks</code> 和 <code>data_lock_waits</code>，哪张表、哪一行、谁等谁，一眼看清。</p>
+<p>查询时重点看 <code>OBJECT_SCHEMA</code>、<code>OBJECT_NAME</code>、<code>LOCK_TYPE</code> 和 <code>LOCK_MODE</code>：</p>
+<p><code>LOCK_TYPE</code> 能区分是表级锁还是记录级锁，<code>LOCK_MODE</code> 则能看到 <code>S</code>、<code>X</code>、<code>GAP</code>、<code>REC_NOT_GAP</code> 等锁定信息。</p>
+<p>另外，<code>sys.innodb_lock_waits</code> 视图把锁等待关系直接拼好了，排查死锁更省事。</p>
+<h2>小贴士</h2>
+<p>锁越多越好吗？</p>
+<p>不一定。</p>
+<p>从 RC 切换到 RR 后，范围查询和范围更新在 RR 下可能引入 Gap Lock 和 Next-Key Lock，锁定范围比 RC 更大，因此锁等待和死锁风险可能增加。</p>
+<p>选隔离级别，是在&quot;看到的数据一致性&quot;和&quot;并发吞吐量&quot;之间做取舍，别一刀切。</p>
+<p>平时写业务 SQL 不用操心锁，MySQL 自己会加；</p>
+<p>但一旦涉及&quot;先查后改&quot;、&quot;范围更新&quot;，就得明白背后加的是行锁还是临键锁，不然并发一上来，死锁和锁等待能让你怀疑人生。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "MySQL 事务原子性：undo log 记什么、存哪、何时清", "slug": "post-0f275b"}, "next": {"title": "你更新的数据明明还在内存里，可 MySQL 重启后凭什么没丢？", "slug": "post-f3f218"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "面试官：MySQL 索引是什么？这道题答全的人真不多", "slug": "post-78822c", "desc": "面试被问到 MySQL 索引，多数人的回答停留在\"加快查询\"四个字。 这话对，但没用。 索引真正要讲清楚的，是一份排好序的目录： 索引可以理解成一份排好序的目录，它通过维护特定的数据结构，让数据库能够…", "date": "2026-08-12"}, {"title": "MySQL 索引为什么是 B+ 树？二叉树、哈希、B 树是怎么被淘汰的", "slug": "post-9f798e", "desc": "面试被问到“MySQL 索引为什么用 B+ 树”，多数人的回答停留在“叶子节点存数据、非叶子节点不存、叶子节点用双向链表支持范围查询”。 这话没错，但没讲清“为什么非得是 B+ 树”。 二叉树不行吗？…", "date": "2026-08-13"}, {"title": "MySQL 聚簇索引和非聚簇索引：为什么二级索引查完还要回表？", "slug": "post-acebb2", "desc": "MySQL 的索引底层是一棵 B+ 树，这个说法你应该听过。 但一张表往往建了好几个索引，每个索引都是一棵独立的 B+ 树。 那问题来了，每棵树的叶子节点，都存一份完整的行数据吗？ 不是。 有的索引叶…", "date": "2026-08-14"}, {"title": "MySQL 回表：为什么走了索引还要再查一次 B+ 树？", "slug": "post-bdc914", "desc": "MySQL 面试里有一个绕不开的问题： 为什么走了索引，还需要回表？ 官方文档并没有给它正式定义，但它连着聚簇索引、非聚簇索引、覆盖索引一整条线，查询优化时经常撞上。 一句话说清楚： 回表就是用二级索…", "date": "2026-08-17"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

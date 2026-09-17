@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Redis 哨兵模式：它到底是怎么保证高可用的 · 海上小飞龙</title>
+<meta name="description" content="主从复制有个绕不开的短板： 它撑不起 Redis 的高可用。 主节点一旦宕机，整个集群就失去了写入能力。 哨兵模式就是为解决这个问题而生的，它能让主从集群自动完成故障恢复。 哨兵到底是什么 哨兵节点本…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-09c2db.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Redis 哨兵模式：它到底是怎么保证高可用的 · 海上小飞龙">
+<meta property="og:description" content="主从复制有个绕不开的短板： 它撑不起 Redis 的高可用。 主节点一旦宕机，整个集群就失去了写入能力。 哨兵模式就是为解决这个问题而生的，它能让主从集群自动完成故障恢复。 哨兵到底是什么 哨兵节点本…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/redis.html">Redis</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a><a class="tag" href="/tags/post-30d23e.html">操作系统</a><a class="tag" href="/tags/post-d11195.html">面试题</a></div>
+      <h1 class="post-title">Redis 哨兵模式：它到底是怎么保证高可用的</h1>
+      <div class="post-meta">
+        <span>2026-08-08</span>
+        <span class="dot"></span>
+        <span>2391 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>主从复制有个绕不开的短板：</p>
+<p>它撑不起 Redis 的高可用。</p>
+<p>主节点一旦宕机，整个集群就失去了写入能力。</p>
+<p>哨兵模式就是为解决这个问题而生的，它能让主从集群自动完成故障恢复。</p>
+<h2>哨兵到底是什么</h2>
+<p>哨兵节点本质也是 Redis 实例，一般由多台组成集群，生产上至少部署 3 个。</p>
+<p>它干三件事。</p>
+<p>第一是监控，持续探活主从节点，确认它们都在正常工作。</p>
+<p>第二是自动故障恢复，主节点挂了，哨兵会挑一个从节点顶上去继续服务；从节点挂了，它会自动剔除。</p>
+<p>第三是通知，客户端通过 Sentinel 获取当前主节点地址，主节点切换后能够自动发现新的 Master。</p>
+<p>这三件事合起来，就是 Redis 主从高可用的底气。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1786177305600-a8265203-e99c-42ee-9ffd-5e9da3a9f6ca.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>哨兵是怎么盯哨的</h2>
+<p>哨兵靠心跳机制判断服务生死，默认每 1 秒向集群每个实例发一次 PING。</p>
+<p>收到 PONG 就说明实例活着。</p>
+<p>如果某个实例在限定时间内没回 PONG，这台哨兵就单方面判定它&quot;主观下线&quot;。</p>
+<p>注意，主观下线只是这一台哨兵自己的判断。</p>
+<p>要确认节点真挂了，还得其他哨兵一起投票。</p>
+<p>当认为它下线的哨兵数量达到 quorum 阈值，才会被标记为&quot;客观下线&quot;。</p>
+<p>这个 quorum 值在 redis.conf 里配，quorum 通常配置为能够形成多数判断的数量，例如 3 个 Sentinel 时通常设置为 2。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1786174260881-ec9b3b92-62f9-42d6-99fe-3eaf3fc2cd4a.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>主节点挂了，哨兵怎么选新主</h2>
+<p>首先会过滤掉长时间断开的从节点，然后按照优先级、复制偏移量、run id 依次选择。</p>
+<p>第一条看断连时长。从节点跟主节点断开太久，直接失去候选资格，因为断得越久丢的数据越多。这个时长在配置文件里设。</p>
+<p>第二条比优先级，配置项值越小优先级越高，优先被选。优先级同样可配。</p>
+<p>第三条比 offset。优先级相同就看复制偏移量，offset 越大说明数据越接近原主节点，越先被选中。</p>
+<p>第四条基本轮不到，前面都相同时才按 run id 随便挑一个。</p>
+<p>四条里最关键的其实是第三条：offset 越大，数据越全，越优先上位。</p>
+<p>不过哨兵模式也不是万能，它有个经典坑叫&quot;脑裂&quot;，也是面试的高频题。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1786177280004-03278813-845a-4e07-adaa-1f891f45078c.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>脑裂：一个大脑裂成两个</h2>
+<p>看一个正常的主从加哨兵架构。</p>
+<p>假如主节点和哨兵被网络切到了不同分区，哨兵连不上主节点，只能看到从节点。</p>
+<p>按选主规则，哨兵会从从节点里提拔一个新主。</p>
+<p>但老主节点其实没挂，只是网络断了，客户端还连着它。</p>
+<p>于是集群里同时出现了两个 master，像大脑分裂了一样，这就是脑裂。</p>
+<p>问题来了：</p>
+<p>客户端还在往老主写数据，新主因为网络不通根本同步不到。</p>
+<p>等网络恢复，哨兵把老主强制降级成从节点，老主要从新主全量同步，本地数据被清空。</p>
+<p>脑裂期间客户端写进老主的数据，就这么丢了。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1786174238095-65073066-ec78-4a03-a478-1989bd7d8dc0.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>脑裂怎么治</h2>
+<p>两个配置就能大幅止血。</p>
+<p>第一，设 min-replicas-to-write 至少为 1。</p>
+<p>意思是主节点要接收写请求，必须至少有 1 个从节点在线。</p>
+<p>连不上从节点，主节点直接拒绝写入。</p>
+<p>第二，设置 min-replicas-max-lag，限制从节点 ACK 延迟时间。</p>
+<p>两个条件任一不满足，主节点就拒绝客户端写请求。</p>
+<p>这样即使发生脑裂，也能拦住大量数据写进孤岛，避免恢复后清空丢失。</p>
+<h2>面试实战：三连问</h2>
+<p><strong>问：怎么保证 Redis 的高可用？</strong></p>
+<p>答案就是哨兵模式，它让主从集群能自动故障恢复，包含三个作用。</p>
+<p>监控，盯住每个实例是否健康。</p>
+<p>自动故障恢复，主节点挂了按选主规则提拔从节点顶上。</p>
+<p>通知，哨兵主动告诉客户端该连哪个 Redis。</p>
+<p><strong>问：你们 Redis 是单点还是集群？用的哪种集群？</strong></p>
+<p>参考答法：</p>
+<p>主从通常一主一从加哨兵就够。</p>
+<p>单节点内存控制在 10G 以内。</p>
+<p>Redis 是缓存，不该把海量数据硬塞进去，只放热点数据，一般项目 10G 足够。</p>
+<p>一主一从能扛住多数项目的高并发和高可用：</p>
+<p>主节点负责写，从节点负责读，Redis 单节点通常可以支撑数万到十万级 QPS，具体性能取决于硬件和业务模型，多数业务根本触不到这个上限。</p>
+<p>数据量特别大时，就按业务拆多套主从，比如订单服务一套、秒杀服务一套，多套集群并行解决容量问题。</p>
+<p><strong>问：Redis 集群脑裂怎么解决？</strong></p>
+<p>先讲清脑裂：</p>
+<p>主从和哨兵处在不同网络分区，哨兵收不到主节点心跳，就把一个从节点提成了主节点，出现两个 master。</p>
+<p>客户端还在老主写数据，新主同步不到。</p>
+<p>网络恢复后老主降级成从节点，从新主同步数据，导致老主在脑裂期间写入的数据大量丢失。</p>
+<p>解决靠改两个配置：</p>
+<p>设最小从节点数，缩短主从同步延迟上限。</p>
+<p>不达标就直接拒绝客户端写请求，从而避免大量数据丢失。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "Redis 分片集群：它到底是怎么把数据分片又路由的？", "slug": "post-d06a94"}, "next": {"title": "Redis 集群到底有几种方案？先把主从复制讲透", "slug": "post-4f6aba"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "Redis 面试高频题：缓存击穿到底是什么？互斥锁和逻辑过期一次讲透", "slug": "post-fa28af", "desc": "先说结论： 缓存击穿（Cache Breakdown）指的是——某个 热点 key 刚好在过期的那一瞬间，被海量并发请求同时打中 ，缓存里没数据，请求全部砸向数据库，数据库瞬间被压垮。 说白了，它跟\"…", "date": "2026-07-28"}, {"title": "Redis 持久化：RDB 与 AOF", "slug": "post-807c58", "desc": "为什么需要持久化？ Redis 虽然快，但它的数据主要存储在内存中，而内存属于易失性存储介质。 一旦断电或者服务重启，如果没有持久化机制，数据就可能丢失。 所以 Redis 提供了两种持久化方案： R…", "date": "2026-08-03"}, {"title": "Redis 集群到底有几种方案？先把主从复制讲透", "slug": "post-4f6aba", "desc": "Redis 集群到底有哪几种玩法？ 这是后端面试里出场率极高的一道题。 标准答案就三个： 主从复制、哨兵模式、分片集群。 三者各自解决不同的痛点，而且彼此之间还能牵出一串延伸问题。 比如主从数据到底怎…", "date": "2026-08-07"}, {"title": "Redis 面试高频题：缓存雪崩到底是什么？四种解决方案一次讲清", "slug": "post-6165a4", "desc": "先给结论： 缓存雪崩，说的是大量缓存数据在同一时间失效，或者缓存服务整体不可用，导致大量请求绕过缓存直接访问数据库，最终把数据库压垮。 说白了，它跟\"单个 key 出问题\"不是一回事，而是 成片地崩…", "date": "2026-07-29"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

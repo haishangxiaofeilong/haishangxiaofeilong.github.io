@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LangChain 模型调用：invoke、stream、batch 到底该怎么选？ · 海上小飞龙</title>
+<meta name="description" content="调模型这件事，看起来就一句话： 把请求发过去，把结果拿回来。 但结果怎么返回，有三种常见的调用方式。 一种是等它整个生成完再给你，一种是边生成边往外送，还有一种是一次发一批。 LangChain 把它…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-69ffa5.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="LangChain 模型调用：invoke、stream、batch 到底该怎么选？ · 海上小飞龙">
+<meta property="og:description" content="调模型这件事，看起来就一句话： 把请求发过去，把结果拿回来。 但结果怎么返回，有三种常见的调用方式。 一种是等它整个生成完再给你，一种是边生成边往外送，还有一种是一次发一批。 LangChain 把它…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/langchain.html">LangChain</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a><a class="tag" href="/tags/post-30d23e.html">操作系统</a><a class="tag" href="/tags/java.html">Java</a></div>
+      <h1 class="post-title">LangChain 模型调用：invoke、stream、batch 到底该怎么选？</h1>
+      <div class="post-meta">
+        <span>2026-09-16</span>
+        <span class="dot"></span>
+        <span>2502 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>调模型这件事，看起来就一句话：</p>
+<p>把请求发过去，把结果拿回来。</p>
+<p>但结果怎么返回，有三种常见的调用方式。</p>
+<p>一种是等它整个生成完再给你，一种是边生成边往外送，还有一种是一次发一批。</p>
+<p>LangChain 把它们做成了三个方法：<code>invoke</code>、<code>stream</code>、<code>batch</code>。</p>
+<table>
+<thead>
+<tr>
+<th>调用方式</th>
+<th>结果怎么返回</th>
+<th>典型场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>invoke</code></td>
+<td>等模型整个生成完，一次拿到完整结果</td>
+<td>拿到结果才能往下走的任务</td>
+</tr>
+<tr>
+<td><code>stream</code></td>
+<td>边生成边返回，一段一段地拿</td>
+<td>对话、长文生成这类要有实时感的场景</td>
+</tr>
+<tr>
+<td><code>batch</code></td>
+<td>整批跑完后，按输入顺序返回</td>
+<td>离线的批量任务</td>
+</tr>
+</tbody>
+</table>
+<p>这三种调用方式，各自还有一个异步版本。</p>
+<p>异步版的方法名只多一个 <code>a</code>：</p>
+<p><code>ainvoke</code>、<code>astream</code>、<code>abatch</code>。</p>
+<p>用法上跟同步版有差别：</p>
+<p>结果得靠 <code>await</code> 拿，<code>astream</code> 那边还要配合 <code>async for</code> 来循环。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1789559842117-d6a1e364-4996-4bce-924f-e3a24e2c37b9.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>下面一个一个说。</p>
+<h2>等结果全出来再拿走</h2>
+<p><code>invoke</code> 是最基础的一个，也最容易理解。</p>
+<p>发一次请求，模型把整段结果生成完，再一次性返回。</p>
+<p>这是同步调用，整段结果没回来之前，调用方一直等着，中途拿不到任何片段。</p>
+<p>打个比方，像在面馆点单：</p>
+<p>只能干等着，厨房把整碗做好了才给你端上来。</p>
+<p><code>invoke</code> 适合这几类任务：</p>
+<ul>
+<li>短文本分类、意图识别，只要一个结论</li>
+<li>对延迟不敏感的后台任务</li>
+<li>下一步必须拿到完整结果才能继续的逻辑，比如先拿到模型给出的参数，再拿这个参数去查数据库</li>
+</ul>
+<p>最后这条是硬要求，要的是完整结果，跟用哪个方法没关系。</p>
+<p><code>stream</code> 也能接这种活，只是你得自己把片段拼成完整的一条，才能交给下一步。</p>
+<pre><code class="language-python"><span class="n">result</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="s2">&quot;把这句话归类：是投诉、咨询，还是表扬？&quot;</span><span class="p">)</span>  <span class="c1"># 整段结果拿到手，再决定下一步</span>
+</code></pre>
+<h2>边生成边往外送</h2>
+<p><code>stream</code> 不等结果全出来。</p>
+<p>模型生成一点，往外送一点，返回的是一串片段，拼起来才是完整的一条消息。</p>
+<p>同步调用时，<code>stream</code> 给的是个迭代器，每循环一次拿到一个片段，可以立刻显示给用户。</p>
+<p>像对面一边说，你一边听。</p>
+<p>好处有两个：</p>
+<p>生成到哪儿，用户就能看到哪儿，不用盯着空屏幕干等。</p>
+<p>模型要是跑偏了，不用等整段生成完才发现。</p>
+<p>典型场景有这么几类：</p>
+<ul>
+<li>对话类应用，做出打字机效果</li>
+<li>长文本或代码生成，用户可以边看边判断要不要继续</li>
+<li>任何需要实时反馈的交互界面</li>
+</ul>
+<p>代价是拿到的只是片段，拼接、累积这些活都得你自己来。</p>
+<p>要是下一步非要等到完整结果不可，那就直接用 <code>invoke</code> 更省事。</p>
+<pre><code class="language-python"><span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">stream</span><span class="p">(</span><span class="s2">&quot;讲讲 LangChain 的模型调用方式&quot;</span><span class="p">):</span>  <span class="c1"># 一段一段地显示，不用等整段</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">chunk</span><span class="o">.</span><span class="n">content</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</code></pre>
+<h2>一次发一批</h2>
+<p><code>batch</code> 处理的是很多条彼此独立的输入。</p>
+<p>一次把一批输入交出去，并发跑完，最后统一收结果。</p>
+<p><code>batch</code> 的默认实现，是并发调用多次 <code>invoke</code>。</p>
+<p>它没向模型要什么新能力，只是用线程池把一条条 <code>invoke</code> 一起跑起来。</p>
+<p>个别组件要自己实现批处理，那就不走这条默认路子。</p>
+<p>原来你写个循环一条一条调，现在交给 <code>batch</code> 并发跑，整体耗时能压下来。</p>
+<p>像把一沓单子一次递过去，柜台同时开几个窗口办。</p>
+<p>开几个窗口是可以设定的，用 <code>max_concurrency</code> 参数。</p>
+<p>不设的话，并发度走线程池的默认值。</p>
+<p>输入一多，短时间内同时发出的请求就多，一旦触发服务商的限流，或者超出配额，这些请求就可能失败。</p>
+<p><code>batch</code> 默认会把整批跑完再返回，结果按输入顺序排好，跟传进去的列表一一对应。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1789559340412-fa309c26-9195-494b-bba6-bec5083ef155.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>要想按完成顺序收结果：</p>
+<p>可以用 <code>batch_as_completed</code>，哪条先跑完，哪条的结果就先返回，还带着对应的输入序号，代价是顺序不再保证。</p>
+<p><code>batch</code> 的适用场景主要是两类：</p>
+<ul>
+<li>离线的批量任务，比如大批量文本分类、数据标注</li>
+<li>一批彼此独立的请求，要尽快跑完</li>
+</ul>
+<p>日常写业务代码，<code>batch</code> 通常用得比 <code>invoke</code> 和 <code>stream</code> 少。</p>
+<pre><code class="language-python"><span class="n">inputs</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;这句话是投诉&quot;</span><span class="p">,</span> <span class="s2">&quot;这句话是咨询&quot;</span><span class="p">,</span> <span class="s2">&quot;这句话是表扬&quot;</span><span class="p">]</span>
+<span class="n">results</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">batch</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;max_concurrency&quot;</span><span class="p">:</span> <span class="mi">5</span><span class="p">})</span>  <span class="c1"># 结果按输入顺序返回</span>
+</code></pre>
+<h2>怎么挑</h2>
+<p>用哪个方法，看结果怎么用就知道了。</p>
+<p>页面上的对话、要有实时感的生成，走 <code>stream</code>。</p>
+<p>离线的批量活，走 <code>batch</code>。</p>
+<p>剩下的场景用 <code>invoke</code> 就够了，它也最省心。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1789559349291-2a60e73f-cd68-4b55-ba11-5a471247b51a.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>一个应用里，三种方式常常一起用：</p>
+<p>页面上的对话在流式返回，后台的批量任务在并发跑，中间那些必须拿到完整结果才继续的步骤，老老实实等 <code>invoke</code> 返回。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": null, "next": {"title": "LangChain 的九个核心组件，各管什么？", "slug": "post-3db7f6"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "为什么 synchronized 管不了集群？Redis 分布式锁到底解决了什么问题？", "slug": "post-416895", "desc": "面试官最爱顺藤摸瓜的一连串 面试官问你 Redis 用在项目哪些地方，你若答\"分布式锁\"，他八成追一句：那它怎么实现的？ 这种题有个坑： 别急着背原理， 得先把使用背景讲清楚 ——什么业务、什么场景，…", "date": "2026-08-05"}, {"title": "Redis 分布式锁原理：从 SET NX 到 Redisson 看门狗", "slug": "post-11ef9d", "desc": "一、加锁靠的是 SET NX EX 的原子性 Redis 给了个 setNX，名字拆开就是 set if not exists——只有 key 不存在才写进去。 具体加锁时，我们直接一条 set 命令…", "date": "2026-08-06"}, {"title": "Redis 分片集群：它到底是怎么把数据分片又路由的？", "slug": "post-d06a94", "desc": "主从复制和哨兵能解决高并发读和高可用，但有两个天花板它俩都够不着。 一个是海量数据存储，一个是高并发写。 面试的时候，Redis 分片集群是必问的一题，这篇文章就把这条线彻底讲透。 一、为什么主从不够…", "date": "2026-08-09"}, {"title": "你调的接口几乎都返回 JSON，可它凭什么干掉了 XML？", "slug": "post-26ac16", "desc": "你调过的每一个后端接口，返回的数据几乎都是 JSON。 你大概会觉得，这是因为 JSON 在技术上\"天生最强\"。 这个直觉是错的。 JSON 能赢，并不靠某项碾压级的技术指标，而是刚好踩中了 Web…", "date": "2026-08-23"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

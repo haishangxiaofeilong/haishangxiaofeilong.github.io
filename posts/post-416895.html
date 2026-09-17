@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>为什么 synchronized 管不了集群？Redis 分布式锁到底解决了什么问题？ · 海上小飞龙</title>
+<meta name="description" content="面试官最爱顺藤摸瓜的一连串 面试官问你 Redis 用在项目哪些地方，你若答&quot;分布式锁&quot;，他八成追一句：那它怎么实现的？ 这种题有个坑： 别急着背原理， 得先把使用背景讲清楚 ——什么业务、什么场景，…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-416895.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="为什么 synchronized 管不了集群？Redis 分布式锁到底解决了什么问题？ · 海上小飞龙">
+<meta property="og:description" content="面试官最爱顺藤摸瓜的一连串 面试官问你 Redis 用在项目哪些地方，你若答&quot;分布式锁&quot;，他八成追一句：那它怎么实现的？ 这种题有个坑： 别急着背原理， 得先把使用背景讲清楚 ——什么业务、什么场景，…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/redis.html">Redis</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a><a class="tag" href="/tags/post-30d23e.html">操作系统</a><a class="tag" href="/tags/java.html">Java</a></div>
+      <h1 class="post-title">为什么 synchronized 管不了集群？Redis 分布式锁到底解决了什么问题？</h1>
+      <div class="post-meta">
+        <span>2026-08-05</span>
+        <span class="dot"></span>
+        <span>2304 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><h2>面试官最爱顺藤摸瓜的一连串</h2>
+<p>面试官问你 Redis 用在项目哪些地方，你若答&quot;分布式锁&quot;，他八成追一句：那它怎么实现的？</p>
+<p>这种题有个坑：</p>
+<p>别急着背原理，<strong>得先把使用背景讲清楚</strong>——什么业务、什么场景，才逼得你上分布式锁。</p>
+<p>说白了，凡是多个节点一起抢同一份资源、本地手段兜不住的时候，分布式锁就得出场。</p>
+<p>它常出没在这些场景里：</p>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>集群定时任务</td>
+<td>多节点部署时，避免同一任务被重复执行</td>
+</tr>
+<tr>
+<td>抢单 / 抢券</td>
+<td>多个请求同时争抢一份有限资源</td>
+</tr>
+<tr>
+<td>秒杀</td>
+<td>高并发库存竞争场景下，保证扣减逻辑的一致性</td>
+</tr>
+<tr>
+<td>接口幂等性</td>
+<td>防止重复提交造成重复处理</td>
+</tr>
+</tbody>
+</table>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1785920945496-9cc72275-799e-427a-8a9c-09edbce9b814.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>从一个抢券逻辑说起</h2>
+<p>先看一段简化后的抢券代码，把流程拆开。</p>
+<pre><code class="language-java"><span class="c1">// 简化示例：实际生产环境不会直接读改写库存</span>
+<span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">grabCoupon</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// 查询库存</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">stock</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">couponService</span><span class="p">.</span><span class="na">getStock</span><span class="p">();</span>
+
+<span class="w">    </span><span class="c1">// 没库存，抢券失败</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">stock</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">throw</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">RuntimeException</span><span class="p">(</span><span class="s">&quot;优惠券已抢完&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// 扣减库存</span>
+<span class="w">    </span><span class="n">stock</span><span class="o">--</span><span class="p">;</span>
+
+<span class="w">    </span><span class="c1">// 更新库存</span>
+<span class="w">    </span><span class="n">couponService</span><span class="p">.</span><span class="na">updateStock</span><span class="p">(</span><span class="n">stock</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre>
+<p>第一步，读优惠券库存。</p>
+<p>数量有限，上线前就配好。</p>
+<p>拿到数量后，先判断是不是抢光了。</p>
+<p>归零就抛&quot;优惠券已抢完&quot;的异常，请求结束。</p>
+<p>还有余量，就执行减一，证明这张券被你拿走，最后把新库存写回去。</p>
+<p>流程长这样：</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1785920929184-c5c01a9a-6aca-4fb7-a031-93e25a0ba97e.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>单线程执行时，这段逻辑没有问题。</p>
+<h2>并发一来，这套逻辑就漏了</h2>
+<p>单线程执行时，这段逻辑没有问题；但两个线程同时进入，漏洞就出现了。</p>
+<p>正常情况：</p>
+<p>线程一查券、判断够、扣减；</p>
+<p>线程二走一样流程，相安无事。</p>
+<p>但线程是交替跑的。</p>
+<p>设想库存只剩 1 张时——</p>
+<p>线程一刚查完库存，还没判断，线程二也查了一次。</p>
+<p>两个都读到 1，都觉得&quot;还有货&quot;。</p>
+<p>线程一扣减成功，库存变成 0；</p>
+<p>线程二拿着自己读到的旧库存 1，也认为还有库存，继续执行扣减。</p>
+<p>最终导致两个请求都成功，但实际库存只有一张。</p>
+<p>超卖了。</p>
+<p>这能忍？</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1785922483806-8e436b38-6320-4e68-a02a-7a6e85612c0e.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>本地锁救得了单体，救不了集群</h2>
+<p>有人立马想到加锁。</p>
+<p>给这段代码套一层 <code>synchronized</code> 行不行？</p>
+<p>单体项目里，还真行。</p>
+<p>线程一拿到互斥锁，查券扣减一气呵成；</p>
+<p>线程二进入阻塞等待状态，直到线程一释放锁。</p>
+<p>等线程一释放，线程二才进场。</p>
+<p>这方案成立的前提是：</p>
+<p>服务只有一台，跑在单个 JVM 上。</p>
+<p>可现实为了扛并发，同一份代码往往部署成集群。</p>
+<p>比如 8080、8081、8082 三台服务，前面挂 Nginx 做反向代理和负载均衡。</p>
+<p>这时候 <code>synchronized</code> 就露怯了。</p>
+<p>左边 8080 的线程拿本地锁查了券，右边 8081 的线程也拿本地锁查了券——两边都能读到数据。</p>
+<p>原因很直白：</p>
+<p>它是<strong>本地锁</strong>，锁挂在 JVM 上。</p>
+<p>每台服务各有一个 JVM，只管得住自己进程内的线程互斥，<strong>跨 JVM 根本管不了</strong>。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1785920885015-39f03d42-f348-42c5-96b3-95a9c68550c1.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>Redis 分布式锁正式登场</h2>
+<p>本地锁管不了跨进程，那就把锁挪到外面——用 Redis 当这把外部锁。</p>
+<p>流程变成：</p>
+<p>线程一先去 Redis 尝试加锁，成功后 Redis 保存这把锁对应的 key 和持有者信息。</p>
+<p>加锁失败后，需要等待锁释放，再重新尝试获取。</p>
+<p>等左边持锁线程跑完业务、释放了锁，Redis 记录清掉，右边线程一才能拿到锁，再去查券、判断库存。</p>
+<p>在正常情况下，只要有人持锁，其他线程无法同时获取同一把锁，互斥效果就实现了。</p>
+<p>实际实现时，一般使用 Redis 的 <code>SET key value NX EX</code> 命令，一次完成加锁和过期时间设置，避免锁一直占用。</p>
+<p>结论很明确：</p>
+<p>在秒杀、抢购这类库存竞争场景中，如果业务逻辑比较复杂，需要保证多个节点之间的互斥执行，分布式锁就是一种常见方案。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1785922454667-0b984423-338e-4342-9ee3-9f5d2e150841.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "Redis 分布式锁原理：从 SET NX 到 Redisson 看门狗", "slug": "post-11ef9d"}, "next": {"title": "Redis 的数据过期策略，到底是怎么删数据的？", "slug": "post-136c78"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "Redis 分布式锁原理：从 SET NX 到 Redisson 看门狗", "slug": "post-11ef9d", "desc": "一、加锁靠的是 SET NX EX 的原子性 Redis 给了个 setNX，名字拆开就是 set if not exists——只有 key 不存在才写进去。 具体加锁时，我们直接一条 set 命令…", "date": "2026-08-06"}, {"title": "Redis 分片集群：它到底是怎么把数据分片又路由的？", "slug": "post-d06a94", "desc": "主从复制和哨兵能解决高并发读和高可用，但有两个天花板它俩都够不着。 一个是海量数据存储，一个是高并发写。 面试的时候，Redis 分片集群是必问的一题，这篇文章就把这条线彻底讲透。 一、为什么主从不够…", "date": "2026-08-09"}, {"title": "Redis 面试高频题：缓存击穿到底是什么？互斥锁和逻辑过期一次讲透", "slug": "post-fa28af", "desc": "先说结论： 缓存击穿（Cache Breakdown）指的是——某个 热点 key 刚好在过期的那一瞬间，被海量并发请求同时打中 ，缓存里没数据，请求全部砸向数据库，数据库瞬间被压垮。 说白了，它跟\"…", "date": "2026-07-28"}, {"title": "Redis 缓存和 MySQL 数据不一致怎么办？双写一致性一次讲透", "slug": "post-4aa231", "desc": "先说大前提： 面试官问\"Redis 作为缓存，MySQL 的数据怎么和 Redis 同步\"，本质就是在考 双写一致性 。 但这道题最忌讳的一点，就是上来直接背标准答案。 答题第一步，必须先交代业务背景…", "date": "2026-07-30"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

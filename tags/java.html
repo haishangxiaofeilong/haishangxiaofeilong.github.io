@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>标签：Java · 海上小飞龙</title>
+<meta name="description" content="Java 相关技术文章">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="标签：Java · 海上小飞龙">
+<meta property="og:description" content="Java 相关技术文章">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link is-active" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<section class="page-head">
+  <div class="wrap">
+    <h1 class="page-title"><span class="tag tag-lg">Java</span></h1>
+    <p class="page-desc">10 篇相关文章</p>
+  </div>
+</section>
+<section class="section">
+  <div class="wrap"><div class="post-list"><a class="post-card" href="/posts/post-69ffa5.html">
+  <div class="post-card-body">
+    <h2 class="post-card-title">LangChain 模型调用：invoke、stream、batch 到底该怎么选？</h2>
+    <p class="post-card-desc">调模型这件事，看起来就一句话： 把请求发过去，把结果拿回来。 但结果怎么返回，有三种常见的调用方式。 一种是等它整个生成完再给你，一种是边生成边往外送，还有一种是一次发一批。 LangChain 把它…</p>
+    <div class="post-card-meta"><span>2026-09-16</span></div>
+  </div>
+  <span class="post-card-arrow">&rarr;</span>
+</a><a class="post-card" href="/posts/post-4417b2.html">
+  <div class="post-card-body">
+    <h2 class="post-card-title">要不要上 TypeScript，先算这两个数</h2>
+    <p class="post-card-desc">大公司招人，几乎都要求会 TypeScript。 小团队拿到需求，只想赶紧把页面发出去。 本来就是同一门语言衍生出来的东西，两边态度差这么多，吵了很多年也没个结果。 其实 TypeScript 不是新…</p>
+    <div class="post-card-meta"><span>2026-09-13</span></div>
+  </div>
+  <span class="post-card-arrow">&rarr;</span>
+</a><a class="post-card" href="/posts/post-26ac16.html">
+  <div class="post-card-body">
+    <h2 class="post-card-title">你调的接口几乎都返回 JSON，可它凭什么干掉了 XML？</h2>
+    <p class="post-card-desc">你调过的每一个后端接口，返回的数据几乎都是 JSON。 你大概会觉得，这是因为 JSON 在技术上&quot;天生最强&quot;。 这个直觉是错的。 JSON 能赢，并不靠某项碾压级的技术指标，而是刚好踩中了 Web…</p>
+    <div class="post-card-meta"><span>2026-08-23</span></div>
+  </div>
+  <span class="post-card-arrow">&rarr;</span>
+</a><a class="post-card" href="/posts/post-78822c.html">
+  <div class="post-card-body">
+    <h2 class="post-card-title">面试官：MySQL 索引是什么？这道题答全的人真不多</h2>
+    <p class="post-card-desc">面试被问到 MySQL 索引，多数人的回答停留在&quot;加快查询&quot;四个字。 这话对，但没用。 索引真正要讲清楚的，是一份排好序的目录： 索引可以理解成一份排好序的目录，它通过维护特定的数据结构，让数据库能够…</p>
+    <div class="post-card-meta"><span>2026-08-12</span></div>
+  </div>
+  <span class="post-card-arrow">&rarr;</span>
+</a><a class="post-card" href="/posts/post-a52247.html">
+  <div class="post-card-body">
+    <h2 class="post-card-title">面试官问我什么是幂等，我说按钮变灰就行了，他直接跳过了这道题</h2>
+    <p class="post-card-desc">先说结论： 幂等，就是同一个操作，执行一次和执行多次，对系统状态的影响完全相同。 它在支付系统里是条不能碰的生死线。 只要沾钱，系统就绝不能因为网络抖一下，让用户多扣一分。 很多人以为，幂等就是前端把…</p>
+    <div class="post-card-meta"><span>2026-08-11</span></div>
+  </div>
+  <span class="post-card-arrow">&rarr;</span>
+</a><a class="post-card" href="/posts/post-d06a94.html">
+  <div class="post-card-body">
+    <h2 class="post-card-title">Redis 分片集群：它到底是怎么把数据分片又路由的？</h2>
+    <p class="post-card-desc">主从复制和哨兵能解决高并发读和高可用，但有两个天花板它俩都够不着。 一个是海量数据存储，一个是高并发写。 面试的时候，Redis 分片集群是必问的一题，这篇文章就把这条线彻底讲透。 一、为什么主从不够…</p>
+    <div class="post-card-meta"><span>2026-08-09</span></div>
+  </div>
+  <span class="post-card-arrow">&rarr;</span>
+</a><a class="post-card" href="/posts/post-11ef9d.html">
+  <div class="post-card-body">
+    <h2 class="post-card-title">Redis 分布式锁原理：从 SET NX 到 Redisson 看门狗</h2>
+    <p class="post-card-desc">一、加锁靠的是 SET NX EX 的原子性 Redis 给了个 setNX，名字拆开就是 set if not exists——只有 key 不存在才写进去。 具体加锁时，我们直接一条 set 命令…</p>
+    <div class="post-card-meta"><span>2026-08-06</span></div>
+  </div>
+  <span class="post-card-arrow">&rarr;</span>
+</a><a class="post-card" href="/posts/post-416895.html">
+  <div class="post-card-body">
+    <h2 class="post-card-title">为什么 synchronized 管不了集群？Redis 分布式锁到底解决了什么问题？</h2>
+    <p class="post-card-desc">面试官最爱顺藤摸瓜的一连串 面试官问你 Redis 用在项目哪些地方，你若答&quot;分布式锁&quot;，他八成追一句：那它怎么实现的？ 这种题有个坑： 别急着背原理， 得先把使用背景讲清楚 ——什么业务、什么场景，…</p>
+    <div class="post-card-meta"><span>2026-08-05</span></div>
+  </div>
+  <span class="post-card-arrow">&rarr;</span>
+</a><a class="post-card" href="/posts/post-3ebc3d.html">
+  <div class="post-card-body">
+    <h2 class="post-card-title">Spring Bean 的生命周期到底是什么？</h2>
+    <p class="post-card-desc">Bean 的生命周期，指的是一个对象在 Spring 容器中，从创建、初始化，到被使用，再到最终销毁所经历的完整过程。 这道题是面试高频题，但很多人备考时习惯去网上找帖子背图。 其实不需要死记硬背，把…</p>
+    <div class="post-card-meta"><span>2026-08-01</span></div>
+  </div>
+  <span class="post-card-arrow">&rarr;</span>
+</a><a class="post-card" href="/posts/post-99da0d.html">
+  <div class="post-card-body">
+    <h2 class="post-card-title">一个登录框，如何让黑客绕过密码？聊聊 SQL 注入</h2>
+    <p class="post-card-desc">面试官问： &quot;你做Web项目的时候，后台接口肯定要跟数据库打交道。那你知道什么是SQL注入吗？&quot; 一句话： SQL注入就是攻击者通过构造恶意的输入参数，拼进你的SQL语句里，让数据库执行他想要的任何操…</p>
+    <div class="post-card-meta"><span>2026-07-16</span></div>
+  </div>
+  <span class="post-card-arrow">&rarr;</span>
+</a></div></div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>
