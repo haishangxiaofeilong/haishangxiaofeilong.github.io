@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spring Boot 核心就这 3 件事 · 海上小飞龙</title>
+<meta name="description" content="Spring Boot 的本质 很多人把Spring Boot想得太过复杂，其实，Spring Boot 的核心底层就是 Spring IOC 容器，你完全可以把这个 IOC 容器，理解成一个 key…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-370fc0.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Spring Boot 核心就这 3 件事 · 海上小飞龙">
+<meta property="og:description" content="Spring Boot 的本质 很多人把Spring Boot想得太过复杂，其实，Spring Boot 的核心底层就是 Spring IOC 容器，你完全可以把这个 IOC 容器，理解成一个 key…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/spring.html">Spring</a><a class="tag" href="/tags/post-301a19.html">设计模式</a></div>
+      <h1 class="post-title">Spring Boot 核心就这 3 件事</h1>
+      <div class="post-meta">
+        <span>2026-06-05</span>
+        <span class="dot"></span>
+        <span>2048 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        <a class="btn btn-outline btn-sm" href="http://mp.weixin.qq.com/s?__biz=Mzk0MTY0ODkxMg==&mid=2247485924&idx=1&sn=0b091e66df09ae8a5c267e707903b499&chksm=c2ce749bf5b9fd8d93bb2065a2c205198a32de168f505e583144bdeb303aa479404c38398641" target="_blank" rel="noopener">公众号原文</a>
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><h2>Spring Boot 的本质</h2>
+<p>很多人把Spring Boot想得太过复杂，其实，Spring Boot 的核心底层就是 Spring IOC 容器，你完全可以把这个 IOC 容器，理解成一个 key 为 String 类型、value 为 Object 类型的 Map。</p>
+<p>这个Map到底存了什么？</p>
+<p>Spring Boot在启动的时候，会自动扫描指定的类，把这些类的实例（也就是我们常说的Bean）全部放进这个Map里。</p>
+<p>其中，Map的key就是类名，value就是这个类的单例对象（Spring默认是单例模式）。</p>
+<p>那Spring Boot怎么知道，哪些类需要被扫描放进这个Map里？</p>
+<p>答案就是<strong>注解</strong>。</p>
+<p>只要类上标注了对应的注解，Spring就会把这个类扫描进容器Map里。</p>
+<p>最核心的就是<code>@Component</code>注解，而我们日常用的<code>@Service</code>、<code>@Controller</code>、<code>@Repository</code>（DAO层注解），本质上都是派生自<code>@Component</code>。</p>
+<p>所以只要标注了这些注解的类，项目启动时都会被自动扫描进这个大Map里，成为Spring容器管理的Bean。</p>
+<h2>Spring MVC四层架构</h2>
+<p>Spring MVC的核心思想就两个字：<strong>分层</strong>。</p>
+<p>说白了，就是把代码按功能拆分成4个模块，对应项目里的4个包，各司其职，互不干扰，既方便维护，也便于团队协作。</p>
+<h3>1. Entity层（实体层）</h3>
+<p>它的唯一作用，就是和数据库的表做映射。</p>
+<p>数据库里有一张表，Entity层就对应一个类；</p>
+<p>数据库里有100张表，这里就有100个对应的类。</p>
+<p>类里的属性，就对应数据库表里的字段，就这么简单。</p>
+<h3>2. DAO层（数据访问层）</h3>
+<p>无论是手写 SQL 还是框架自动生成 SQL，所有访问数据库的入口定义，都集中在这一层。</p>
+<h3>3. Service层（业务层）</h3>
+<p>这是整个项目的核心，所有的业务逻辑都写在这里。</p>
+<p>什么是业务逻辑？</p>
+<p>举个最经典的银行转账例子：</p>
+<p>你要给张三转1000块钱，这个业务的完整流程是：</p>
+<p>先校验你的账户余额是否充足➡️余额充足的话给张三的账户加1000元➡️再从你的账户里扣除1000元。</p>
+<p>这一整套连贯的业务流程，就写在Service层。</p>
+<p>而这个流程里的每一步数据库操作，都是调用DAO层的方法来实现的，Service层本身不写SQL，只负责编排业务逻辑、处理业务规则。</p>
+<h3>4. Controller层（控制层）</h3>
+<p>这一层的作用非常纯粹，就是<strong>给前端提供可调用的接口</strong>，除此之外没有别的核心功能。</p>
+<p>正常的Controller层，核心代码往往只有3行：</p>
+<p>第一行定义接口地址和请求方式，</p>
+<p>第二行调用对应的Service层方法，</p>
+<p>第三行把执行结果返回给前端，仅此而已。</p>
+<h2>依赖注入和控制反转</h2>
+<p>在讲依赖注入之前，先搞懂<strong>控制反转（IOC）</strong>，它和依赖注入是一体两面的关系，核心逻辑还是离不开那个容器Map。</p>
+<p>什么叫“控制反转”？</p>
+<p>我们先看“正转”是什么：</p>
+<p>如果没有Spring，你想在Controller里用Service，就得自己手动写代码 <code>UserService userService = new UserService();</code></p>
+<p>去创建对象，<strong>对象的创建、生命周期、销毁，全都是你自己在代码里控制</strong>，这就是“控制正转”。</p>
+<p>而有了Spring之后，这件事完全反过来了：</p>
+<p>对象的创建、实例化、管理，全都交给Spring容器（也就是那个大Map）来做，你的代码里不用再手动new对象了，只需要等着Spring把你需要的对象给你送过来。</p>
+<p>原本由你自己控制的对象管理权，交给了Spring容器，控制权发生了反转，这就是控制反转（IOC）。</p>
+<p>而<strong>依赖注入（DI）</strong>，就是Spring实现控制反转最核心的方式。</p>
+<p>先看一个最常见的开发场景：</p>
+<p>Controller层要调用Service层的方法，那Controller怎么找到Service类的实例？</p>
+<p>别忘了，Spring Boot启动的时候，已经把所有标注了注解的类，都放进了那个大Map里。</p>
+<p>也就是说，Service的实例早就已经在容器Map里存好了。</p>
+<p>那Controller要想用这个Service实例，根本不用自己手动去new对象，只需要通过注解，告诉Spring：</p>
+<p>我要这个Service的实例，你给我拿过来。</p>
+<p>这个过程，就是<strong>依赖注入</strong>。</p>
+<p>而实现依赖注入，最常用的就是两个注解：</p>
+<p><strong>@Autowired</strong> 和 <strong>@Resource</strong>，二选一即可。</p>
+<p>你只需要在Controller里，给对应的Service属性加上这个注解，Spring 就会自动从容器 Map 里，按类型或类名找到对应的 Bean 实例，注入到Controller中，你就可以直接调用Service的方法了。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "Agent Skill 和 MCP，到底有什么区别？", "slug": "post-ee1018"}, "next": null}</script>
+    <script id="relatedData" type="application/json">[{"title": "面试官：你说懂 AOP，那 Spring 到底是怎么把方法“插进去”的？", "slug": "post-17ba3c", "desc": "在之前的文章Spring Boot 核心就这 3 件事中有读者留言，问我能不能讲讲Spring AOP，今天就来聊聊Spring AOP。 AOP 要解决什么问题？ 很多人把 AOP 想得特别复杂，其…", "date": "2026-07-21"}, {"title": "Redis 面试高频题：缓存雪崩到底是什么？四种解决方案一次讲清", "slug": "post-6165a4", "desc": "先给结论： 缓存雪崩，说的是大量缓存数据在同一时间失效，或者缓存服务整体不可用，导致大量请求绕过缓存直接访问数据库，最终把数据库压垮。 说白了，它跟\"单个 key 出问题\"不是一回事，而是 成片地崩…", "date": "2026-07-29"}, {"title": "Spring Bean 的生命周期到底是什么？", "slug": "post-3ebc3d", "desc": "Bean 的生命周期，指的是一个对象在 Spring 容器中，从创建、初始化，到被使用，再到最终销毁所经历的完整过程。 这道题是面试高频题，但很多人备考时习惯去网上找帖子背图。 其实不需要死记硬背，把…", "date": "2026-08-01"}, {"title": "Spring 自动装配的 5 种模式：byName、byType 到底有什么区别？", "slug": "post-c03622", "desc": "Spring 自动装配要回答的问题是： 给对象的属性赋值时，容器到底按什么规则把依赖注入进来。 很多人刚学 Spring 时听过 byName、byType，但真正开发久了，对这几种装配方式的细节反而…", "date": "2026-08-02"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

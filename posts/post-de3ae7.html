@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent 定义工具，@tool 装饰器的四种写法 · 海上小飞龙</title>
+<meta name="description" content="一个 Agent 要能干活，除了会调模型，还得会调工具。 模型负责挑工具，LangChain 负责把工具跑起来。 但这之前还有一件事： 工具得先定义出来，模型才知道有这个工具、什么时候该用它。 在 L…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-de3ae7.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Agent 定义工具，@tool 装饰器的四种写法 · 海上小飞龙">
+<meta property="og:description" content="一个 Agent 要能干活，除了会调模型，还得会调工具。 模型负责挑工具，LangChain 负责把工具跑起来。 但这之前还有一件事： 工具得先定义出来，模型才知道有这个工具、什么时候该用它。 在 L…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/langchain.html">LangChain</a><a class="tag" href="/tags/post-2dc9b4.html">大模型</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a></div>
+      <h1 class="post-title">Agent 定义工具，@tool 装饰器的四种写法</h1>
+      <div class="post-meta">
+        <span>2026-09-20</span>
+        <span class="dot"></span>
+        <span>2910 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>一个 Agent 要能干活，除了会调模型，还得会调工具。</p>
+<p>模型负责挑工具，LangChain 负责把工具跑起来。</p>
+<p>但这之前还有一件事：</p>
+<p>工具得先定义出来，模型才知道有这个工具、什么时候该用它。</p>
+<p>在 LangChain 里，定义工具有个现成的写法，叫 @tool 装饰器。</p>
+<p>一个普通的 Python 函数，加上这个装饰器，就变成了 Agent 能调用的工具。</p>
+<p>这篇就把 @tool 的四种写法一次说清。</p>
+<h2>最基础的写法</h2>
+<p>先看一个最小的例子：</p>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">tool</span>
+
+<span class="nd">@tool</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_weather</span><span class="p">(</span><span class="n">city</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;查询指定城市的天气&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">city</span><span class="si">}</span><span class="s2"> 今天晴，26 度&quot;</span>
+</code></pre>
+<p>写一个普通函数，上面加一行 @tool，这个函数就成了工具。</p>
+<p>代码里三引号包住的那行说明，在 Python 里有个名字，叫文档字符串。</p>
+<p>加装饰器的时候，有三样东西是自动转换的：</p>
+<table>
+<thead>
+<tr>
+<th>函数里的东西</th>
+<th>变成了工具的什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>函数名 get_weather</td>
+<td>工具名</td>
+</tr>
+<tr>
+<td>文档字符串</td>
+<td>工具描述</td>
+</tr>
+<tr>
+<td>参数的类型注解</td>
+<td>输入参数的 Schema</td>
+</tr>
+</tbody>
+</table>
+<p>其中文档字符串很重要。</p>
+<p>模型主要靠它判断这个工具干什么用、什么时候该调。</p>
+<p>不写的话，也可以在装饰器里直接指定 description。</p>
+<p>还有一处容易出问题：</p>
+<p>导包。</p>
+<p>这个装饰器要从 langchain_core.tools 里导，包名别导错。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1789901802474-cb21a356-8fb8-4147-9363-5e65c8391d8b.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>函数名不直观时，可以自己指定</h2>
+<p>函数名是给读代码的人看的，不一定适合给模型看。</p>
+<p>get_weather 这个名字还算直白，换成项目里那些缩写名，模型未必看得懂。</p>
+<p>这时候可以在装饰器里自己指定：</p>
+<pre><code class="language-python"><span class="nd">@tool</span><span class="p">(</span><span class="s2">&quot;weather&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;查询指定城市天气的工具&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_weather</span><span class="p">(</span><span class="n">city</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;查询指定城市的天气&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">city</span><span class="si">}</span><span class="s2"> 今天晴，26 度&quot;</span>
+</code></pre>
+<p>装饰器后面第一个位置传一个字符串，工具名就用它，覆盖掉函数名。</p>
+<p>再传一个 description 参数，工具描述也跟着覆盖。</p>
+<p>改完之后，模型看到的工具叫 weather，描述也换成了你写的那句。</p>
+<p>原来的函数名和文档字符串仍然留在代码里，但不再作为这个工具的名称和描述。</p>
+<h2>参数一多，用 Pydantic 模型来定义</h2>
+<p>参数少的时候，上面的写法够用。</p>
+<p>参数一多、类型一复杂，光靠函数签名和文档字符串就不够了。</p>
+<p>Pydantic 是 Python 里做参数校验的一个库。</p>
+<p>先定义一个继承 BaseModel 的类，把每个参数写成字段：</p>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">Field</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">WeatherInput</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="n">location</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;城市&quot;</span><span class="p">)</span>
+    <span class="n">unit</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;温度单位&quot;</span><span class="p">)</span>
+</code></pre>
+<p>每个字段后面用 Field 写清楚它是什么，这行说明就是模型看到的参数描述。</p>
+<p>然后照常定义函数，装饰器里多传一个 args_schema=WeatherInput，参数就按这个类里写的来：</p>
+<pre><code class="language-python"><span class="nd">@tool</span><span class="p">(</span><span class="n">args_schema</span><span class="o">=</span><span class="n">WeatherInput</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_weather</span><span class="p">(</span><span class="n">location</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">unit</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;查询指定城市的天气&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">location</span><span class="si">}</span><span class="s2"> 的温度是 26 </span><span class="si">{</span><span class="n">unit</span><span class="si">}</span><span class="s2">&quot;</span>
+</code></pre>
+<p>这样做有两个好处。</p>
+<p>每个参数的说明就写在它自己的字段上，比全写进文档字符串里清楚。</p>
+<p>类型对不对、必填字段缺没缺，Pydantic 都会按你定义的那个类来查。</p>
+<h2>还有一种 JSON Schema 写法</h2>
+<p>@tool 也接受直接传一份 JSON Schema，同样挂在 args_schema 上：</p>
+<pre><code class="language-python"><span class="n">weather_schema</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;object&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;location&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;string&quot;</span><span class="p">,</span> <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="s2">&quot;城市&quot;</span><span class="p">},</span>
+        <span class="s2">&quot;unit&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;string&quot;</span><span class="p">,</span> <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="s2">&quot;温度单位&quot;</span><span class="p">},</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;required&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;location&quot;</span><span class="p">,</span> <span class="s2">&quot;unit&quot;</span><span class="p">],</span>
+<span class="p">}</span>
+
+<span class="nd">@tool</span><span class="p">(</span><span class="n">args_schema</span><span class="o">=</span><span class="n">weather_schema</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_weather</span><span class="p">(</span><span class="n">location</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">unit</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;查询指定城市的天气&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">location</span><span class="si">}</span><span class="s2"> 的温度是 26 </span><span class="si">{</span><span class="n">unit</span><span class="si">}</span><span class="s2">&quot;</span>
+</code></pre>
+<p>这种方式灵活，适合已经有现成的 schema，或者参数结构要动态生成的场景。</p>
+<p>但它有一个很实际的问题：</p>
+<p>手写容易出错。</p>
+<p>花括号、引号、字段的对应关系，全靠手敲，错一点整份 schema 就不对了。</p>
+<p>所以参数一复杂，优先走 Pydantic 那条路。</p>
+<h2>四种写法怎么挑</h2>
+<table>
+<thead>
+<tr>
+<th>写法</th>
+<th>什么时候用</th>
+<th>要注意的点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>基础用法</td>
+<td>参数少、逻辑简单</td>
+<td>工具描述要写清楚，模型靠它理解工具</td>
+</tr>
+<tr>
+<td>自定义名称描述</td>
+<td>函数名不够直观，想给更准的指引</td>
+<td>名称和描述会覆盖默认值</td>
+</tr>
+<tr>
+<td>Pydantic 模型</td>
+<td>参数多、类型复杂、要校验</td>
+<td>Field 给每个参数写说明，校验交给 Pydantic</td>
+</tr>
+<tr>
+<td>JSON Schema</td>
+<td>已有现成 schema，或参数结构要动态生成</td>
+<td>手工写繁琐，容易出错</td>
+</tr>
+</tbody>
+</table>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1789901531226-10a3a9f3-d9f8-408f-a509-c62be0607285.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>落到实操，可以这么走：</p>
+<p>日常定义工具，从基础用法开始，够用就好。</p>
+<p>函数名不直观就加个自定义名称，参数一多就换 Pydantic 模型。</p>
+<p>JSON Schema 那条路，留给已有现成 schema、或者参数结构要动态生成的场景。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "LangChain 工具调用出错：自动重试和自定义中间件，到底该用哪个", "slug": "post-92a7ec"}, "next": {"title": "LangChain 动态模型：什么时候该在运行时换模型？", "slug": "post-9d391b"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "LangChain 的九个核心组件，各管什么？", "slug": "post-3db7f6", "desc": "拆开看，LangChain 日常开发里常用到的能力，可以归成九块。 组件 解决什么 模型 换模型的时候，上层代码不用跟着重写 消息 一场对话里，哪句话是谁说的，分得清 工具 模型够得着外部能力 智能体…", "date": "2026-09-15"}, {"title": "模型吐出来的总是一段话，怎么让它乖乖按格式返回？", "slug": "post-2ed7a6", "desc": "调模型的时候，我们都希望它按固定格式把结果给你。 可模型默认吐出来的，是一段自然语言。 你要的是几个字段，它给你的往往是一整段话，中间还夹着解释。 要让它按你给的格式返回，这件事有个名字，叫结构化输出…", "date": "2026-09-17"}, {"title": "你把工具都递给它了，可它凭什么知道下一步该干什么？", "slug": "post-d2f6a4", "desc": "一个模型，能读会写，但它办不了事。 数据库里的数据，它读不到；你写的接口，它调不了。 你把工具递给它，它就能查数据、调接口了。 但下一步做什么，你没法提前写进代码。 工具一多，先用哪个、什么时候该停，…", "date": "2026-09-18"}, {"title": "LangChain 动态模型：什么时候该在运行时换模型？", "slug": "post-9d391b", "desc": "用 create agent 搭 Agent 的时候，首先要指定模型。 很多情况下，模型指定完就不再变化，从任务开始到结束，用的都是这一个。 这就是静态模型。 但有一件事得先说清楚： 模型的能力，会直…", "date": "2026-09-19"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

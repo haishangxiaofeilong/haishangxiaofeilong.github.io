@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Decode 每轮都重算一遍历史 token 吗：聊聊 KV cache · 海上小飞龙</title>
+<meta name="description" content="Decode 每一轮只冒出一个新 token。 可要算出这个 token，模型得拿前面所有 token 的 K 和 V 一起参与注意力计算。 这些 K 和 V 要是每轮都重新算一遍，Decode 就慢…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-4ad759.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Decode 每轮都重算一遍历史 token 吗：聊聊 KV cache · 海上小飞龙">
+<meta property="og:description" content="Decode 每一轮只冒出一个新 token。 可要算出这个 token，模型得拿前面所有 token 的 K 和 V 一起参与注意力计算。 这些 K 和 V 要是每轮都重新算一遍，Decode 就慢…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/rag.html">RAG</a><a class="tag" href="/tags/post-2dc9b4.html">大模型</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a></div>
+      <h1 class="post-title">Decode 每轮都重算一遍历史 token 吗：聊聊 KV cache</h1>
+      <div class="post-meta">
+        <span>2026-09-09</span>
+        <span class="dot"></span>
+        <span>2913 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>Decode 每一轮只冒出一个新 token。</p>
+<p>可要算出这个 token，模型得拿前面所有 token 的 K 和 V 一起参与注意力计算。</p>
+<p>这些 K 和 V 要是每轮都重新算一遍，Decode 就慢得没法看了。</p>
+<p>所以它们被存进了一个地方，叫 KV cache。</p>
+<p>我在<a href="https://mp.weixin.qq.com/s/oDiSNjArnztd-Fe5P1dg6A">《大模型推理的两阶段：一次 Prefill，加上多次 Decode》</a>里讲过，Prefill 只跑一次、Decode 要跑很多次；</p>
+<p>我在<a href="https://mp.weixin.qq.com/s/qN91Oj7LRLJIsY7bOgJxww">《一次完整推理，模型背后要走完 5 道工序》</a>里也带过，调度阶段会先把 KV cache 的空间安排好，Prefill 算完再把 K 和 V 写进去。</p>
+<p>这篇就把它讲透：</p>
+<p>注意力为什么非要 Q、K、V 这三样东西，两个阶段各自怎么用这块缓存，以及不缓存会怎么样。</p>
+<h2>注意力层里真正在算的是 Q、K、V</h2>
+<p>大模型里有一层一层的注意力层，每一层都要算 Q、K、V 这三样。</p>
+<p>说白了，它们都是向量，由同一个输入向量乘上不同的权重矩阵得到。</p>
+<p>Q 是当前这个 token 发出的提问，问的是该去关注谁。</p>
+<p>K 是每个 token 挂出来的标签，写着自己这儿有什么、值不值得关注。</p>
+<p>V 才是真正被取走的信息。</p>
+<p>举个通俗一点的例子，就像你去图书馆查资料。</p>
+<p>Q 是你手上的问题，K 是书脊上的分类标签，V 是书里真正的内容。</p>
+<p>你拿问题去和一排标签比对，对得上的多取一些，对不上的少取一点。</p>
+<p>Q 和 K 比对出来的匹配程度，决定了每个 V 被取走多少。</p>
+<h2>Q 每次只来一个，K 和 V 却越攒越多</h2>
+<p>那问题来了：</p>
+<p>Prefill 和 Decode 的时候，Q 分别是谁？</p>
+<p>Prefill 阶段，Q 是整段提示词切出来的所有 token，比如一次来 4 个。</p>
+<p>到了 Decode，每一轮只有一个 Q。</p>
+<p>Prefill 处理完提示词后，可以根据最后一个位置的输出得到第一个生成 token；</p>
+<p>之后每一轮拿上一步生成的 token 作为输入，预测下一个 token。</p>
+<p>K 和 V 走的是另一套节奏。</p>
+<p>要算当前这个 token 的注意力，就得拿到它自己和前面所有 token 的 K 和 V。</p>
+<p>所以 Prefill 算完，这 4 个 token 的 K、V 就进了 KV cache。</p>
+<p>Decode 每生成一个新 token，就把这个新 token 的 K、V 也追加进去。</p>
+<p>缓存是累增的，像记账一样只往上添一行，不会把前面的账重新算一遍。</p>
+<p>生成 EOS 后，这个请求通常就结束了，不再继续追加。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1788953795349-33f53d8d-151b-46f1-b226-4d27b388300b.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>对新请求来说，Prefill 写入，Decode 边读边加</h2>
+<p>这也是两个阶段对 KV cache 最不一样的地方。</p>
+<p>对一个没有命中已有 KV cache 的新请求来说，Prefill 把整段提示词一次性送进模型，跑一遍前向计算，顺手把每层算出来的 K、V 写进缓存。</p>
+<p>这一步不需要从 KV cache 读取历史 K、V，因为对这个请求来说，缓存一开始还是空的；</p>
+<p>注意力要用的 K、V，是这一遍前向刚算出来的。</p>
+<p>Prefill 只跑一次。</p>
+<p>Decode 要跑很多次，每一轮的活都一样：</p>
+<p>拿当前这一个 token 的 Q，去缓存里把历史的 K、V 全读出来算注意力，得到下一个 token，再把这个新 token 的 K、V 写回去。</p>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>对 KV cache 做什么</th>
+<th>Q 的规模</th>
+<th>跑几次</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Prefill</td>
+<td>写入 K、V</td>
+<td>整段提示词的全部 token</td>
+<td>1 次</td>
+</tr>
+<tr>
+<td>Decode</td>
+<td>读取历史 K、V，并追加当前 token 的 K、V</td>
+<td>每轮 1 个 token</td>
+<td>很多次</td>
+</tr>
+</tbody>
+</table>
+<h2>不缓存会怎样：每轮都要把历史重算一遍</h2>
+<p>Q、K、V 是怎么来的？</p>
+<p>在某一层注意力里，输入隐藏状态 X 会分别乘上三个权重矩阵：</p>
+<p>X 乘 WQ 得到 Q，X 乘 WK 得到 K，X 乘 WV 得到 V。</p>
+<p>在自回归生成的因果注意力里，历史位置的隐藏状态不会因为后面来了新 token 而重新变化，WK 和 WV 也没变。</p>
+<p>所以历史 token 在这一层算出来的 K 和 V，每一轮都是一模一样的值。</p>
+<p>既然结果不会变，就没必要每轮重新计算，直接缓存下来就行。</p>
+<p>不缓存的话，Decode 每一轮都得重新计算前面所有 token 对应的隐藏状态，再乘一遍 WK、WV，把同样的 K、V 重算出来。</p>
+<p>Prefill 只做一次，重算的代价还有限；</p>
+<p>Decode 要一轮一轮跑，重复的计算全堆在这儿。</p>
+<p>所以 KV cache 存在的理由非常直接：</p>
+<p>把已经算过、后面还要反复用的历史 K/V 存下来，避免 Decode 每一轮重新计算它们。</p>
+<p>Decode 每一步省下多少时间，最后会落到相邻 token 之间的时间间隔上，<a href="https://mp.weixin.qq.com/s/-Lxdw8Hw3GhrHUZPDp6oKg">《大模型推理的两个速度指标：TTFT 和 ITL 分别卡在哪一段》</a>里拆的就是这个指标。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1788953960554-0d857b12-b502-4174-b107-d127f2a72d54.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>先按单头理解，别一上来就想多头</h2>
+<p>看到 Q、K、V，很多人会立刻想到多头注意力，然后开始绕。</p>
+<p>其实不用。</p>
+<p>你先用单头把&quot;Q 去匹配 K、再取走 V&quot;这件事想明白就够了。</p>
+<p>多头只是把这件事并行做上好几遍，每一头关注的角度不同，最后把各头的结果拼起来。</p>
+<p>理解 KV cache 的时候，按单头想完全够用。</p>
+<p>顺带说一句，这块缓存为什么会占那么大显存：</p>
+<p>每个 token、每一层，都要存下自己的 K 和 V。</p>
+<p>token 越长、层数越多，它就越大。</p>
+<p>所以长上下文和高并发请求，都会明显增加 KV cache 的显存压力。</p>
+<h2>这块缓存，最后是推理引擎在管</h2>
+<p>在实际部署里，KV cache 的空间分配、写入和读取，主要由推理引擎负责管理。</p>
+<p>推理引擎要把 Prefill 和 Decode 分别实现，还要决定同一时刻涌进来的一大堆请求怎么排、怎么凑在一起跑。</p>
+<p>对企业来说，同一时刻往往是很多个客户端一起在问。</p>
+<p>下一篇我们就聊聊推理引擎：</p>
+<p>它为什么非要把两个阶段分开实现，以及企业级部署为什么最看重并行和批处理。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "大模型推理到了推理引擎这一步，到底要管哪些事", "slug": "post-2f357a"}, "next": {"title": "大模型推理的两个速度指标：TTFT 和 ITL 分别卡在哪一段", "slug": "post-648929"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "Agent Skill 和 MCP，到底有什么区别？", "slug": "post-ee1018", "desc": "做 AI 应用开发，经常会遇到两个概念：Agent Skill 和 MCP（Model Context Protocol）。 虽然都是让 AI 能调用工具，但它们根本不是一个维度的东西。 简单来说：…", "date": "2026-06-30"}, {"title": "RAG 面试高频题：召回率太低怎么办？一套完整优化方案讲透", "slug": "post-0b66cc", "desc": "很多人做 RAG 系统，遇到召回率低的问题，第一反应就是换模型——换一个参数更大的、换一个号称语义理解更强的。 结果呢？ 效果提升微乎其微。 根本原因不是模型不够强，而是模型拿到的参考材料本身就是错的…", "date": "2026-07-23"}, {"title": "为什么大模型总记不住你的文档？聊聊向量数据库", "slug": "post-c65602", "desc": "不管是搭 RAG 知识库、做推荐系统，还是搞以图搜图，你迟早会撞上同一个词：向量数据库。 很多人把它想得很玄，觉得是某种更高端的 MySQL。 说白了，它干的事特别单纯： 存一堆高维向量，然后帮你找出…", "date": "2026-08-15"}, {"title": "gRPC 为什么比 HTTP+JSON 快：快不是某一个技术，是4件事叠出来的", "slug": "post-60f4d8", "desc": "内部调用的钱花在哪了 服务之间一次普通的 HTTP+JSON 调用，真正有用的数据占了多少？ 一个 user 对象，id、name、email 这几个字段名每条消息都得原样抄一遍。 接口还靠文档约定。…", "date": "2026-09-03"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

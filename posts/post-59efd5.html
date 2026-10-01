@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent 的短期记忆：三种 checkpointer 和一个 thread_id · 海上小飞龙</title>
+<meta name="description" content="跟 Agent 聊天，它能把前面聊过的内容接上，靠的是短期记忆。 新开一个会话，之前聊过什么它一概不知； 同一个会话里接着问，它能顺着上下文往下答。 差别就在短期记忆上。 它保存会话内的交互信息，Ag…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-59efd5.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Agent 的短期记忆：三种 checkpointer 和一个 thread_id · 海上小飞龙">
+<meta property="og:description" content="跟 Agent 聊天，它能把前面聊过的内容接上，靠的是短期记忆。 新开一个会话，之前聊过什么它一概不知； 同一个会话里接着问，它能顺着上下文往下答。 差别就在短期记忆上。 它保存会话内的交互信息，Ag…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/langchain.html">LangChain</a><a class="tag" href="/tags/post-2dc9b4.html">大模型</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a><a class="tag" href="/tags/post-30d23e.html">操作系统</a></div>
+      <h1 class="post-title">Agent 的短期记忆：三种 checkpointer 和一个 thread_id</h1>
+      <div class="post-meta">
+        <span>2026-09-23</span>
+        <span class="dot"></span>
+        <span>2715 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>跟 Agent 聊天，它能把前面聊过的内容接上，靠的是短期记忆。</p>
+<p>新开一个会话，之前聊过什么它一概不知；</p>
+<p>同一个会话里接着问，它能顺着上下文往下答。</p>
+<p>差别就在短期记忆上。</p>
+<p>它保存会话内的交互信息，Agent 给回复的时候，基于保存下来的历史信息作答，答出来的内容更贴合当前的对话。</p>
+<p>这篇拆三件事：</p>
+<p>短期记忆是什么、存在哪，以及怎么访问和修改记忆。</p>
+<h2>短期记忆是 state 的一部分</h2>
+<p>LangChain 对短期记忆的核心设计，是把记忆放进 state 里，由框架统一管理。</p>
+<p>具体来说，短期记忆不挂在 Agent 流程外面当附加组件，它深度集成在 <code>create_agent</code> 的工作流里，作为 agent state 的一部分被自动管理。</p>
+<p>不要把它理解成一个额外的功能模块。</p>
+<p>它就在 Agent 的执行流程里面，流程走到哪，state 跟到哪。</p>
+<p>给短期记忆下个定义：</p>
+<p>在一个会话内，也就是一个 thread 内，让 Agent 记住并且利用之前的交互信息，实现上下文连贯的对话。</p>
+<p>上下文指的是，打开一个聊天窗口之后，前后所有的历史交互信息。</p>
+<p>这些历史信息默认放在 state 的 messages 字段里。</p>
+<p>state 是框架统一管理的状态对象，除了 messages 还可以装别的字段。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1790161245553-f7d184b8-26bd-46b7-86dd-b623a42f8dd8.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>三种 checkpointer，对应三种存储位置</h2>
+<p>使用上很简单，给 Agent 挂一个 checkpointer，由它负责把状态存下来。</p>
+<p>常见的 checkpointer 有三种，存的位置不一样，适合的场景也不一样。</p>
+<table>
+<thead>
+<tr>
+<th>checkpointer</th>
+<th>存储位置</th>
+<th>适合场景</th>
+<th>注意点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>InMemorySaver</code></td>
+<td>内存</td>
+<td>日常写代码、开发调试</td>
+<td>服务重启之后数据丢失</td>
+</tr>
+<tr>
+<td><code>SqliteSaver</code></td>
+<td>本地 SQLite 数据库</td>
+<td>个人小型项目</td>
+<td>生产环境不建议用</td>
+</tr>
+<tr>
+<td><code>PostgresSaver</code></td>
+<td>PostgreSQL 数据库</td>
+<td>生产环境</td>
+<td>需要单独部署和维护 PostgreSQL</td>
+</tr>
+</tbody>
+</table>
+<p><code>InMemorySaver</code> 把状态放在内存里，使用最简单，日常写代码或者练习基本就用它。</p>
+<p>代价是数据在服务重启之后就丢了。</p>
+<p><code>SqliteSaver</code> 把状态存进一个本地 SQLite 数据库文件，个人小型项目可以用。</p>
+<p>正式的生产环境不建议，通常会用 PostgreSQL 这类单独部署的数据库。</p>
+<p><code>PostgresSaver</code> 背后是 PostgreSQL 数据库，生产环境常用，支持多实例共享状态，代价是这套数据库要单独部署和维护。</p>
+<p>学习和工作的不同场景，切换对应的 checkpointer 就行。</p>
+<h2>thread_id 充当会话的身份证</h2>
+<p>挂上 checkpointer 之后，Agent 靠 config 里的 thread_id 定位当前会话的持久化状态。</p>
+<p>写法长这样：</p>
+<pre><code class="language-python"><span class="n">config</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;configurable&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;thread_id&quot;</span><span class="p">:</span> <span class="s2">&quot;thread_123&quot;</span><span class="p">}}</span>
+
+<span class="c1"># 调用 agent 时把这个 config 传进去</span>
+<span class="n">agent</span><span class="o">.</span><span class="n">invoke</span><span class="p">({</span><span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="p">[{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;...&quot;</span><span class="p">}]},</span> <span class="n">config</span><span class="p">)</span>
+</code></pre>
+<p>thread_id 直接翻译是线程 ID。</p>
+<p>跟大模型对话不会只开一个会话，可能同时开着好几个会话。</p>
+<p>有了 thread_id，相当于给每个会话绑定了标识。</p>
+<p>同一个 thread_id 内的历史信息保持一致，不同的 thread_id 各管各的。</p>
+<p>thread_id 充当会话的身份证，把不同会话的记忆隔开。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1790161260254-dbe75aff-710a-4587-bd1d-bffbedd4bc86.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>thread_id 如果用错了，本来该分开的两个会话就可能共用同一个 thread。</p>
+<p>比如一个 thread 先在聊旅游路线，接着又拿它聊美食，两段历史混在同一份列表里，模型回答美食问题时可能看到一串旅游记录，答案容易被带偏。</p>
+<h2>修改 messages 列表的两种常见方式</h2>
+<p>短期记忆中的对话历史，主要落在 state 的 messages 列表里。</p>
+<p>要修改这个列表，常见的方式有两种。</p>
+<p>最推荐的是中间件：</p>
+<p>创建中间件，在 Agent 运行前或者运行后，往 state 的 messages 里添加、删除消息，或者修改其中某条的内容。</p>
+<p>中间件操作的还是 state，参数传进来的时候，就能拿到列表里的信息。</p>
+<p>也可以在工具里更新。</p>
+<p>工具执行的时候能读到 state，把要改的内容放进返回结果，框架收到后合并进 state，实现对记忆的间接修改。</p>
+<p>除这两种之外，其实还有一种做法，只是不推荐：</p>
+<p>调用 agent 之后，从返回值里拿到 state 直接改。</p>
+<p>这种改法绕开了框架的状态更新流程，改的只是手里那份对象，记忆里存的内容不会跟着变，对记忆来说等于什么都没改。</p>
+<h2>列表一直涨，上下文装不下</h2>
+<p>同一个会话里对话轮数多了之后，messages 列表会一直增长，有可能超过模型的上下文空间。</p>
+<p>上下文变得非常庞大之后，生成的内容质量可能跟着下降。</p>
+<p>列表里保存的信息太多，互相干扰，输出可能越来越差。</p>
+<p>处理方式，官网列了四种：</p>
+<table>
+<thead>
+<tr>
+<th>处理方式</th>
+<th>做法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>截断</td>
+<td>删掉最先或最后 n 条消息</td>
+</tr>
+<tr>
+<td>删除</td>
+<td>把指定的消息从列表里去掉</td>
+</tr>
+<tr>
+<td>总结</td>
+<td>把旧消息压成摘要</td>
+</tr>
+<tr>
+<td>自定义策略</td>
+<td>按自己的规则清理</td>
+</tr>
+</tbody>
+</table>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1790166470560-2cb07d41-5059-4de0-8a66-14b698aed22b.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>短期记忆就聊到这，它只管一个 thread 内的事。</p>
+<p>出了会话，就是长期记忆的事了，我们下篇单独讲。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "Agent 的长期记忆：一个 Store，装下跨会话的信息", "slug": "post-39e218"}, "next": {"title": "Agent 的结构化输出，response_format 的四种选择各管什么", "slug": "post-2a12bb"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "Redis 的数据过期策略，到底是怎么删数据的？", "slug": "post-136c78", "desc": "给 Redis 的 key 设了过期时间，时间一到，这条数据会瞬间从内存里消失吗？ 这个问题问的其实就是 Redis 的 数据过期策略 。 说白了，当我们给一个 key 指定了 TTL（比如 set…", "date": "2026-08-04"}, {"title": "Linux 的「一切皆文件」：硬盘、键盘、打印机，是怎么变成文件的？", "slug": "post-bbd13e", "desc": "「一切皆文件」这句话，你大概率是听过的。 但真要你讲清楚它到底在说什么，多数人只能说出「硬盘是文件、键盘是文件」这种表层比喻。 它真正的重心不在「什么东西是文件」，而在于 Linux 怎么用同一套接口…", "date": "2026-08-16"}, {"title": "大模型推理的两阶段：一次 Prefill，加上多次 Decode", "slug": "post-902fd6", "desc": "你跟 DeepSeek、通义、GPT 这类大模型聊过天，应该都见过那个画面—— 问完问题，字是一个一个往外蹦的，像有人在你对面现想现说。 可模型没有意识，它不会现想现说。 你敲下回车的那一刻，它其实是…", "date": "2026-09-06"}, {"title": "传统 KV cache：显存明明够，为什么并发就是上不去", "slug": "post-a64775", "desc": "上篇讲到，一种很直接的做法是给每个请求按\"可能的最大长度\"预留一块连续的显存空间。这种传统预分配，最大的问题就是这块空间常常用不满。 这一篇就把这件事拆开看：KV cache 到底占了多少显存，传统分…", "date": "2026-09-11"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

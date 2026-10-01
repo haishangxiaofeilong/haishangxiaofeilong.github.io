@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>要不要上 TypeScript，先算这两个数 · 海上小飞龙</title>
+<meta name="description" content="大公司招人，几乎都要求会 TypeScript。 小团队拿到需求，只想赶紧把页面发出去。 本来就是同一门语言衍生出来的东西，两边态度差这么多，吵了很多年也没个结果。 其实 TypeScript 不是新…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-4417b2.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="要不要上 TypeScript，先算这两个数 · 海上小飞龙">
+<meta property="og:description" content="大公司招人，几乎都要求会 TypeScript。 小团队拿到需求，只想赶紧把页面发出去。 本来就是同一门语言衍生出来的东西，两边态度差这么多，吵了很多年也没个结果。 其实 TypeScript 不是新…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/post-7ddbe1.html">网络</a><a class="tag" href="/tags/java.html">Java</a></div>
+      <h1 class="post-title">要不要上 TypeScript，先算这两个数</h1>
+      <div class="post-meta">
+        <span>2026-09-13</span>
+        <span class="dot"></span>
+        <span>2227 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>大公司招人，几乎都要求会 TypeScript。</p>
+<p>小团队拿到需求，只想赶紧把页面发出去。</p>
+<p>本来就是同一门语言衍生出来的东西，两边态度差这么多，吵了很多年也没个结果。</p>
+<p>其实 TypeScript 不是新语言。</p>
+<p>它是在 JavaScript 基础上加了一套类型系统，写代码的时候就能做静态检查。</p>
+<p>要不要用它，跟技术先不先进没关系。</p>
+<p>只看两个数：</p>
+<p>这个项目打算活多久，平时有多少人碰它的代码。</p>
+<h2>TypeScript 到底多做了点什么</h2>
+<p>JavaScript 是动态类型。</p>
+<p>变量像个不挑食的盒子，数字塞得进，字符串也塞得进。</p>
+<p>JavaScript 本身不会像 TypeScript 那样，对这些类型关系做系统的静态检查，很多问题得等代码运行到那里才暴露。</p>
+<p>用户点下按钮的那一刻页面白屏，你才知道哪个地方传错了。</p>
+<p>TypeScript 会在开发阶段把这些类型关系检查清楚。</p>
+<p>函数收什么参数、返回什么结构，都能用类型写下来。</p>
+<p>写错了，编辑器当场标红，很多问题在运行之前就能被发现。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1789295267451-57af3e0f-802f-41a5-bd4c-514a21b989db.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>差别就这么一点。</p>
+<p>后面的好处和麻烦，都是这一点带出来的。</p>
+<h2>大公司为什么离不了它</h2>
+<p>大公司的代码库动辄几十万行，几十个模块互相调用。</p>
+<p>想改一个核心字段的名字，JavaScript 也能靠 IDE 帮你找，但复杂项目里，工具理解到什么程度，很依赖代码本身。</p>
+<p>真漏掉一处，问题就可能一路带到线上。</p>
+<p>TypeScript 里，数据结构和它的使用方之间有明确的类型关系。</p>
+<p>你改了源头的数据结构，受影响的地方更容易被找出来。</p>
+<p>哪些位置要跟着改，不用全靠猜。</p>
+<p>这种重构时的确定性，让团队敢去动老代码。</p>
+<p>不然技术债只会越堆越高。</p>
+<p>模块越多，调用关系越绕，这种确定性就越值钱。</p>
+<p>另一件事是协作。</p>
+<p>几十人的团队，谁也看不完别人写的模块。</p>
+<p>类型定义摆在那，前端跟后端对接口、新人接手老项目，很多时候不用先翻一遍过期文档。</p>
+<p>一个函数要传什么、返回什么，看一眼就知道。</p>
+<p>原来是口头约定，现在写进代码里，机器盯着。</p>
+<h2>小团队为什么嫌它烦</h2>
+<p>麻烦先出在前期成本上。</p>
+<p>小项目功能单一，讲究快速上线。</p>
+<p>JavaScript 拿到数据随手就用，结构变了随时改。</p>
+<p>换成 TypeScript，你得先把类型定义好。</p>
+<p>数据结构一复杂，为了把类型关系描述清楚，还得写一堆绕来绕去的类型定义和泛型。</p>
+<p>圈内把这种活叫类型体操。</p>
+<p>核心业务逻辑可能就几十行，为类型花的力气反而更多。</p>
+<p>这就让人觉得本末倒置了。</p>
+<p>另一处麻烦在工程配置上。</p>
+<p>浏览器不能直接执行 TypeScript 的类型语法，前端项目通常得先把它转换成 JavaScript 才能跑。</p>
+<p>所以项目工程里要处理类型检查，以及 TypeScript 到 JavaScript 的构建流程。</p>
+<p>有些第三方库没有完整的类型声明，还得额外补类型，不然编辑器照样可能报错。</p>
+<p>一个一两周就要交付的活动页，或者一个个人博客，为这个配一遍，确实太重。</p>
+<p>配置花的时间，反而比写业务代码还多。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1789295819155-5000b564-f0ca-4a97-a8b1-d271e6cb4861.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>分界线不在公司大小</h2>
+<p>上面这些，都是表象。</p>
+<p>真正决定要不要用的，是项目的生命周期和协作人数。</p>
+<p>一个小项目预期要长期迭代，将来可能变成正式产品，早期多花点约束成本是划算的。</p>
+<p>反过来，大公司内部做一个只活三天的抽奖页，直接上 JavaScript 才合理。</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>JavaScript</th>
+<th>TypeScript</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>类型检查</td>
+<td>主要依赖运行时和其他工具</td>
+<td>开发阶段就能做静态检查</td>
+</tr>
+<tr>
+<td>改数据结构</td>
+<td>依赖 IDE 推断和人工检查</td>
+<td>类型关系明确，更容易定位受影响的位置</td>
+</tr>
+<tr>
+<td>团队协作</td>
+<td>靠文档和口头约定</td>
+<td>类型定义能补上一部分文档</td>
+</tr>
+<tr>
+<td>前期成本</td>
+<td>低，随手就能写</td>
+<td>要先定义类型，复杂结构还得写类型定义和泛型</td>
+</tr>
+<tr>
+<td>工程配置</td>
+<td>通常更简单</td>
+<td>要处理类型检查和构建流程</td>
+</tr>
+<tr>
+<td>适合的场景</td>
+<td>短期、功能单一、少人维护</td>
+<td>长期迭代、多人协作</td>
+</tr>
+</tbody>
+</table>
+<p>另外，现在主流前端框架和工程工具基本都支持新旧代码逐步共存。</p>
+<p>你可以先给核心模块补上类型，其余部分先放着。</p>
+<p>不必一上来就追求 100% 覆盖。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1789296547102-18da3212-c32a-46b3-9215-31e288559493.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>TypeScript 更像一笔投资，拿前期写代码时多花的约束成本，换后期维护和协作时的省心。</p>
+<p>项目活得短、碰它的人少，这笔钱花出去收不回来。</p>
+<p>项目活得长、碰它的人多，这笔账就是划算的。</p>
+<p>要不要上，先算这两个数：</p>
+<p>项目准备活多久，平时有多少人碰它的代码。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "都是调大模型，为什么中间还要加一层 LangChain？", "slug": "post-4f84e4"}, "next": {"title": "分布式和微服务，一次讲清", "slug": "post-f2f94b"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "一个登录框，如何让黑客绕过密码？聊聊 SQL 注入", "slug": "post-99da0d", "desc": "面试官问： \"你做Web项目的时候，后台接口肯定要跟数据库打交道。那你知道什么是SQL注入吗？\" 一句话： SQL注入就是攻击者通过构造恶意的输入参数，拼进你的SQL语句里，让数据库执行他想要的任何操…", "date": "2026-07-16"}, {"title": "Spring Bean 的生命周期到底是什么？", "slug": "post-3ebc3d", "desc": "Bean 的生命周期，指的是一个对象在 Spring 容器中，从创建、初始化，到被使用，再到最终销毁所经历的完整过程。 这道题是面试高频题，但很多人备考时习惯去网上找帖子背图。 其实不需要死记硬背，把…", "date": "2026-08-01"}, {"title": "为什么 synchronized 管不了集群？Redis 分布式锁到底解决了什么问题？", "slug": "post-416895", "desc": "面试官最爱顺藤摸瓜的一连串 面试官问你 Redis 用在项目哪些地方，你若答\"分布式锁\"，他八成追一句：那它怎么实现的？ 这种题有个坑： 别急着背原理， 得先把使用背景讲清楚 ——什么业务、什么场景，…", "date": "2026-08-05"}, {"title": "Redis 分布式锁原理：从 SET NX 到 Redisson 看门狗", "slug": "post-11ef9d", "desc": "一、加锁靠的是 SET NX EX 的原子性 Redis 给了个 setNX，名字拆开就是 set if not exists——只有 key 不存在才写进去。 具体加锁时，我们直接一条 set 命令…", "date": "2026-08-06"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

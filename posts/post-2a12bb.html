@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent 的结构化输出，response_format 的四种选择各管什么 · 海上小飞龙</title>
+<meta name="description" content="我在之前的文章《模型吐出来的总是一段话，怎么让它乖乖按格式返回？》里讲的是模型这一层的结构化输出，把 schema 绑到模型上，返回的字段就固定了。 Agent 这一层的结构化输出，配的是另一个参数：…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-2a12bb.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Agent 的结构化输出，response_format 的四种选择各管什么 · 海上小飞龙">
+<meta property="og:description" content="我在之前的文章《模型吐出来的总是一段话，怎么让它乖乖按格式返回？》里讲的是模型这一层的结构化输出，把 schema 绑到模型上，返回的字段就固定了。 Agent 这一层的结构化输出，配的是另一个参数：…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/langchain.html">LangChain</a><a class="tag" href="/tags/post-2dc9b4.html">大模型</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a></div>
+      <h1 class="post-title">Agent 的结构化输出，response_format 的四种选择各管什么</h1>
+      <div class="post-meta">
+        <span>2026-09-22</span>
+        <span class="dot"></span>
+        <span>2175 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>我在之前的文章<a href="https://mp.weixin.qq.com/s/ucAsMhdlV1SponsHrki0OQ">《模型吐出来的总是一段话，怎么让它乖乖按格式返回？》</a>里讲的是模型这一层的结构化输出，把 schema 绑到模型上，返回的字段就固定了。</p>
+<p>Agent 这一层的结构化输出，配的是另一个参数：</p>
+<p><code>create_agent</code> 上的 <code>response_format</code>。</p>
+<p>文章的末尾提过这个参数，说有三种选择。</p>
+<p>官方文档 Agent 那一节把这几种选择都列了出来，多出来的那一种是默认的 <code>None</code>，表示不启用结构化输出。</p>
+<p>四种之间，用的机制不一样，能用的模型也不一样，这篇逐个拆开。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1790076576707-53830546-2aaa-4212-8e14-f36ac429e859.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>用供应商的原生结构化输出</h2>
+<p><code>ProviderStrategy</code> 走的是模型供应商自己的原生结构化输出能力。</p>
+<p>原生结构化输出指的是，供应商在 API 这一层就提供了格式约束，模型响应的时候，输出要落在预先定好的规范里。</p>
+<p>schema 传给供应商，返回的结果已经过了一道格式关。</p>
+<p>前提是模型得支持这项能力，而支持它的只有一部分模型。</p>
+<p>OpenAI、Anthropic、Grok 这些是常见的几家，具体名单以各家的接口文档为准。</p>
+<p>这些模型如果是通过中转服务去调，原生结构化输出能力未必还能用上。</p>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">langchain.agents</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_agent</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.agents.structured_output</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProviderStrategy</span>
+
+<span class="n">agent</span> <span class="o">=</span> <span class="n">create_agent</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+    <span class="n">tools</span><span class="o">=</span><span class="p">[],</span>
+    <span class="n">response_format</span><span class="o">=</span><span class="n">ProviderStrategy</span><span class="p">(</span><span class="n">Contact</span><span class="p">),</span>  <span class="c1"># 明确要求走供应商的原生结构化输出</span>
+<span class="p">)</span>
+
+<span class="n">result</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">invoke</span><span class="p">({</span><span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="p">[{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;...&quot;</span><span class="p">}]})</span>
+<span class="n">result</span><span class="p">[</span><span class="s2">&quot;structured_response&quot;</span><span class="p">]</span>  <span class="c1"># 结构化结果落在最终状态的这个键里</span>
+</code></pre>
+<h2>借一次工具调用绕过去</h2>
+<p>模型没有原生结构化输出能力的时候，改用 <code>ToolStrategy</code>，通过工具调用产生结构化数据。</p>
+<p>做法是 LangChain 把 schema 转成一个虚拟工具，只有参数，没有实际动作。</p>
+<p>这个工具的参数定义，对应着你期望的字段结构。</p>
+<p>模型要给最终答案的时候，框架引导它去调这个虚拟工具，参数填进去，符合要求的结构化数据就跟着出来了。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1790076593864-04adfc7f-044d-41fa-b232-4630f475dfa8.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p><code>ToolStrategy</code> 不依赖模型的原生结构化输出能力，只要模型支持工具调用就能用，兼容面最广。</p>
+<p>生产环境和日常写代码，它更常见。</p>
+<h2>只传类型，让框架自己挑</h2>
+<p>还有一种是省掉指定策略这一步，直接把定义好的 schema 类型传给 <code>response_format</code>。</p>
+<p>schema 就是你要的字段结构：</p>
+<p>有哪些字段、各是什么类型，都写在里面。</p>
+<p>LangChain 拿到类型之后，会按模型能力自己选。</p>
+<p>模型原生支持结构化输出，就走 <code>ProviderStrategy</code>，不支持就走 <code>ToolStrategy</code>。</p>
+<p>选哪种策略，由框架去定，你这边只说清楚要哪些字段。</p>
+<p>日常开发里我更推荐这一种，省掉先确认模型有没有原生结构化输出能力这一步。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1790076034092-b9e4705a-3a87-4417-a7c3-e0a6d48b03e2.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>不做结构化输出</h2>
+<p><code>None</code> 是 <code>response_format</code> 的默认值，表示这一次不按结构化格式返回。</p>
+<p>Agent 照旧用自然语言回答问题。</p>
+<h2>四种怎么挑</h2>
+<table>
+<thead>
+<tr>
+<th>选择</th>
+<th>核心机制</th>
+<th>什么时候用它</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ProviderStrategy</code></td>
+<td>用模型供应商的原生结构化输出</td>
+<td>模型有原生结构化输出能力，要格式保证最可靠的那条</td>
+</tr>
+<tr>
+<td><code>ToolStrategy</code></td>
+<td>把 schema 转成一次工具调用的参数</td>
+<td>模型没有原生结构化输出能力，或者需要兼容面最广的方案</td>
+</tr>
+<tr>
+<td>直接给 schema 类型</td>
+<td>LangChain 按模型能力在 <code>ProviderStrategy</code> 和 <code>ToolStrategy</code> 之间选</td>
+<td>不想先判断模型能力，让框架去挑</td>
+</tr>
+<tr>
+<td><code>None</code></td>
+<td>不启用结构化输出</td>
+<td>不需要结构化数据，正常对话</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "Agent 的短期记忆：三种 checkpointer 和一个 thread_id", "slug": "post-59efd5"}, "next": {"title": "LangChain 工具调用出错：自动重试和自定义中间件，到底该用哪个", "slug": "post-92a7ec"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "LangChain 的九个核心组件，各管什么？", "slug": "post-3db7f6", "desc": "拆开看，LangChain 日常开发里常用到的能力，可以归成九块。 组件 解决什么 模型 换模型的时候，上层代码不用跟着重写 消息 一场对话里，哪句话是谁说的，分得清 工具 模型够得着外部能力 智能体…", "date": "2026-09-15"}, {"title": "模型吐出来的总是一段话，怎么让它乖乖按格式返回？", "slug": "post-2ed7a6", "desc": "调模型的时候，我们都希望它按固定格式把结果给你。 可模型默认吐出来的，是一段自然语言。 你要的是几个字段，它给你的往往是一整段话，中间还夹着解释。 要让它按你给的格式返回，这件事有个名字，叫结构化输出…", "date": "2026-09-17"}, {"title": "你把工具都递给它了，可它凭什么知道下一步该干什么？", "slug": "post-d2f6a4", "desc": "一个模型，能读会写，但它办不了事。 数据库里的数据，它读不到；你写的接口，它调不了。 你把工具递给它，它就能查数据、调接口了。 但下一步做什么，你没法提前写进代码。 工具一多，先用哪个、什么时候该停，…", "date": "2026-09-18"}, {"title": "LangChain 动态模型：什么时候该在运行时换模型？", "slug": "post-9d391b", "desc": "用 create agent 搭 Agent 的时候，首先要指定模型。 很多情况下，模型指定完就不再变化，从任务开始到结束，用的都是这一个。 这就是静态模型。 但有一件事得先说清楚： 模型的能力，会直…", "date": "2026-09-19"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

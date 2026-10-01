@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>gRPC 为什么比 HTTP+JSON 快：快不是某一个技术，是4件事叠出来的 · 海上小飞龙</title>
+<meta name="description" content="内部调用的钱花在哪了 服务之间一次普通的 HTTP+JSON 调用，真正有用的数据占了多少？ 一个 user 对象，id、name、email 这几个字段名每条消息都得原样抄一遍。 接口还靠文档约定。…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-60f4d8.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="gRPC 为什么比 HTTP+JSON 快：快不是某一个技术，是4件事叠出来的 · 海上小飞龙">
+<meta property="og:description" content="内部调用的钱花在哪了 服务之间一次普通的 HTTP+JSON 调用，真正有用的数据占了多少？ 一个 user 对象，id、name、email 这几个字段名每条消息都得原样抄一遍。 接口还靠文档约定。…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/rag.html">RAG</a><a class="tag" href="/tags/post-2dc9b4.html">大模型</a><a class="tag" href="/tags/grpc.html">gRPC</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a></div>
+      <h1 class="post-title">gRPC 为什么比 HTTP+JSON 快：快不是某一个技术，是4件事叠出来的</h1>
+      <div class="post-meta">
+        <span>2026-09-03</span>
+        <span class="dot"></span>
+        <span>3903 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><h2>内部调用的钱花在哪了</h2>
+<p>服务之间一次普通的 HTTP+JSON 调用，真正有用的数据占了多少？</p>
+<p>一个 user 对象，id、name、email 这几个字段名每条消息都得原样抄一遍。</p>
+<p>接口还靠文档约定。</p>
+<p>你写 <code>userId</code>，对方写 <code>user_id</code>，两边对不上，这种错编译期查不出来，只能等联调报错了才反应过来。</p>
+<p>这些活不产出任何业务价值，纯粹是通信要交的税。</p>
+<p>先把对比基准说清楚：</p>
+<p>这里默认比的是最常见的 HTTP/1.1 + JSON。</p>
+<p>顺带说一句，如果换成 HTTP/2 + JSON 来比，多路复用两边就持平，差距主要剩编码和框架开销，但现实里多数 REST 接口还跑在 1.1 上。</p>
+<p>在这个基准下，gRPC 的优势来自几件事叠加：</p>
+<p>契约先行、Protobuf 的紧凑编码、强类型代码生成，再加 HTTP/2 扛并发。</p>
+<h2>HTTP/2 才是底盘</h2>
+<p>gRPC 快，很大一块要归功于它底层选了 HTTP/2。</p>
+<p>HTTP/1.1 一条连接上的并发能力很有限，规范里虽写过管线化，但兼容性问题让它没被广泛采用。</p>
+<p>同一条连接上响应得按请求顺序返回，前面慢下来后面照样被拖住。</p>
+<p>想提高并发，客户端往往只能多开几条 TCP 连接，连接一多开销也跟着上去了。</p>
+<p>这背后的根因，正是 HTTP/1.1 典型的应用层队头阻塞。</p>
+<p>HTTP/2 把数据切成二进制帧，每个帧都带着所属流的编号。</p>
+<p>多个请求可以同时跑在同一条 TCP 连接上，帧交错着传，接收方按流编号再拼回去。</p>
+<p>一个流上的请求和响应，不必等其他流跑完才能进行，这就是多路复用。</p>
+<p>有个边界得说清楚：</p>
+<p>HTTP/2 消除的是应用层队头阻塞，它底下仍跑在 TCP 上，丢包时其他流可能也跟着等。</p>
+<p>头部用 HPACK 压缩省掉重复头信息；</p>
+<p>长连接 HTTP/1.1 也有，真正的差别是一条连接就能撑起并发，不用为了并发开一堆连接。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1788434094219-d7b472b4-e54e-4de9-8129-2b9ca0bb4270.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>二进制传输：省掉的就是赚到的</h2>
+<p>编码时，Protobuf 不把字段名写进消息体，而是通过字段编号和类型信息来编码字段和值。</p>
+<p>字段越多、字段名越长，JSON 花在重复字段名上的开销就越大，Protobuf 的体积优势也越明显。</p>
+<p>序列化要干的活更少，CPU 开销通常比解析 JSON 低。</p>
+<p>打个比方。</p>
+<p>JSON 像每次发货都把&quot;收件人姓名、详细地址、联系电话&quot;整段抄在箱子上，每条消息都得重抄一遍，箱子一大半都是这些字段名。</p>
+<p>Protobuf 只写&quot;1 号的值、2 号的值&quot;，收方手里有一张对照表，按编号认领就行。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1788429589709-b4ac618a-b0d2-4a08-9839-02af3d0636b7.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>stub：把远程调用伪装成本地函数</h2>
+<p>RPC 是远程过程调用。</p>
+<p>你写 <code>getUser(1)</code>，函数在同一个进程里，调完立刻返回。</p>
+<p>现在它搬到了另一台机器，拼 URL、发请求、等响应、解析结果全得你自己来。</p>
+<p>RPC 想做的就是把这堆网络细节藏起来。</p>
+<p>藏的办法是在中间加一层代理对象，叫 stub，也叫桩。</p>
+<p>你调 stub，它把参数打包发出去、等回复、再把结果拆包还给你。</p>
+<p>服务端有一份对应的骨架，收到请求后去调你真正的实现。</p>
+<p>说白了 stub 就是专职跑腿。</p>
+<p>你说&quot;去把 1 号用户的资料拿回来&quot;，出门、找人、交接，全是它的事。</p>
+<h2>契约先行：先写 proto，再写代码</h2>
+<p>用 gRPC，写业务代码之前得先写一个 <code>.proto</code> 文件。</p>
+<p>它是接口描述语言，定义两件事：</p>
+<p>数据长什么样，有哪些方法能被远程调用。</p>
+<pre><code class="language-protobuf"><span class="kd">message</span><span class="w"> </span><span class="nc">UserRequest</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kt">int32</span><span class="w"> </span><span class="na">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kd">message</span><span class="w"> </span><span class="nc">User</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kt">int32</span><span class="w"> </span><span class="na">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w">      </span><span class="c1">// 等号后面是字段编号，不是默认值</span>
+<span class="w">  </span><span class="kt">string</span><span class="w"> </span><span class="na">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kd">service</span><span class="w"> </span><span class="n">UserService</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">rpc</span><span class="w"> </span><span class="n">GetUser</span><span class="w"> </span><span class="p">(</span><span class="n">UserRequest</span><span class="p">)</span><span class="w"> </span><span class="k">returns</span><span class="w"> </span><span class="p">(</span><span class="n">User</span><span class="p">)</span><span class="w"> </span><span class="p">{}</span>
+<span class="p">}</span>
+</code></pre>
+<p>在二进制编码里，字段编号才是识别字段的关键，字段名默认不进消息体。</p>
+<p>所以改字段名一般不影响兼容性，但编号用过就不该再动，删字段也别把编号分给别的字段。</p>
+<p>老客户端还拿着旧对照表，同一个编号它仍按旧字段解读，数据就被解析到错误的字段上。</p>
+<p>proto 写好后用 <code>protoc</code> 生成代码，它自带一部分语言能力、其余靠插件扩展；</p>
+<p>客户端 stub 和服务端接口由 gRPC 插件补上。</p>
+<p>两边类型彻底对齐，字段拼错在编译期就报错，不会拖到上线才发现。</p>
+<h2>一次调用从头到尾</h2>
+<p>概念齐了，把一次调用摊开走一遍。</p>
+<p>客户端先建一个 channel，它代表到目标服务的一条通信通道。</p>
+<p>底下可能有 0 条或多条 HTTP/2 连接，具体由实现决定。</p>
+<p>channel 建一次反复用，别每次调用都新建。</p>
+<p>有了 channel 就能建 stub，像调本地方法一样发起调用。</p>
+<p>stub 把请求序列化成二进制，包装成 HTTP/2 数据帧发出去；</p>
+<p>服务端反序列化成对象，路由到你实现的方法，跑完再原路封帧回传。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1788433153140-88019eae-4176-4a2c-8503-206930f7c86b.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>四种模式，不止一问一答</h2>
+<p>很多人以为 gRPC 就是发个请求、收个响应。</p>
+<p>其实它有四种模式，流式通信在 gRPC 里是一等能力，可以直接写进接口定义。</p>
+<p>HTTP 也能做流式，SSE、WebSocket 都行。</p>
+<p>区别在于 gRPC 把三种流统一进了 RPC 模型。</p>
+<p>一元调用是一个请求对一个响应，跟普通函数一样；</p>
+<p>服务端流是客户端发一次、服务端连续返回很多条；</p>
+<p>客户端流是客户端连续发很多条、服务端最后给一个汇总；</p>
+<p>双向流是两边都能随时发，聊天、实时推送就是它。</p>
+<p>打个比方。</p>
+<p>服务端流像点一份套餐，厨房一道道菜连续往上端；</p>
+<p>双向流像两个人开对讲机，随时说、随时回，谁也不用等谁说完。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1788429619399-50906f8c-f892-4307-836b-27c08d686610.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>业务参数之外：metadata、deadline 和状态码</h2>
+<p>除了业务参数，一次调用还要带点附加信息。</p>
+<p>metadata 是一组键值对，作用类似 HTTP 的头，认证 token、链路追踪的 trace_id 通常放这里，不混进业务参数。</p>
+<p>再就是 deadline，表示这次调用允许存活到什么时候。</p>
+<p>语义上它是个截止时间点，但你写代码时交的通常是超时时长，框架自己换算。</p>
+<p>好处是它能一路往下游传，整条调用链共用同一个终点。</p>
+<p>到点没跑完，这次调用就失败并被取消。</p>
+<p>要注意取消不等于回滚，已经写进去的数据还在那，收尾得自己处理。</p>
+<p>错误处理上，gRPC 用自己的状态码表达 RPC 的最终结果，跟 HTTP 状态码不是一回事。</p>
+<p>常见的 <code>NOT_FOUND</code>、<code>PERMISSION_DENIED</code>、<code>DEADLINE_EXCEEDED</code>、<code>UNAVAILABLE</code> 里，最后这个要看情况再重试：</p>
+<p>请求幂等、失败又是暂时性的才适合，否则非幂等的写操作可能落进去两份。</p>
+<h2>拦截器：通用逻辑别写进每个方法</h2>
+<p>认证、日志、监控这些事，不该在每个业务方法里都写一遍。</p>
+<p>gRPC 给的答案是拦截器，相当于中间件。</p>
+<p>它包在真正的调用外面：</p>
+<p>请求进来先过一道，响应出去再过一道。</p>
+<p>客户端和服务端都能装。</p>
+<p>典型用法是服务端拦截器统一校验 token，不合法直接拒绝；</p>
+<p>再加一个打访问日志，记录方法名、耗时、状态码。</p>
+<p>链路追踪也是这么做的，从 metadata 里取出 trace_id 继续往下传。</p>
+<h2>什么时候不该用 gRPC</h2>
+<p>但 gRPC 也不是万能的，有几个场景得先想清楚。</p>
+<p>一个是浏览器。</p>
+<p>前端 JS 碰不到底层 HTTP/2 帧，发不了原生 gRPC，得靠 gRPC-Web：前端用它，中间放一个代理做协议转换。</p>
+<p>另一个是对外开放的 API。</p>
+<p>第三方更习惯 REST 和 JSON，让人家先装 protoc、再生成代码，接入成本太高。</p>
+<p>调试也不方便，二进制在抓包工具里是一团乱码，好在有 gRPCurl，服务端开了反射就能像 curl 一样直接调。</p>
+<p>回头看，gRPC 的快不是某一个技术点变出来的。</p>
+<p>HTTP/2 让并发通信更高效，Protobuf 把数据编码得更紧凑，代码生成把重复劳动标准化，几件事叠在一起，才形成了它在内部调用中的优势。</p>
+<p>所以很多团队的组合是：</p>
+<p>内部用 gRPC，对外和浏览器场景按接入成本来选，前端确实想直接调也可以走 gRPC-Web。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "大模型幻觉：它不是记错了，而是压根就没在记", "slug": "post-6f34d1"}, "next": {"title": "Skill 上线之后，怎么知道它悄悄退化了？", "slug": "post-d9bb97"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "Agent Skill 和 MCP，到底有什么区别？", "slug": "post-ee1018", "desc": "做 AI 应用开发，经常会遇到两个概念：Agent Skill 和 MCP（Model Context Protocol）。 虽然都是让 AI 能调用工具，但它们根本不是一个维度的东西。 简单来说：…", "date": "2026-06-30"}, {"title": "RAG 面试高频题：召回率太低怎么办？一套完整优化方案讲透", "slug": "post-0b66cc", "desc": "很多人做 RAG 系统，遇到召回率低的问题，第一反应就是换模型——换一个参数更大的、换一个号称语义理解更强的。 结果呢？ 效果提升微乎其微。 根本原因不是模型不够强，而是模型拿到的参考材料本身就是错的…", "date": "2026-07-23"}, {"title": "为什么大模型总记不住你的文档？聊聊向量数据库", "slug": "post-c65602", "desc": "不管是搭 RAG 知识库、做推荐系统，还是搞以图搜图，你迟早会撞上同一个词：向量数据库。 很多人把它想得很玄，觉得是某种更高端的 MySQL。 说白了，它干的事特别单纯： 存一堆高维向量，然后帮你找出…", "date": "2026-08-15"}, {"title": "大模型幻觉：它不是记错了，而是压根就没在记", "slug": "post-6f34d1", "desc": "它编得那么顺，恰恰因为没人教过它什么是真 问大模型某篇论文的结果，它没见过也能写出数据齐全的一段话，但数字是编的。 这种情况大家都踩过，俗称\"幻觉\"。 大模型在预训练阶段，核心任务只有一件： next…", "date": "2026-09-04"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

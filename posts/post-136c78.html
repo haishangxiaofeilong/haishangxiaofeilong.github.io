@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Redis 的数据过期策略，到底是怎么删数据的？ · 海上小飞龙</title>
+<meta name="description" content="给 Redis 的 key 设了过期时间，时间一到，这条数据会瞬间从内存里消失吗？ 这个问题问的其实就是 Redis 的 数据过期策略 。 说白了，当我们给一个 key 指定了 TTL（比如 set…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-136c78.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Redis 的数据过期策略，到底是怎么删数据的？ · 海上小飞龙">
+<meta property="og:description" content="给 Redis 的 key 设了过期时间，时间一到，这条数据会瞬间从内存里消失吗？ 这个问题问的其实就是 Redis 的 数据过期策略 。 说白了，当我们给一个 key 指定了 TTL（比如 set…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/redis.html">Redis</a><a class="tag" href="/tags/post-2dc9b4.html">大模型</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a><a class="tag" href="/tags/post-30d23e.html">操作系统</a></div>
+      <h1 class="post-title">Redis 的数据过期策略，到底是怎么删数据的？</h1>
+      <div class="post-meta">
+        <span>2026-08-04</span>
+        <span class="dot"></span>
+        <span>2066 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>给 Redis 的 key 设了过期时间，时间一到，这条数据会瞬间从内存里消失吗？</p>
+<p>这个问题问的其实就是 Redis 的<strong>数据过期策略</strong>。</p>
+<p>说白了，当我们给一个 key 指定了 TTL（比如 <code>set token abc123 10</code>，代表 10 秒后失效），Redis 并不会保证在 TTL 到期的瞬间立即删除，而是通过过期策略在合适的时机清理。</p>
+<p>这些&quot;什么时候删、怎么删&quot;的规则，就是过期策略。</p>
+<p>Redis 一共准备了<strong>两套</strong>方案：<strong>惰性删除</strong>和<strong>定期删除</strong>。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1785830168074-0e2582a3-6120-4960-8418-bf2ba2c459d4.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>先说<strong>惰性删除</strong>。</p>
+<p>它的思路特别省事：</p>
+<p>你设了过期时间之后，Redis 平时压根不搭理它，直到你哪天来读这个 key 了，它才顺手查一下&quot;过期没&quot;。</p>
+<p>过期了就当场删掉，没过期就把数据正常返回给你。</p>
+<p>举个例子，<code>set name 张三 10</code>，10 秒后你去 <code>get name</code>，Redis 会先判断这个 name 是不是已经到期。</p>
+<p>到期了，直接清掉；没到期，返回张三。</p>
+<p>整个过程就这么简单。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1785830140899-c220f4cd-9077-4b3a-9be2-5a6296e41ffc.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>惰性删除最大的好处是对 CPU 极其友好——只在真正用到 key 的时候才做过期检查，那些压根没人访问的 key，它绝不多花一分力气去扫。</p>
+<p>但代价也明显：对内存不友好。</p>
+<p>一个 key 过期之后如果一直没人碰，它就会赖在内存里不走，内存永远腾不出来。</p>
+<p>要是大量 key 都过期了却没人访问，这些垃圾数据就一直占着地方， 会造成额外的内存占用。</p>
+<p>那怎么办？</p>
+<p>这就轮到<strong>定期删除</strong>登场了。</p>
+<p>它的逻辑是：</p>
+<p>Redis 每隔一段时间，就主动挑一批 key 出来检查，发现过期的就顺手删了。</p>
+<p>注意，它每次只查&quot;一定量&quot;的 key，但Redis 会周期性从设置过期时间的 key 中随机抽取一部分进行检查。</p>
+<p>随着定期抽查不断进行，大部分过期 key 都会被及时清理，但 Redis 并不会一次性扫描全部 key。</p>
+<p>定期删除内部又分为两类执行方式：slow 模式和 fast 模式。</p>
+<p>slow 模式默认按照 hz 配置运行，默认 hz=10，也就是每秒执行约 10 次。</p>
+<p>这个频率可以通过配置文件改，默认值就是 10。</p>
+<pre><code class="language-plain">hz 10
+</code></pre>
+<p>但它还有条硬约束：</p>
+<p>单次清理耗时<strong>不能超过 25 毫秒</strong>。</p>
+<p>为什么卡得这么死？</p>
+<p>因为清理动作会占用主进程，时间太长就会拖累正常请求，所以必须压在 25 毫秒以内。</p>
+<p>一次没清完也不要紧，下一轮接着来。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1785830123943-b18b0dca-87cb-4a9a-b7c1-48e0276ba450.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p><strong>fast 模式</strong>更狠，耗时更短。</p>
+<p>它的执行频率不固定，执行更加频繁，但 Redis 会限制两次 fast 清理之间的最小间隔，避免过度占用 CPU。</p>
+<p>同样是为了尽量少打扰主进程。</p>
+<p>把定期删除整体看，它的优点有两条：</p>
+<p>第一，通过限制删除操作的时长和频率，把对 CPU 的影响压到最低；</p>
+<p>第二，能真正把过期 key 占着的内存释放出来。</p>
+<p>缺点则是删除的时长和频率很难拿捏——太频繁就拖累 CPU，太稀疏又退回惰性删除的老毛病，过期数据释放不及时。</p>
+<p>那 Redis 到底用了哪一套？</p>
+<p>答案是<strong>两套一起上</strong>。</p>
+<p>惰性删除和定期删除它全都要，小孩子才做选择，两个配合着用，才能最大程度把过期的 key 清干净。</p>
+<h3>小贴士</h3>
+<p>另外需要注意，过期策略解决的是“过期 key 怎么清理”，但如果 Redis 内存达到限制，还有另一套机制——<strong>内存淘汰策略</strong>。</p>
+<p>比如 <code>maxmemory-policy</code> 配置，可以选择淘汰一些 key，例如 LRU、LFU 等。</p>
+<p>最后收个尾。</p>
+<p>过期策略就两种：</p>
+<p><strong>惰性删除</strong>，访问 key 时才判断过期与否，过期就删；</p>
+<p><strong>定期删除</strong>，周期性抽查一批 key，过期就删，里面又分 slow 模式（定时任务，默认 10 赫兹，每次清理不超 25 毫秒）和fast 模式（执行更加频繁，但 Redis 会限制执行间隔和单次耗时）。</p>
+<p>记住最关键的一点：</p>
+<p><strong>Redis 是惰性删除和定期删除配合使用的</strong>。</p>
+<p>如果面试问 Redis 为什么不用单纯的定期删除？</p>
+<p>答案就是：全量扫描成本太高，会影响性能。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "为什么 synchronized 管不了集群？Redis 分布式锁到底解决了什么问题？", "slug": "post-416895"}, "next": {"title": "Redis 持久化：RDB 与 AOF", "slug": "post-807c58"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "Redis 面试高频题：缓存击穿到底是什么？互斥锁和逻辑过期一次讲透", "slug": "post-fa28af", "desc": "先说结论： 缓存击穿（Cache Breakdown）指的是——某个 热点 key 刚好在过期的那一瞬间，被海量并发请求同时打中 ，缓存里没数据，请求全部砸向数据库，数据库瞬间被压垮。 说白了，它跟\"…", "date": "2026-07-28"}, {"title": "Redis 缓存和 MySQL 数据不一致怎么办？双写一致性一次讲透", "slug": "post-4aa231", "desc": "先说大前提： 面试官问\"Redis 作为缓存，MySQL 的数据怎么和 Redis 同步\"，本质就是在考 双写一致性 。 但这道题最忌讳的一点，就是上来直接背标准答案。 答题第一步，必须先交代业务背景…", "date": "2026-07-30"}, {"title": "Redis 持久化：RDB 与 AOF", "slug": "post-807c58", "desc": "为什么需要持久化？ Redis 虽然快，但它的数据主要存储在内存中，而内存属于易失性存储介质。 一旦断电或者服务重启，如果没有持久化机制，数据就可能丢失。 所以 Redis 提供了两种持久化方案： R…", "date": "2026-08-03"}, {"title": "为什么 synchronized 管不了集群？Redis 分布式锁到底解决了什么问题？", "slug": "post-416895", "desc": "面试官最爱顺藤摸瓜的一连串 面试官问你 Redis 用在项目哪些地方，你若答\"分布式锁\"，他八成追一句：那它怎么实现的？ 这种题有个坑： 别急着背原理， 得先把使用背景讲清楚 ——什么业务、什么场景，…", "date": "2026-08-05"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

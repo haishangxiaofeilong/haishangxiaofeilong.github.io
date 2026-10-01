@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LangChain 工具调用出错：自动重试和自定义中间件，到底该用哪个 · 海上小飞龙</title>
+<meta name="description" content="Agent 跑起来之后，干活靠的是调工具。 工具不一定每次都调用成功。 网络抖一下，接口被限流，模型拼出来的参数也可能不合规矩。 所以，出错很正常，关键在于出错之后怎么办。 处理的核心思路就是： 把会…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-92a7ec.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="LangChain 工具调用出错：自动重试和自定义中间件，到底该用哪个 · 海上小飞龙">
+<meta property="og:description" content="Agent 跑起来之后，干活靠的是调工具。 工具不一定每次都调用成功。 网络抖一下，接口被限流，模型拼出来的参数也可能不合规矩。 所以，出错很正常，关键在于出错之后怎么办。 处理的核心思路就是： 把会…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/langchain.html">LangChain</a><a class="tag" href="/tags/post-2dc9b4.html">大模型</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a><a class="tag" href="/tags/post-d11195.html">面试题</a></div>
+      <h1 class="post-title">LangChain 工具调用出错：自动重试和自定义中间件，到底该用哪个</h1>
+      <div class="post-meta">
+        <span>2026-09-21</span>
+        <span class="dot"></span>
+        <span>3495 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>Agent 跑起来之后，干活靠的是调工具。</p>
+<p>工具不一定每次都调用成功。</p>
+<p>网络抖一下，接口被限流，模型拼出来的参数也可能不合规矩。</p>
+<p>所以，出错很正常，关键在于出错之后怎么办。</p>
+<p>处理的核心思路就是：</p>
+<p>把会中断执行的异常，换成模型能读到的一条错误信息。</p>
+<p>模型读到这条信息，就有机会自己修正，Agent 的流程也能接着往下走。</p>
+<p>在思想层面，这和你写传统业务代码时用 try catch 接异常是一回事。</p>
+<p>到了工具调用这一层，LangChain 把这类处理交给了中间件。</p>
+<p>中间件可以把一段额外的逻辑包在工具执行的环节外面。</p>
+<p>错误在这里被拦下来、被转换，模型那头收到的，是一条描述工具错误的 ToolMessage，流程不会在这里断掉。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1789992701692-f7d8242f-6a40-4f1d-8793-68985ee9f49c.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>框架自带的重试中间件</h2>
+<p>有一类错误是瞬时性的，错一次不代表次次错。</p>
+<p>网络抖动，过一会儿自己就好了。</p>
+<p>外部 API 被限流，隔一会儿再试就通了。</p>
+<p>对付这类错误，重试是最直接的办法。</p>
+<p>LangChain 提供了一个现成的中间件，叫 ToolRetryMiddleware，传给 create_agent 就能生效：</p>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">langchain.agents</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_agent</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.agents.middleware</span><span class="w"> </span><span class="kn">import</span> <span class="n">ToolRetryMiddleware</span>
+
+<span class="n">agent</span> <span class="o">=</span> <span class="n">create_agent</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+    <span class="n">tools</span><span class="o">=</span><span class="p">[</span><span class="n">search_tool</span><span class="p">],</span>
+    <span class="n">middleware</span><span class="o">=</span><span class="p">[</span>
+        <span class="n">ToolRetryMiddleware</span><span class="p">(</span>
+            <span class="n">max_retries</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+            <span class="n">initial_delay</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+            <span class="n">backoff_factor</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
+        <span class="p">),</span>
+    <span class="p">],</span>
+<span class="p">)</span>
+</code></pre>
+<p>工具执行失败，中间件按配置的策略自动多试几次，不用你自己写重试循环。</p>
+<p>常用的参数有六个，各管一件事：</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>管什么</th>
+<th>默认值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>max_retries</td>
+<td>最多重试几次</td>
+<td>2，加上首次调用一共 3 次</td>
+</tr>
+<tr>
+<td>initial_delay</td>
+<td>第一次重试前等多久，单位秒</td>
+<td>1.0</td>
+</tr>
+<tr>
+<td>backoff_factor</td>
+<td>退避因子，控制等待时间的增长倍数</td>
+<td>2.0</td>
+</tr>
+<tr>
+<td>retry_on</td>
+<td>对哪些异常才重试</td>
+<td>框架内置的一套判断</td>
+</tr>
+<tr>
+<td>on_failure</td>
+<td>重试用完还是失败时怎么办</td>
+<td>把错误写成一条 ToolMessage 返回</td>
+</tr>
+<tr>
+<td>tools</td>
+<td>只对哪些工具生效</td>
+<td>全部工具</td>
+</tr>
+</tbody>
+</table>
+<p>除了这六个之外还有两个：</p>
+<ul>
+<li>max_delay 给单次等待封顶，默认 60 秒；</li>
+<li>jitter 控制要不要给等待时间加随机量，默认开启。</li>
+</ul>
+<p>backoff_factor 定的是指数退避的节奏。</p>
+<p>按上面的配置算，等待时间的理论值是第一次重试前等 1 秒，第二次等 2 秒，第三次等 4 秒，一轮比一轮长，免得给本就出问题的服务再添压力。</p>
+<p>实际等待会在这个数字上浮动，因为 jitter 默认开着，每次等待都会加上一点随机量，避免多个调用挤在同一时刻一起去重试。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1789991005188-b00e8dc3-1040-4b1b-8566-fa0052e9deec.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>retry_on 和 tools 负责收窄重试的范围。</p>
+<p>retry_on 决定对哪些异常才重试，想自己定就传一组异常类型进去，或者传一个函数，它拿到抛出来的异常，返回 True 就重试，返回 False 就不重试。</p>
+<p>tools 决定重试挂在哪几个工具上，不传就是对全部工具生效。</p>
+<p>on_failure 管的是重试次数用完、仍然失败的那一刻。</p>
+<p>默认行为是把错误详情写进一条 ToolMessage 返回，Agent 继续跑；</p>
+<p>设成 &quot;error&quot; 则把异常重新抛出，这次执行就停在这里；</p>
+<p>也可以传一个函数，最后那条错误信息写什么，由它说了算。</p>
+<p>ToolMessage 是 LangChain 里表示工具结果的消息对象。</p>
+<p>工具执行成功时，结果是它；</p>
+<p>出错时，那条错误说明也是它。</p>
+<p>重试解决的是执行时机的问题。</p>
+<p>参数本身传错了，重试多少次结果都一样。</p>
+<p>业务逻辑里出的问题，多跑几次也不会有所改变。</p>
+<h2>重试解决不了的，交给自定义中间件</h2>
+<p>自定义走的是 wrap_tool_call 这个装饰器，同样从 langchain.agents.middleware 里导入。</p>
+<p>它把你写的函数挂到工具执行的环节上，工具每次执行都会先经过这个函数。</p>
+<p>函数拿到两个东西：</p>
+<p>request 是这次调用的请求，里面带着调用的 id、工具名和参数；</p>
+<p>handler 是执行工具的动作，调一下它，工具才真正跑起来。</p>
+<p>处理错误的逻辑就两步：</p>
+<p>调用 handler 时接住异常，返回一条带错误说明的 ToolMessage。</p>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">langchain.agents.middleware</span><span class="w"> </span><span class="kn">import</span> <span class="n">wrap_tool_call</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain_core.messages</span><span class="w"> </span><span class="kn">import</span> <span class="n">ToolMessage</span>
+
+
+<span class="nd">@wrap_tool_call</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">handle_tool_error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">handler</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">handler</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ToolMessage</span><span class="p">(</span>
+            <span class="n">content</span><span class="o">=</span><span class="s2">&quot;调用工具出现错误，检查参数以及执行逻辑&quot;</span><span class="p">,</span>
+            <span class="n">tool_call_id</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">tool_call</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],</span>
+        <span class="p">)</span>
+</code></pre>
+<p>对着代码看：</p>
+<p>try 里调 handler(request)，工具正常跑完就正常返回。</p>
+<p>一抛异常，except 把它接住，返回一条 ToolMessage。</p>
+<p>content 是给模型看的那句说明，告诉它工具出了错，往参数和执行逻辑这两个方向检查。</p>
+<p>tool_call_id 从 request.tool_call 里取。</p>
+<p>模型发起了哪次调用，这条错误就得挂回哪次调用上，对上了号，模型才知道是哪个工具出了问题。</p>
+<p>这条 ToolMessage 会作为工具的结果回到模型那里。</p>
+<p>模型读到错误说明，就有机会修正参数，再调一次，实在处理不了再向用户反馈。</p>
+<p>流程到这里没有断，错误变成了一条模型能拿来用的信息。</p>
+<p>实际工作里，这种写法用得比自动重试更多。</p>
+<p>瞬时性错误交给重试就够了。</p>
+<p>剩下的错误五花八门，业务逻辑里抛出来的、依赖服务返回的，处理办法各不相同，自己写的中间件里怎么处理是由你来定的，灵活得多。</p>
+<p>有一类错误到不了这个中间件：</p>
+<p>工具参数没通过校验的。</p>
+<p>这类错误在工具真正执行之前就被处理掉了，会直接变成一条错误信息回到模型那里。</p>
+<h2>两种方式怎么挑</h2>
+<table>
+<thead>
+<tr>
+<th>对比项</th>
+<th>ToolRetryMiddleware</th>
+<th>wrap_tool_call 自定义中间件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>来源</td>
+<td>框架自带</td>
+<td>自己写</td>
+</tr>
+<tr>
+<td>适合的错误</td>
+<td>瞬时性错误，网络抖动、API 限流</td>
+<td>工具执行中抛出的业务异常</td>
+</tr>
+<tr>
+<td>处理动作</td>
+<td>按退避节奏自动多试几次</td>
+<td>接住异常，返回一条错误 ToolMessage</td>
+</tr>
+<tr>
+<td>灵活性</td>
+<td>在参数里配</td>
+<td>逻辑自己定</td>
+</tr>
+</tbody>
+</table>
+<p>面试被问到工具调用出错怎么处理，把这两条说出来就够了。</p>
+<p>两条路最后都能把工具执行的失败，转成模型能拿到的反馈。</p>
+<p>区别在于，重试几次、失败之后怎么办，ToolRetryMiddleware 都做成了参数；</p>
+<p>自定义中间件里，拦不拦、重不重试、返回什么，都是你自己写。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "Agent 的结构化输出，response_format 的四种选择各管什么", "slug": "post-2a12bb"}, "next": {"title": "Agent 定义工具，@tool 装饰器的四种写法", "slug": "post-de3ae7"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "RAG 面试高频题：召回率太低怎么办？一套完整优化方案讲透", "slug": "post-0b66cc", "desc": "很多人做 RAG 系统，遇到召回率低的问题，第一反应就是换模型——换一个参数更大的、换一个号称语义理解更强的。 结果呢？ 效果提升微乎其微。 根本原因不是模型不够强，而是模型拿到的参考材料本身就是错的…", "date": "2026-07-23"}, {"title": "LangChain 的九个核心组件，各管什么？", "slug": "post-3db7f6", "desc": "拆开看，LangChain 日常开发里常用到的能力，可以归成九块。 组件 解决什么 模型 换模型的时候，上层代码不用跟着重写 消息 一场对话里，哪句话是谁说的，分得清 工具 模型够得着外部能力 智能体…", "date": "2026-09-15"}, {"title": "模型吐出来的总是一段话，怎么让它乖乖按格式返回？", "slug": "post-2ed7a6", "desc": "调模型的时候，我们都希望它按固定格式把结果给你。 可模型默认吐出来的，是一段自然语言。 你要的是几个字段，它给你的往往是一整段话，中间还夹着解释。 要让它按你给的格式返回，这件事有个名字，叫结构化输出…", "date": "2026-09-17"}, {"title": "你把工具都递给它了，可它凭什么知道下一步该干什么？", "slug": "post-d2f6a4", "desc": "一个模型，能读会写，但它办不了事。 数据库里的数据，它读不到；你写的接口，它调不了。 你把工具递给它，它就能查数据、调接口了。 但下一步做什么，你没法提前写进代码。 工具一多，先用哪个、什么时候该停，…", "date": "2026-09-18"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

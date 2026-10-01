@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>你写的每条 SQL 都没加过锁，可 MySQL 凭什么不怕两个事务打架？ · 海上小飞龙</title>
+<meta name="description" content="一个事务在查、另一个事务在改同一张表，你怎么保证读到的不是别人改到一半的数据？ 一种思路是读写之间通过锁互相协调，但读操作如果频繁等待写锁，吞吐量就会受到影响。 InnoDB 用 MVCC 解决了这个…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-fc3ff2.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="你写的每条 SQL 都没加过锁，可 MySQL 凭什么不怕两个事务打架？ · 海上小飞龙">
+<meta property="og:description" content="一个事务在查、另一个事务在改同一张表，你怎么保证读到的不是别人改到一半的数据？ 一种思路是读写之间通过锁互相协调，但读操作如果频繁等待写锁，吞吐量就会受到影响。 InnoDB 用 MVCC 解决了这个…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/mysql.html">MySQL</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a><a class="tag" href="/tags/post-30d23e.html">操作系统</a></div>
+      <h1 class="post-title">你写的每条 SQL 都没加过锁，可 MySQL 凭什么不怕两个事务打架？</h1>
+      <div class="post-meta">
+        <span>2026-08-26</span>
+        <span class="dot"></span>
+        <span>5141 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>一个事务在查、另一个事务在改同一张表，你怎么保证读到的不是别人改到一半的数据？</p>
+<p>一种思路是读写之间通过锁互相协调，但读操作如果频繁等待写锁，吞吐量就会受到影响。</p>
+<p>InnoDB 用 MVCC 解决了这个问题：</p>
+<p>对于普通的一致性读（非锁定读），不必等待写事务释放锁，而是读取符合当前事务可见性规则的版本。</p>
+<p>它靠的是当前记录 + undo log 中的历史版本信息，再通过版本链把同一行的不同版本串起来，根据规则判断当前事务应该看到哪个版本。</p>
+<p>说白了，MVCC 真正干活的，是隐藏列、undo log、Read View 三件套。</p>
+<p>注意，MVCC 并不是让 InnoDB 完全放弃锁。</p>
+<p>普通一致性读主要靠 MVCC 实现非阻塞读取，而 UPDATE、DELETE、SELECT ... FOR UPDATE 等操作仍然会使用锁。</p>
+<ul>
+<li><strong>隐藏列</strong>：每行记录背后，InnoDB 自动塞了三个你看不到的字段。</li>
+<li><strong>undo log</strong>：专门存历史版本的仓库。</li>
+<li><strong>Read View</strong>：事务读数据时拍的快照，配一套可见性规则。</li>
+</ul>
+<p>三件套合起来，就能在并发下给你一个稳定、一致的读取结果。</p>
+<p>下面把这三个东西一个个拆开。</p>
+<h2>先认识隐藏列</h2>
+<p>InnoDB 的聚簇索引记录内部包含这些隐藏字段。</p>
+<p>不需要你建表时声明，对用户完全不可见。</p>
+<table>
+<thead>
+<tr>
+<th>隐藏字段</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DB_TRX_ID</td>
+<td>最后一次插入或修改这行的事务 ID</td>
+</tr>
+<tr>
+<td>DB_ROLL_PTR</td>
+<td>回滚指针，指向上一个历史版本</td>
+</tr>
+<tr>
+<td>DB_ROW_ID</td>
+<td>隐式主键，表没有主键且无非空唯一键时自动生成</td>
+</tr>
+</tbody>
+</table>
+<p>DB_TRX_ID 比较好懂：</p>
+<p>InnoDB 会为需要事务 ID 的事务分配一个内部事务 ID。</p>
+<p>执行 INSERT、UPDATE、DELETE 等写操作时，这个事务 ID 会记录到被修改行的 DB_TRX_ID 中。</p>
+<p>比如事务 100 改了一行，那行的 DB_TRX_ID 就变成 100。</p>
+<p>DB_ROLL_PTR 是回滚指针，指向这行数据的上一个历史版本。</p>
+<p>这些历史版本躺在 undo log 里，靠这个指针，同一行的所有版本能串成一条链。</p>
+<p>DB_ROW_ID 是 InnoDB 的隐式主键。</p>
+<p>我在<a href="https://mp.weixin.qq.com/s/FMfYdkngCRzPti2aUwK_KA">《MySQL 聚簇索引和非聚簇索引：为什么二级索引查完还要回表？》</a>里讲过，聚簇索引总得有个键：</p>
+<p>有主键时用主键，没主键但有合适的非空唯一索引时用它，两者都没有，InnoDB 才生成一个隐藏的 6 字节 DB_ROW_ID 当作聚簇索引键。</p>
+<p>它只在 InnoDB 自动建索引时才真正用上，平时你看不到它。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1787738196166-43520afd-cb3b-4802-99fe-764828c51b09.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>undo log 是版本仓库</h2>
+<p>undo log 叫回滚日志，既能支撑事务回滚，也是 MVCC 的版本仓库，历史版本数据都存放在这里。</p>
+<p>按操作类型，undo log 分两类：</p>
+<p>插入操作产生的是插入型 undo log，只记插入行的主键 ID 就行。</p>
+<p>新数据没历史版本，回滚时按主键直接删；</p>
+<p>事务提交后，这类 INSERT undo 不再需要用于回滚，而 UPDATE、DELETE 产生的 undo 还可能被其他事务的一致性读使用，因此需要等不再被任何 Read View 需要时，才能由 purge 清理。</p>
+<p>更新或删除操作产生的是更新型 undo log。</p>
+<p>UPDATE 的 undo log 保存构建修改前版本所需要的信息，DELETE 的 undo log 保存恢复被删除行所需要的信息。</p>
+<p>这些旧版本通过 DB_ROLL_PTR 串成版本链，事务提交后不会立刻删除，要等所有依赖这个版本的事务都结束，purge 机制才会清理。</p>
+<p>可以把 undo log 想成游戏的存档点。</p>
+<p>每次改数据前先存一份旧档，真要反悔或者别人想看旧状态，顺着指针往回翻就行。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1787741535609-279046b2-be62-430c-a72b-74783653a0d6.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>Read View 决定你能看到哪个版本</h2>
+<p>Read View 叫读视图，名字里虽然带&quot;视图&quot;两个字，但它和 SQL 里的视图干的完全是另一件事。</p>
+<p>普通视图里存的是 SQL 语句，Read View 里存的是事务 ID 相关的信息，不存 SQL 语句也不存真实行记录。</p>
+<p>生成 Read View 的瞬间，相当于给当前事务读数据拍了张快照，把相关的事务 ID 都收集进来。</p>
+<p>后面就靠这套 ID 加可见性规则，从版本链里挑出对当前事务可见的那个版本。</p>
+<p>Read View 里一共四个字段：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>m_ids</td>
+<td>生成 Read View 时，仍处于活跃状态的读写事务 ID 集合</td>
+</tr>
+<tr>
+<td>min_trx_id</td>
+<td>m_ids 里最小的事务 ID</td>
+</tr>
+<tr>
+<td>max_trx_id</td>
+<td>系统下一个要分配的事务 ID</td>
+</tr>
+<tr>
+<td>creator_trx_id</td>
+<td>生成这个 Read View 的事务自己的 ID</td>
+</tr>
+</tbody>
+</table>
+<p>拿到这四个值还不够，还得有可见性算法。</p>
+<p>规则就四条：</p>
+<ol>
+<li>如果版本的 DB_TRX_ID 等于 creator_trx_id，说明这版本是自己改的，可读。</li>
+<li>如果版本的 DB_TRX_ID 小于 min_trx_id，说明改这版本的事务在你拍快照前就提交了，可读。</li>
+<li>如果版本的 DB_TRX_ID 大于等于 max_trx_id，说明这版本的事务在你拍快照之后才启动，不可读。</li>
+<li>如果 min_trx_id ≤ DB_TRX_ID &lt; max_trx_id，就看 DB_TRX_ID 在不在 m_ids 里：在，说明事务还没提交，不可读；不在，说明已经提交，可读。</li>
+</ol>
+<p>当前版本不可读时，就顺着 DB_ROLL_PTR 回滚指针找上一个历史版本，重复这套判断，直到找到可读的为止。</p>
+<p>要是整条链都找不到，那读到的就是空。</p>
+<pre><code class="language-plain">function visible(version_trx_id, view):
+    if version_trx_id == view.creator_trx_id: return true   // 自己改的
+    if version_trx_id &lt;  view.min_trx_id:    return true   // 快照前已提交
+    if version_trx_id &gt;= view.max_trx_id:    return false  // 快照后才启动
+    # 落在 [min, max) 之间
+    if version_trx_id in view.m_ids:         return false  // 还活跃，未提交
+    else:                                    return true   // 已提交
+</code></pre>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1787741575473-05aec4d6-4dd2-49d2-9cb6-a46246ac847f.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>举个具体例子走一遍</h2>
+<p>光看规则还是虚，走一遍就清楚了。</p>
+<p>假设有张订单表，只有 id、amount 两个字段。</p>
+<p>一开始插入一行：</p>
+<p>id=1，amount=199。</p>
+<p>这行是事务 99 提交的，所以 DB_TRX_ID=99，刚插入没有历史版本，DB_ROLL_PTR 是空。</p>
+<p>为了便于理解，下面假设事务 100 已经获得事务 ID 100，并处于活跃状态；</p>
+<p>事务 101 随后获得事务 ID 101。</p>
+<p>现在两个事务：</p>
+<ul>
+<li>事务 100 执行一次 <code>select amount from order where id=1</code>。</li>
+<li>事务 101 启动，执行 <code>update order set amount=299 where id=1</code>，然后提交。</li>
+</ul>
+<p>事务 100 在 RR 隔离级别下，又执行了一次一模一样的查询。</p>
+<p>问题是：事务 100 两次读到的 amount 分别是多少？</p>
+<p>下面重点关注当前版本的 DB_TRX_ID 与 Read View 中事务 ID 范围的关系。</p>
+<p>事务 100 本身没有修改这行数据，因此不展开 creator_trx_id 对自身修改可见性的特殊处理。</p>
+<p><strong>第一次查询时</strong>，生成第一个 Read View。</p>
+<p>此时事务 101 还没有启动，因此 101 不在当前快照中：</p>
+<ul>
+<li>m_ids = [100]（当前只有事务 100 活跃）</li>
+<li>min_trx_id = 100</li>
+<li>max_trx_id = 101</li>
+<li>当前行的 DB_TRX_ID = 99（事务 100 只读了，没改过这行）</li>
+</ul>
+<p>套规则：</p>
+<p>DB_TRX_ID=99，不等于 creator_trx_id；</p>
+<p>99 小于 min_trx_id(100)，命中第二条，已提交、可读。</p>
+<p>所以第一次读到 amount=199。</p>
+<p><strong>接着事务 101 做更新</strong>。</p>
+<p>InnoDB 先把旧版本（amount=199，DB_TRX_ID=99）写进 undo log，再改内存里的当前行：</p>
+<p>amount=299、DB_TRX_ID=101，DB_ROLL_PTR 指向刚写进 undo log 的那个旧版本，版本链形成。</p>
+<p>然后事务 101 提交。</p>
+<p><strong>事务 100 第二次查询</strong>（RR 级别）。</p>
+<p>RR 只在第一次一致性读时建立 Read View，之后的所有一致性读沿用第一次那张。</p>
+<p>所以这次判断用的还是刚才那组值：</p>
+<p>m_ids=[100]、min=100、max=101。</p>
+<p>当前最新版本 DB_TRX_ID=101：</p>
+<ul>
+<li>不等于 creator；</li>
+<li>不小于 min(100)；</li>
+<li>大于等于 max(101)，命中第三条，这版本的事务在快照之后才启动，不可读。</li>
+</ul>
+<p>读不到 299。</p>
+<p>顺着 DB_ROLL_PTR 找到 undo log 里的旧版本：</p>
+<p>DB_TRX_ID=99，小于 min_trx_id(100)，可读。</p>
+<p>amount=199。</p>
+<p>于是事务 100 两次查询读到的都是 199。</p>
+<p>在 RR 隔离级别下，同一个事务里的普通一致性读，不管别的事务怎么提交修改，都会基于同一张 Read View 读取可见版本，这就是可重复读。</p>
+<h2>RC 和 RR 的核心差异在 Read View 时机</h2>
+<p>本文重点讨论 RC 和 RR 下的 MVCC 一致性读。</p>
+<p>两者最核心的区别，就是 Read View 的创建时机不同。</p>
+<p>RC 下，每次执行一致性读都会新建一个 Read View。</p>
+<p>这意味着一个事务里多次查同一行，会读到别的事务刚提交的最新值，所以只解决了脏读，没解决不可重复读。</p>
+<p>RR 下，只在第一次一致性读时建立 Read View，之后的所有一致性读沿用这第一张。</p>
+<p>后续读看到的都是那张旧快照里的数据，既挡住了脏读，也挡住了不可重复读。</p>
+<table>
+<thead>
+<tr>
+<th>隔离级别</th>
+<th>Read View 创建时机</th>
+<th>解决脏读</th>
+<th>解决不可重复读</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RC 读已提交</td>
+<td>每次一致性读都新建</td>
+<td>是</td>
+<td>否</td>
+</tr>
+<tr>
+<td>RR 可重复读</td>
+<td>仅第一次一致性读生成，后续沿用</td>
+<td>是</td>
+<td>是</td>
+</tr>
+</tbody>
+</table>
+<p>当没有活跃事务的 Read View 再需要这个旧版本时，purge 机制就会把它清掉。</p>
+<p>到这，MVCC 最核心的一条实现链路就串起来了。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1787738261000-ab4d6666-a568-4e3b-8816-44d5ad8161f5.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "你更新的数据明明还在内存里，可 MySQL 重启后凭什么没丢？", "slug": "post-f3f218"}, "next": {"title": "你建表时引擎那栏从没改过，可 InnoDB 凭什么把 MyISAM 挤成了老古董？", "slug": "post-bc8872"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "Redis 缓存和 MySQL 数据不一致怎么办？双写一致性一次讲透", "slug": "post-4aa231", "desc": "先说大前提： 面试官问\"Redis 作为缓存，MySQL 的数据怎么和 Redis 同步\"，本质就是在考 双写一致性 。 但这道题最忌讳的一点，就是上来直接背标准答案。 答题第一步，必须先交代业务背景…", "date": "2026-07-30"}, {"title": "MySQL 索引为什么是 B+ 树？二叉树、哈希、B 树是怎么被淘汰的", "slug": "post-9f798e", "desc": "面试被问到“MySQL 索引为什么用 B+ 树”，多数人的回答停留在“叶子节点存数据、非叶子节点不存、叶子节点用双向链表支持范围查询”。 这话没错，但没讲清“为什么非得是 B+ 树”。 二叉树不行吗？…", "date": "2026-08-13"}, {"title": "你更新的数据明明还在内存里，可 MySQL 重启后凭什么没丢？", "slug": "post-f3f218", "desc": "你提交了一个事务，MySQL 回了你一句 \"commit ok\"。 下一秒机房断电、进程崩溃，等数据库重启，这笔数据还在吗？ 对已经成功提交的事务来说，只要提交所依赖的 redo log 已经安全落盘…", "date": "2026-08-27"}, {"title": "MySQL 事务原子性：undo log 记什么、存哪、何时清", "slug": "post-0f275b", "desc": "事务原子性说白了就一句话： 一个事务里的一连串操作，要么全部做完提交，要么中间哪一步翻车了，就全部退回原样，不能停在改了一半的状态。 InnoDB 主要依靠 undo log 实现事务回滚，从而保证事…", "date": "2026-08-29"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

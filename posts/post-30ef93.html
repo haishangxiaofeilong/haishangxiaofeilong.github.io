@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SFT 数据到底喂到什么火候，才轮得到 RL？ · 海上小飞龙</title>
+<meta name="description" content="核心结论 在典型的 RLHF（Reinforcement Learning from Human Feedback，基于人类反馈的强化学习） / 在线 RL（Reinforcement Learnin…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-30ef93.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="SFT 数据到底喂到什么火候，才轮得到 RL？ · 海上小飞龙">
+<meta property="og:description" content="核心结论 在典型的 RLHF（Reinforcement Learning from Human Feedback，基于人类反馈的强化学习） / 在线 RL（Reinforcement Learnin…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/post-2dc9b4.html">大模型</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a></div>
+      <h1 class="post-title">SFT 数据到底喂到什么火候，才轮得到 RL？</h1>
+      <div class="post-meta">
+        <span>2026-09-01</span>
+        <span class="dot"></span>
+        <span>3800 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><h2>核心结论</h2>
+<p>在典型的 RLHF（Reinforcement Learning from Human Feedback，基于人类反馈的强化学习） / 在线 RL（Reinforcement Learning，强化学习）对齐流程里，通常要先用 SFT （Supervised Fine-Tuning，监督微调）把模型练到&quot;会正经答题&quot;，再考虑 RL 上场。</p>
+<p>更关键的判断标准不是 SFT 跑了多少条数据，而是：</p>
+<p>同一个 prompt 采出来的多个回答之间，是否已经存在稳定、可区分、可优化的质量差异。</p>
+<p>哪怕提前上 RL，效果也可能很差。</p>
+<p>关键不在于 reward 是正还是负，RL 并不要求必须采到&quot;正奖励样本&quot;。</p>
+<p>真正重要的是：</p>
+<p>模型对同一道题采出的多个回答之间，得存在能被 reward 区分的质量差异。</p>
+<p>如果 SFT 还没把模型拉到能正经答题的区间，采出来的回答几乎都在答非所问、候选之间缺乏稳定可靠的质量差异，那 reward 信号也难提供有效的优化方向。</p>
+<h2>为什么不能直接上 RLHF</h2>
+<p>预训练模型的核心目标是 next-token prediction（预测下一个 token），而不是专门优化&quot;理解用户指令并完成任务&quot;。</p>
+<p>你给它一句&quot;请用三句话解释量子纠缠，并给一个生活类比&quot;，它大概率顺着已有文本往下续写，而不是真的按你的指令去组织答案。</p>
+<p>那直接上 RLHF 不就行了？</p>
+<p>这里有个致命问题。</p>
+<p>RL 要让模型从反馈里学，前提是模型采出来的多个回答之间，存在能被 reward 区分的质量差异。</p>
+<p>你拿还没对齐的 GPT-3 去采 100 个回答，可能没有一个在真正答题，全是在做文本补全。</p>
+<p>如果模型的采样分布过于差、候选之间缺乏稳定可靠的质量差异，reward 信号的有效性就会很弱，RL 很难学到真正有用的策略改进。</p>
+<p>说白了，RL 不一定需要&quot;高分种子&quot;，但需要一个已经能产生不同质量候选答案的策略分布。</p>
+<p>SFT 就是先把苗子喂起来的那一步。</p>
+<p>类比 AlphaGo，可以把它理解成类似的思路：</p>
+<p>先通过监督学习获得基本棋力，再通过自我对弈继续优化策略。</p>
+<p>两者训练流程并不一一对应，但&quot;先打基础、再自我提升&quot;的逻辑是相通的。</p>
+<p>SFT 这一阶段的任务很明确：</p>
+<p>让模型学会基本的对话格式和指令跟随。</p>
+<h2>SFT 要练到什么程度</h2>
+<p>光说&quot;练到位&quot;太虚，我一般从四个角度判断。</p>
+<h3>先看模型能力靠不靠谱</h3>
+<p>SFT 到位的标志是模型有了稳定的指令跟随能力，大方向不跑偏。</p>
+<p>你问它问题，它老老实实回答，不再做文本补全，也不再答非所问。</p>
+<p>用技术语言说，就是模型已经形成了稳定的指令跟随行为，输出不再是文本续写。</p>
+<h3>再看数据规模够不够</h3>
+<p>数据量没有一个统一的&quot;够了&quot;标准，它受模型规模、基础模型能力、数据质量和任务复杂度影响。</p>
+<p>拿公开资料里的 DeepSeek LLM 举例，它的对齐阶段收集了约 150 万条中英文 instruction data，其中约 120 万条偏 helpfulness，30 万条偏 safety。</p>
+<p>7B 模型训练了 4 个 epoch，而 67B 模型只训练 2 个 epoch，因为更大的模型更容易过拟合。</p>
+<p>值得注意的是，DeepSeek LLM 在 SFT 之后采用的是DPO（Direct Preference Optimization，直接偏好优化），而不是PPO（Proximal Policy Optimization，近端策略优化）这类在线 RL；</p>
+<p>而 DeepSeek-V2 也采用了 SFT → RL 的路线，并在 SFT 之后使用 GRPO（Group Relative Policy Optimization，组相对策略优化）做进一步对齐。</p>
+<p>这个例子更直接地说明：</p>
+<p>SFT 和 RL 之间并不存在一条固定的数据量分界线。</p>
+<p>两者放在一起看更说明一件事：</p>
+<p>决定下一阶段的不是&quot;150 万&quot;这个数字，而是具体的模型能力、训练目标和能拿到的反馈信号。</p>
+<h3>reward 采样有没有足够的&quot;可优化空间&quot;（这条最关键）</h3>
+<p>拿 SFT 后的模型，对着同一个 prompt 采多个回答，看它们之间是否已经出现稳定的质量差异。</p>
+<p>比如有的回答明显答错，有的基本正确但不完整，有的正确且表达清晰。这说明模型已经进入了&quot;会做，但做得不稳定&quot;的阶段。</p>
+<p>这种时候，继续单纯依赖 SFT 的成本开始上升：</p>
+<p>你得继续人工写一条条&quot;标准答案&quot;告诉模型怎么做。</p>
+<p>而偏好优化更擅长解决另一类问题：</p>
+<p>多个答案都不是完全不能用，但明显有的比另一些更好。</p>
+<p>这时候，无论是 reward model 还是规则 verifier，都能提供排序信号，让 RL 把策略逐渐推向更高质量的输出。</p>
+<p>反过来，如果模型对大多数 prompt 都还不会做，采样出来的回答几乎没有可用候选，那继续补 SFT 或训练数据，通常比直接上 RL 更划算。</p>
+<p><strong>判断切不切 RL，更应该看这条：</strong></p>
+<p><strong>模型采样结果之间，是否已经存在稳定、可区分、可优化的质量差异。</strong></p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1788257097116-9546cbda-8582-44c4-b952-f0c92cb3d7b5.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h3>最后看标注成本扛不扛得住</h3>
+<p>SFT 需要人工标注完整的 prompt-response 对，成本不低。</p>
+<p>想继续用 SFT 提质量，就得不停地标新数据，这个循环很痛苦。</p>
+<p>在典型的 RLHF 流程里，模型先生成多个候选回答，再靠人工或其他反馈机制给出偏好信号；</p>
+<p>这些偏好数据用来训练 reward model，在线 RL 再利用 reward model 给出的奖励去优化策略。</p>
+<p>在很多复杂生成任务里，这比从零编写完整标准答案更容易规模化，但偏好数据和 reward model 本身依然需要投入，谈不上&quot;效率一下子就上来&quot;。</p>
+<h2>第二阶段对齐：从&quot;会答&quot;到&quot;答得更好&quot;</h2>
+<p>SFT 之后，模型已经具备基本的指令跟随能力。</p>
+<p>接下来要解决的就不再只是&quot;会不会答&quot;，而是&quot;多个都能答的答案里，哪个更好&quot;。</p>
+<p>这时就可以引入偏好优化或 RL。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1788257112671-2d1c0e27-c267-4b67-a0a1-5cc8ef47ded5.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>SFT</th>
+<th>偏好优化 / RL</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>对齐目标</td>
+<td>学会对话格式、指令跟随</td>
+<td>在多个可行答案中进一步优化质量</td>
+</tr>
+<tr>
+<td>给模型什么信号</td>
+<td>demonstration</td>
+<td>preference / reward</td>
+</tr>
+<tr>
+<td>能表达什么</td>
+<td>&quot;这样回答&quot;</td>
+<td>&quot;这个比那个更好&quot;</td>
+</tr>
+<tr>
+<td>负反馈利用</td>
+<td>标准 SFT 主要依赖正例</td>
+<td>可利用 chosen / rejected 偏好对</td>
+</tr>
+<tr>
+<td>典型方法</td>
+<td>SFT</td>
+<td>DPO、PPO、GRPO 等</td>
+</tr>
+</tbody>
+</table>
+<p>SFT 用单一的 demonstration 告诉模型&quot;这样回答&quot;，但说不清&quot;哪个回答更好&quot;。</p>
+<p>在 RLHF 里，reward model 会给不同回答提供奖励信号，再由在线 RL 优化策略；</p>
+<p>而 DPO 这类直接偏好优化方法则可以绕过显式 reward model，直接利用 chosen / rejected 偏好数据优化模型。</p>
+<p>相比只模仿一条 demonstration，偏好建模更自然地表达&quot;这个比那个差&quot;。</p>
+<p>你可以标出哪些回答不好、不安全，用 pairwise loss 这种 learning to rank 的方式建模，让 reward model 学习回答之间的相对偏好。</p>
+<p>SFT 也能通过 rejected 数据、DPO 等偏好方法用上负反馈，只是&quot;相对优劣&quot;本就是偏好优化这一路的强项。</p>
+<p>PPO 这类典型在线 RL 方法的优势，是可以直接针对模型当前采样出来的输出做优化，并通常会加入相对于参考模型的 KL（Kullback-Leibler，KL 散度） 惩罚，控制当前策略不要过度偏离参考模型（通常就是 SFT 模型）。</p>
+<h2>一个实战判断框架</h2>
+<p>要不要切 RL，我一般看三个条件同时满足：</p>
+<p>模型对同一 prompt 采样的回答之间，已经存在稳定、可区分的质量差异，而不是清一色都很差。</p>
+<p>你的任务存在可以可靠评估的优化目标，例如人工偏好、规则 verifier、结果奖励等。</p>
+<p>值不值得上 RL，得看它的收益能不能盖过额外的算力和工程成本。</p>
+<p>反过来，如果任务对输出格式要求特别严，或者模型规模还小、本身不够稳，那继续打磨 SFT 数据质量往往是更稳妥的选择。</p>
+<p>这里没有绝对标准，得看具体场景权衡。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1788258719728-b11752d0-b6ae-4cb4-8f4f-6b35eb404840.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "Skill 上线之后，怎么知道它悄悄退化了？", "slug": "post-d9bb97"}, "next": {"title": "redo log 和 binlog 的两阶段提交：崩溃了到底谁说了算？", "slug": "post-8a760e"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "Agent Skill 和 MCP，到底有什么区别？", "slug": "post-ee1018", "desc": "做 AI 应用开发，经常会遇到两个概念：Agent Skill 和 MCP（Model Context Protocol）。 虽然都是让 AI 能调用工具，但它们根本不是一个维度的东西。 简单来说：…", "date": "2026-06-30"}, {"title": "RAG 面试高频题：召回率太低怎么办？一套完整优化方案讲透", "slug": "post-0b66cc", "desc": "很多人做 RAG 系统，遇到召回率低的问题，第一反应就是换模型——换一个参数更大的、换一个号称语义理解更强的。 结果呢？ 效果提升微乎其微。 根本原因不是模型不够强，而是模型拿到的参考材料本身就是错的…", "date": "2026-07-23"}, {"title": "Redis 的数据过期策略，到底是怎么删数据的？", "slug": "post-136c78", "desc": "给 Redis 的 key 设了过期时间，时间一到，这条数据会瞬间从内存里消失吗？ 这个问题问的其实就是 Redis 的 数据过期策略 。 说白了，当我们给一个 key 指定了 TTL（比如 set…", "date": "2026-08-04"}, {"title": "为什么大模型总记不住你的文档？聊聊向量数据库", "slug": "post-c65602", "desc": "不管是搭 RAG 知识库、做推荐系统，还是搞以图搜图，你迟早会撞上同一个词：向量数据库。 很多人把它想得很玄，觉得是某种更高端的 MySQL。 说白了，它干的事特别单纯： 存一堆高维向量，然后帮你找出…", "date": "2026-08-15"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

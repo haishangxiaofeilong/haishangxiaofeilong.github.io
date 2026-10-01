@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MySQL 索引为什么是 B+ 树？二叉树、哈希、B 树是怎么被淘汰的 · 海上小飞龙</title>
+<meta name="description" content="面试被问到“MySQL 索引为什么用 B+ 树”，多数人的回答停留在“叶子节点存数据、非叶子节点不存、叶子节点用双向链表支持范围查询”。 这话没错，但没讲清“为什么非得是 B+ 树”。 二叉树不行吗？…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-9f798e.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="MySQL 索引为什么是 B+ 树？二叉树、哈希、B 树是怎么被淘汰的 · 海上小飞龙">
+<meta property="og:description" content="面试被问到“MySQL 索引为什么用 B+ 树”，多数人的回答停留在“叶子节点存数据、非叶子节点不存、叶子节点用双向链表支持范围查询”。 这话没错，但没讲清“为什么非得是 B+ 树”。 二叉树不行吗？…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/mysql.html">MySQL</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a><a class="tag" href="/tags/post-30d23e.html">操作系统</a><a class="tag" href="/tags/post-d11195.html">面试题</a></div>
+      <h1 class="post-title">MySQL 索引为什么是 B+ 树？二叉树、哈希、B 树是怎么被淘汰的</h1>
+      <div class="post-meta">
+        <span>2026-08-13</span>
+        <span class="dot"></span>
+        <span>2666 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>面试被问到“MySQL 索引为什么用 B+ 树”，多数人的回答停留在“叶子节点存数据、非叶子节点不存、叶子节点用双向链表支持范围查询”。</p>
+<p>这话没错，但没讲清“为什么非得是 B+ 树”。</p>
+<p>二叉树不行吗？哈希表不行吗？B 树又差在哪？</p>
+<p>把这条选择逻辑讲透，比背几个特征有用得多。</p>
+<h2>索引要解决的就一件事：少做 IO</h2>
+<p>先认一个前提：</p>
+<p>MySQL 的数据，不管是行记录还是索引，都躺在磁盘上。</p>
+<p>查数据必然要走 IO，而 IO 是这几个环节里最慢的一环。</p>
+<p>所谓“查询快”，本质是把 IO 压下去了。</p>
+<p>压 IO 只有两个方向：</p>
+<p>减少 IO 的次数，减少每次 IO 搬运的量。</p>
+<p>后面所有设计都围着这两件事转。</p>
+<h2>数据装不进内存，只能分块读</h2>
+<p>公司的业务表，数据量上百万是常态，千万也不稀奇。</p>
+<p>千万行整张表动辄几个 G，不可能一次性塞进内存。</p>
+<p>内存宝贵，全量加载既不现实也没必要。</p>
+<p>那就分块读，用到哪块读哪块。</p>
+<p>这个“分”的思路就是分而治之，不新鲜。</p>
+<h2>页是 IO 的最小单位：InnoDB 默认 16KB</h2>
+<p>分块读，块多大合适？</p>
+<p>InnoDB 会把数据和索引组织成一个个 Page。</p>
+<p>默认情况下，一个 InnoDB Page 是 16KB，索引的 B+ 树节点也以 Page 为基本组织单位。</p>
+<p>后面讨论“一次能从磁盘加载多少索引数据”，就先以 16KB 这个默认 Page 大小为基准。</p>
+<p>一个 Page 能塞下多少键和指针，直接决定树的扇出和高度。</p>
+<h2>一条查询，本质是 K-V 查找</h2>
+<p>拿 <code>SELECT * FROM user WHERE id = 10</code> 来说，按 id 找整行，其实就是用 id 当 key、整行当 value 的一个 K-V 查找。</p>
+<p>那索引文件里应该记什么，才能帮你从磁盘上把这个 value 捞出来？</p>
+<p>至少得有&quot;在哪个文件、从哪开始、读多长&quot;。</p>
+<p>索引存的，就是怎么定位数据行的线索。</p>
+<h2>索引和数据放一起，少绕一步</h2>
+<p>如果索引和数据分开存储，查到索引记录后，还需要根据索引记录提供的位置去访问数据页。</p>
+<p>MyISAM 就是这种组织方式：</p>
+<p>索引放 .MYI，数据放 .MYD，两个文件分开。</p>
+<p>它的索引叶子节点保存的是数据文件中的行位置，找到位置后再去数据文件读取对应记录。</p>
+<p>InnoDB 换了思路：</p>
+<p>聚簇索引把整行直接塞进叶子节点，索引和数据在同一个 .ibd 文件里。</p>
+<p>顺着主键索引走到底，行就到手了，不用再跳一次。</p>
+<p>对按主键查询整行数据来说，InnoDB 的聚簇索引可以直接在叶子节点拿到整行记录，避免额外根据地址跳转到独立数据文件。</p>
+<p>这也是 InnoDB 在主键查询路径上的一个重要优势。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1786615355966-9873d3e3-e5f3-4bb6-beab-2ffc9ad854a4.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>候选结构挨个看</h2>
+<p>数据结构那么多，为什么最终是 B+ 树？</p>
+<p>我们一个一个排除。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1786615029047-09c70993-59d3-44a3-8d54-a922662e7d3a.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h3>哈希表查单值快，范围查询却失效</h3>
+<p>哈希表靠散列定位，等值查询很快。</p>
+<p>问题是哈希之后的数据不再保持原始 key 的大小顺序。</p>
+<p>比如查询 <code>id BETWEEN 10 AND 100</code>，无法像 B+ 树一样先定位到 <code>10</code>，再顺着索引一路扫描到 <code>100</code>。</p>
+<p>因此哈希结构天然不擅长范围查询和排序。</p>
+<p>索引逃不开范围查询和排序，哈希表这一条就出局。</p>
+<h3>二叉树家族分支太少，树被拔高</h3>
+<p>BST、AVL、红黑树，本质都是二叉，每个节点最多两个孩子。</p>
+<p>存同样多的数据，树只能往上长。</p>
+<p>千万行数据，平衡二叉树的高度接近 <code>log₂(1000万) ≈ 24</code>。</p>
+<p>树越高，查找路径需要访问的节点越多；</p>
+<p>对于磁盘索引来说，这意味着潜在的页面访问次数更多。</p>
+<p>虽然数据库会缓存部分上层节点，但相比高扇出的多路平衡树，二叉树的树高依然明显偏高。</p>
+<h3>B 树虽然降低了树高，但非叶子节点还要存数据</h3>
+<p>B 树放宽了分支数，一个节点能挂多个孩子，树一下就矮了。</p>
+<p>B 树允许数据记录或记录指针出现在非叶子节点中。</p>
+<p>相比 B+ 树只在叶子节点保存数据，非叶子节点需要承担更多存储内容，因此在相同页面大小下通常能容纳的索引键和子节点指针更少，扇出也可能更低。</p>
+<h3>B+ 树把数据挪到叶子节点，非叶子节点只管指路</h3>
+<p>B+ 树做了一刀切的分工：</p>
+<p>非叶子节点只存索引键和子节点指针，不碰数据；</p>
+<p>所有真正的内容都落在叶子节点。</p>
+<p>以 InnoDB 为例，聚簇索引的叶子节点存完整行记录，二级索引的叶子节点存索引键和对应的主键值。</p>
+<p>非叶子节点不存数据，同样 16KB 就能塞下更多键，扇出更大，树更矮。</p>
+<p>在典型的数据规模和索引设计下，B+ 树通常能保持较低的树高，即使面对千万级数据，也只需要访问有限层级的索引页。</p>
+<p>叶子节点的双向链表让范围查询和排序顺着链走就行，不用跳回上层节点。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1786615260298-6f42adaa-010e-4a70-92b8-eb7c9236fe04.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>B+ 树到底赢在哪</h2>
+<p>矮，是它的命根子。</p>
+<p>树高通常只有三到四层，一次查询只需要沿着有限层级完成查找。</p>
+<p>由于上层索引页通常会被缓存，实际磁盘 IO 次数往往更少。</p>
+<p>非叶子节点只存键，扇出最大化，这是它能这么矮的原因。</p>
+<p>叶子节点的双向链表，把“范围查询”从哈希表的软肋变成了强项。</p>
+<p>相同树高下比 B 树存得多，是因为它没把宝贵的节点空间浪费在数据上。</p>
+<p>还有一条面试常加分的细节：</p>
+<p>选索引列时，字段占的空间越小越好。</p>
+<p>键越短，一个 16KB 节点能塞的键越多，扇出越大，树越矮，IO 越少。</p>
+<p>这也是为什么很多表倾向使用自增整数或其他趋势递增的主键，而不是直接使用随机 UUID。</p>
+<p>以 UUIDv4 这类随机值为例，插入位置分散，容易导致聚簇索引页频繁分裂，增加写入和维护成本。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "MySQL 聚簇索引和非聚簇索引：为什么二级索引查完还要回表？", "slug": "post-acebb2"}, "next": {"title": "面试官：MySQL 索引是什么？这道题答全的人真不多", "slug": "post-78822c"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "你更新的数据明明还在内存里，可 MySQL 重启后凭什么没丢？", "slug": "post-f3f218", "desc": "你提交了一个事务，MySQL 回了你一句 \"commit ok\"。 下一秒机房断电、进程崩溃，等数据库重启，这笔数据还在吗？ 对已经成功提交的事务来说，只要提交所依赖的 redo log 已经安全落盘…", "date": "2026-08-27"}, {"title": "Redis 面试高频题：缓存击穿到底是什么？互斥锁和逻辑过期一次讲透", "slug": "post-fa28af", "desc": "先说结论： 缓存击穿（Cache Breakdown）指的是——某个 热点 key 刚好在过期的那一瞬间，被海量并发请求同时打中 ，缓存里没数据，请求全部砸向数据库，数据库瞬间被压垮。 说白了，它跟\"…", "date": "2026-07-28"}, {"title": "Redis 缓存和 MySQL 数据不一致怎么办？双写一致性一次讲透", "slug": "post-4aa231", "desc": "先说大前提： 面试官问\"Redis 作为缓存，MySQL 的数据怎么和 Redis 同步\"，本质就是在考 双写一致性 。 但这道题最忌讳的一点，就是上来直接背标准答案。 答题第一步，必须先交代业务背景…", "date": "2026-07-30"}, {"title": "Redis 持久化：RDB 与 AOF", "slug": "post-807c58", "desc": "为什么需要持久化？ Redis 虽然快，但它的数据主要存储在内存中，而内存属于易失性存储介质。 一旦断电或者服务重启，如果没有持久化机制，数据就可能丢失。 所以 Redis 提供了两种持久化方案： R…", "date": "2026-08-03"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

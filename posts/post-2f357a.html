@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>大模型推理到了推理引擎这一步，到底要管哪些事 · 海上小飞龙</title>
+<meta name="description" content="我在上篇《Decode 每轮都重算一遍历史 token 吗：聊聊 KV cache》里讲过——KV cache 让 Decode 每轮不用重算历史的 K 和 V，推理才快得起来。 可这些阶段到底是谁在…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-2f357a.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="大模型推理到了推理引擎这一步，到底要管哪些事 · 海上小飞龙">
+<meta property="og:description" content="我在上篇《Decode 每轮都重算一遍历史 token 吗：聊聊 KV cache》里讲过——KV cache 让 Decode 每轮不用重算历史的 K 和 V，推理才快得起来。 可这些阶段到底是谁在…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/post-2dc9b4.html">大模型</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a></div>
+      <h1 class="post-title">大模型推理到了推理引擎这一步，到底要管哪些事</h1>
+      <div class="post-meta">
+        <span>2026-09-10</span>
+        <span class="dot"></span>
+        <span>2469 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>我在上篇<a href="https://mp.weixin.qq.com/s/xHwa7n3WHJ1VZa3vZicSkg">《Decode 每轮都重算一遍历史 token 吗：聊聊 KV cache》</a>里讲过——KV cache 让 Decode 每轮不用重算历史的 K 和 V，推理才快得起来。</p>
+<p>可这些阶段到底是谁在背后把它们跑起来的？</p>
+<p>这一篇把镜头从&quot;原理&quot;拉到&quot;工程&quot;，聊聊推理引擎本身。</p>
+<p>你写代码调模型，通常就是发一段提示词过去，过一会儿一串 token 就回来了。</p>
+<p>模型权重本身只描述网络参数，并不负责请求怎么排队、Prefill 和 Decode 怎么调度、KV cache 在显存里怎么分配。</p>
+<p>这些&quot;把提示词送进模型、算注意力、跑 Decode、把 K 和 V 写进缓存&quot;的运行时工作，都是由背后的推理引擎来负责。</p>
+<p>业界不用自己造轮子。</p>
+<p>vLLM、SGLang、TensorRT-LLM 都是常见的高性能推理框架；</p>
+<p>Ollama 则更偏向本地模型运行和轻量服务，两者解决的问题有重叠，但定位并不完全一样。</p>
+<p>不管哪一款，要解决的核心问题都一样：</p>
+<p>让 Prefill 和 Decode 在显卡上真正跑起来，还得把 KV cache 的空间管好。</p>
+<p>Prefill 处理输入、Decode 逐 token 反复生成，这个区别我在<a href="https://mp.weixin.qq.com/s/oDiSNjArnztd-Fe5P1dg6A">《大模型推理的两阶段：一次 Prefill，加上多次 Decode》</a>里讲过；</p>
+<p>一次完整推理要过的几道工序，在<a href="https://mp.weixin.qq.com/s/qN91Oj7LRLJIsY7bOgJxww">《一次完整推理，模型背后要走完 5 道工序》</a>里也拆过。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1789038338774-6755a3d8-85f5-4a25-96ea-bb64d0bc779d.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>Prefill 和 Decode，为什么要分开实现</h2>
+<p>回到我们讲过的 Prefill 和 Decode。</p>
+<p>单看计算特性，它们就完全是两码事。</p>
+<p>Prefill 是把已有的输入 token 批量送进模型，算的是一大坨矩阵运算，通常更偏计算密集型——这时候显卡的计算单元能被充分利用。</p>
+<p>Decode 不一样。</p>
+<p>它每轮只处理一个新 token，单轮计算量相对小，但还得从显存里读取历史 K 和 V。</p>
+<p>尤其在单请求或小批量场景下，这种&quot;每次只算一点、却要反复读显存&quot;的活，通常更容易受到显存访问效率的影响。</p>
+<p>打个比方。</p>
+<p>Prefill 像你一次性搬一大箱货上楼，累是累在分量重；</p>
+<p>Decode 像你每过几分钟就跑下楼取一个小件，真正花时间的是上下楼的路——也就是频繁访问显存的成本。</p>
+<p>既然 Prefill 更偏计算密集、Decode 更受显存访问效率影响，引擎如果把两者用同一套方式调度，两边都发挥不出优势。</p>
+<p>所以实际实现里，Prefill 和 Decode 往往会采用不同的调度策略和计算路径：</p>
+<p>Prefill 更适合利用大规模矩阵计算，Decode 则需要围绕逐 token 生成和 KV cache 读取来做优化。</p>
+<p>推理引擎负责根据当前请求状态，把显卡的计算资源调度给合适的任务。</p>
+<h2>企业级部署，为什么特别看重并行和批处理</h2>
+<p>光把Prefill 和 Decode 跑起来还不够。</p>
+<p>把个人使用和企业部署拉开距离的，是同一时刻有多少请求。</p>
+<p>你一个人用 Ollama，同一时刻基本就你一个问题；</p>
+<p>企业把模型部署出去，往往是几十上百个客户端同时发问。</p>
+<p>这就有个绕不开的问题：</p>
+<p>批处理。</p>
+<p>为什么批处理这么关键？</p>
+<p>关键还得从 Decode 的工作方式说起。</p>
+<p>Decode 每轮只算一个 token，单个请求带来的计算量比较小，很难像 Prefill 那样充分利用 GPU 的计算资源。</p>
+<p>把多个请求的 Decode 放进同一批里，每个请求各出一个 token，GPU 一次就能处理一批 token。</p>
+<p>这样可以提高资源利用率，进而提高单位时间能够生成的 token 总量。</p>
+<p>注意，批处理主要提升的是整体吞吐，不是让某一个请求的单次 Decode 变快。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1789035561625-5229b7e1-6e5c-442b-9ab0-d1345ed3f14a.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>而且，大模型推理里的批处理并不是简单地&quot;等一批请求凑齐再一起算&quot;。</p>
+<p>因为不同请求的输入长度、生成长度都不一样，有的请求已经生成完了，有的还在继续生成。</p>
+<p>现代推理引擎通常会采用 Continuous Batching（连续批处理）：</p>
+<p>请求可以动态加入和退出当前批次，显卡则持续处理当前活跃的请求。</p>
+<p>这也是企业级推理引擎和简单本地推理程序拉开差距的地方之一——它不仅要会算，还得持续调度一大批生命周期不同的请求。</p>
+<p>这也就是企业级推理引擎都在批处理上死磕的原因——吞吐上不去，同样一张卡能服务的用户就少，成本就高。</p>
+<h2>批处理之下，KV cache 怎么管</h2>
+<p>前面讲过，KV cache 的空间分配、写入和读取，主要由推理引擎负责。</p>
+<p>到了批处理场景，这件事变得更讲究：</p>
+<p>同一时刻有那么多请求，每个请求都有自己的 KV cache，长度还不一样。</p>
+<p>引擎不仅要记录每个请求用了多少 KV cache，还要在 Decode 时准确找到它对应的 K、V。</p>
+<p>这就引出下一个问题：</p>
+<p>一种比较直接的做法，是给每个请求按照可能的最大序列长度预留一块连续的显存空间。</p>
+<p>问题是，请求实际生成的长度往往远小于这个上限，这块预留空间可能长期用不满。</p>
+<p>这块显存到底怎么被吞掉的，下一篇专门聊。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "传统 KV cache：显存明明够，为什么并发就是上不去", "slug": "post-a64775"}, "next": {"title": "Decode 每轮都重算一遍历史 token 吗：聊聊 KV cache", "slug": "post-4ad759"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "Agent Skill 和 MCP，到底有什么区别？", "slug": "post-ee1018", "desc": "做 AI 应用开发，经常会遇到两个概念：Agent Skill 和 MCP（Model Context Protocol）。 虽然都是让 AI 能调用工具，但它们根本不是一个维度的东西。 简单来说：…", "date": "2026-06-30"}, {"title": "RAG 面试高频题：召回率太低怎么办？一套完整优化方案讲透", "slug": "post-0b66cc", "desc": "很多人做 RAG 系统，遇到召回率低的问题，第一反应就是换模型——换一个参数更大的、换一个号称语义理解更强的。 结果呢？ 效果提升微乎其微。 根本原因不是模型不够强，而是模型拿到的参考材料本身就是错的…", "date": "2026-07-23"}, {"title": "Redis 的数据过期策略，到底是怎么删数据的？", "slug": "post-136c78", "desc": "给 Redis 的 key 设了过期时间，时间一到，这条数据会瞬间从内存里消失吗？ 这个问题问的其实就是 Redis 的 数据过期策略 。 说白了，当我们给一个 key 指定了 TTL（比如 set…", "date": "2026-08-04"}, {"title": "为什么大模型总记不住你的文档？聊聊向量数据库", "slug": "post-c65602", "desc": "不管是搭 RAG 知识库、做推荐系统，还是搞以图搜图，你迟早会撞上同一个词：向量数据库。 很多人把它想得很玄，觉得是某种更高端的 MySQL。 说白了，它干的事特别单纯： 存一堆高维向量，然后帮你找出…", "date": "2026-08-15"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

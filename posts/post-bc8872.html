@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>你建表时引擎那栏从没改过，可 InnoDB 凭什么把 MyISAM 挤成了老古董？ · 海上小飞龙</title>
+<meta name="description" content="建表的时候，引擎那一栏你大概率从没改过，因为从 MySQL 5.5 开始，InnoDB 就是默认存储引擎； 到了现在的 MySQL 版本，它依然是默认且官方推荐的通用型引擎。 可你翻老项目，偶尔还能看…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-bc8872.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="你建表时引擎那栏从没改过，可 InnoDB 凭什么把 MyISAM 挤成了老古董？ · 海上小飞龙">
+<meta property="og:description" content="建表的时候，引擎那一栏你大概率从没改过，因为从 MySQL 5.5 开始，InnoDB 就是默认存储引擎； 到了现在的 MySQL 版本，它依然是默认且官方推荐的通用型引擎。 可你翻老项目，偶尔还能看…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/mysql.html">MySQL</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a><a class="tag" href="/tags/post-d11195.html">面试题</a></div>
+      <h1 class="post-title">你建表时引擎那栏从没改过，可 InnoDB 凭什么把 MyISAM 挤成了老古董？</h1>
+      <div class="post-meta">
+        <span>2026-08-25</span>
+        <span class="dot"></span>
+        <span>2739 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>建表的时候，引擎那一栏你大概率从没改过，因为从 MySQL 5.5 开始，InnoDB 就是默认存储引擎；</p>
+<p>到了现在的 MySQL 版本，它依然是默认且官方推荐的通用型引擎。</p>
+<p>可你翻老项目，偶尔还能看到 MyISAM。</p>
+<p>这俩名字总被放在一起比，面试也常问到。</p>
+<p>其实它们不是谁替代谁的关系，只是解决的问题侧重不同：</p>
+<p>InnoDB 是通用型存储引擎，重点解决事务、并发和可靠性问题；</p>
+<p>MyISAM 是更早的存储引擎，因为采用表级锁，更适合读多写少甚至只读的场景。</p>
+<p>那区别具体在哪？</p>
+<p>我从事务、锁、索引三个维度拆开讲。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1787646285329-dcff8725-30b5-47f8-b2a6-3618926ae58c.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>事务：InnoDB 有，MyISAM 真没有</h2>
+<p>这一条是最根本的分水岭。</p>
+<p>InnoDB 支持事务，有完整的隔离级别，并通过事务机制以及 redo log、undo log 等机制提供持久性、回滚和崩溃恢复能力。</p>
+<p>MyISAM 不支持事务，也没有事务隔离级别和事务回滚能力。</p>
+<table>
+<thead>
+<tr>
+<th>对比项</th>
+<th>InnoDB</th>
+<th>MyISAM</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>事务支持</td>
+<td>支持，有隔离级别</td>
+<td>不支持，无隔离级别和回滚能力</td>
+</tr>
+<tr>
+<td>事务日志</td>
+<td>有 redo log、undo log</td>
+<td>没有事务日志</td>
+</tr>
+<tr>
+<td>外键</td>
+<td>支持</td>
+<td>不支持</td>
+</tr>
+</tbody>
+</table>
+<p>为什么这一条这么关键？</p>
+<p>转账就是最典型的场景：</p>
+<p>从 A 账户扣钱、给 B 账户加钱，这两步必须绑成一个事务。</p>
+<p>用 InnoDB，要么都成功，要么都回滚，钱不会凭空消失也不会凭空出现。</p>
+<p>换成 MyISAM，扣完 A 还没来得及给 B 加的时候数据库崩了，结果就是 A 的钱没了、B 也没收到，账目直接对不上。</p>
+<h2>锁：InnoDB 能锁到行，MyISAM 一锁就是整张表</h2>
+<p>并发场景里，锁的粒度直接决定同一时间能扛多少人一起改数据。</p>
+<p>InnoDB 支持行级锁，也支持表级锁。</p>
+<p>它的行锁本质上是基于索引记录加锁的：</p>
+<p>查询条件命中合适索引时，可以只锁住需要处理的索引记录；</p>
+<p>如果没有合适索引，UPDATE 或 DELETE 可能需要扫描大量甚至全部记录，从而锁住大量记录，严重影响并发。</p>
+<p>MyISAM 采用表级锁，写操作通常需要锁住整张表，读写之间容易产生锁竞争；</p>
+<p>不过在满足条件时，MyISAM 也支持并发插入，允许 <code>INSERT</code> 与 <code>SELECT</code> 并发执行。</p>
+<table>
+<thead>
+<tr>
+<th>对比项</th>
+<th>InnoDB</th>
+<th>MyISAM</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>锁类型</td>
+<td>行级锁 + 表级锁</td>
+<td>只有表级锁</td>
+</tr>
+<tr>
+<td>锁的触发</td>
+<td>行锁基于索引记录，无合适索引时可能锁大量记录</td>
+<td>写操作触发表级锁</td>
+</tr>
+<tr>
+<td>并发控制</td>
+<td>支持 MVCC，普通读通常不阻塞写</td>
+<td>读写之间有锁竞争</td>
+</tr>
+</tbody>
+</table>
+<p>表级锁的感觉，就像把整个厕所的门锁了，一个人进去，剩下所有人都得在门外等；</p>
+<p>行级锁更像只占一个隔间，别人还能用别的隔间，彼此不耽误。</p>
+<p>InnoDB 还有个杀手锏叫 MVCC（多版本并发控制），它让普通一致性读可以按照事务的可见性规则读取合适的数据版本，因此普通读通常不会因为其他事务正在修改数据而被阻塞。</p>
+<p>MyISAM 没有 InnoDB 这样的 MVCC 机制，普通读写之间更容易受到表级锁影响。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1787647564174-f89817d1-a060-4d7d-908e-aabe9528c83d.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>索引：一个把数据塞进叶子，一个只存行指针</h2>
+<p>这一节最容易绕晕，但也最能体现两者设计的差别。</p>
+<p>InnoDB 既有聚簇索引，也有二级索引。</p>
+<p>聚簇索引的叶子节点直接存整行数据；</p>
+<p>二级索引的叶子节点存的是主键值，所以走二级索引查非主键字段时，得先拿到主键，再回表去聚簇索引里找那一行完整的记录。</p>
+<p>MyISAM 只有非聚簇索引。</p>
+<p>不管是主键索引还是普通索引，叶子节点存的都是数据文件中的行指针（位置），可以理解为指向数据文件中对应记录的位置。</p>
+<p>拿到行指针，直接去数据文件里把那一行捞出来就行，没有&quot;回表&quot;这回事。</p>
+<table>
+<thead>
+<tr>
+<th>对比项</th>
+<th>InnoDB</th>
+<th>MyISAM</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>索引类型</td>
+<td>聚簇索引 + 二级索引</td>
+<td>只有非聚簇索引</td>
+</tr>
+<tr>
+<td>索引存储</td>
+<td>聚簇叶子存整行；二级叶子存主键值</td>
+<td>叶子统一存数据文件中的行指针（位置）</td>
+</tr>
+<tr>
+<td>回表</td>
+<td>二级索引查询需要其他非索引列时需要回表</td>
+<td>不回表，按行指针直接读取</td>
+</tr>
+<tr>
+<td>主键要求</td>
+<td>不强制建主键，但建议使用；无主键时选唯一非空索引，都没有则生成隐藏的 6 字节行 ID</td>
+<td>无主键要求，主键索引也只是普通索引</td>
+</tr>
+</tbody>
+</table>
+<p>MyISAM 的叶子只存行指针，相当于书的书签直接标了页码，翻到那一页就看到了内容。</p>
+<p>InnoDB 的二级索引叶子只存主键，相当于书签上写的是&quot;见第 5 页主条目&quot;，还得再翻一次才能看到正文，这就是&quot;回表&quot;的由来。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1787646338128-6bdb1526-12ed-4358-afca-412ebb1a9930.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>这里有个容易忽略的细节：</p>
+<p>InnoDB 不要求表必须显式定义主键，但如果没有主键，它会选择一个合适的唯一非空索引作为聚簇索引；</p>
+<p>如果连这样的索引也没有，InnoDB 会生成一个隐藏的 6 字节行 ID 作为聚簇索引。</p>
+<p>MyISAM 没有 InnoDB 那种聚簇索引，主键索引和普通索引在存储结构上都属于非聚簇索引，索引叶子节点保存指向数据记录的行指针。</p>
+<h2>怎么选：现在基本不用纠结</h2>
+<p>放到今天的业务里，这个问题其实没那么让人头疼。</p>
+<p>InnoDB 适合电商、金融、支付这类既要高并发写入、又要事务保证一致性的场景。</p>
+<p>MyISAM 更适合读多写少甚至只读的场景，例如一些老系统中的报表或静态数据表；</p>
+<p>但不能简单理解为&quot;MyISAM 读性能一定比 InnoDB 高&quot;。</p>
+<p>不过你打开现在的大多数新项目，默认使用的基本都是 InnoDB，新系统基本没有理由特意去换 MyISAM。</p>
+<p>搞清楚它俩的区别，更多是帮你在面试被问到、或者排查老系统问题时心里有底。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "你写的每条 SQL 都没加过锁，可 MySQL 凭什么不怕两个事务打架？", "slug": "post-fc3ff2"}, "next": {"title": "明明建了索引，MySQL 却不用？这 8 种情况它悄悄放弃了", "slug": "post-f8e846"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "面试官：MySQL 索引是什么？这道题答全的人真不多", "slug": "post-78822c", "desc": "面试被问到 MySQL 索引，多数人的回答停留在\"加快查询\"四个字。 这话对，但没用。 索引真正要讲清楚的，是一份排好序的目录： 索引可以理解成一份排好序的目录，它通过维护特定的数据结构，让数据库能够…", "date": "2026-08-12"}, {"title": "MySQL 索引为什么是 B+ 树？二叉树、哈希、B 树是怎么被淘汰的", "slug": "post-9f798e", "desc": "面试被问到“MySQL 索引为什么用 B+ 树”，多数人的回答停留在“叶子节点存数据、非叶子节点不存、叶子节点用双向链表支持范围查询”。 这话没错，但没讲清“为什么非得是 B+ 树”。 二叉树不行吗？…", "date": "2026-08-13"}, {"title": "MySQL 聚簇索引和非聚簇索引：为什么二级索引查完还要回表？", "slug": "post-acebb2", "desc": "MySQL 的索引底层是一棵 B+ 树，这个说法你应该听过。 但一张表往往建了好几个索引，每个索引都是一棵独立的 B+ 树。 那问题来了，每棵树的叶子节点，都存一份完整的行数据吗？ 不是。 有的索引叶…", "date": "2026-08-14"}, {"title": "MySQL 回表：为什么走了索引还要再查一次 B+ 树？", "slug": "post-bdc914", "desc": "MySQL 面试里有一个绕不开的问题： 为什么走了索引，还需要回表？ 官方文档并没有给它正式定义，但它连着聚簇索引、非聚簇索引、覆盖索引一整条线，查询优化时经常撞上。 一句话说清楚： 回表就是用二级索…", "date": "2026-08-17"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

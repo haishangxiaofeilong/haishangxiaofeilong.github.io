@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LangChain 动态模型：什么时候该在运行时换模型？ · 海上小飞龙</title>
+<meta name="description" content="用 create agent 搭 Agent 的时候，首先要指定模型。 很多情况下，模型指定完就不再变化，从任务开始到结束，用的都是这一个。 这就是静态模型。 但有一件事得先说清楚： 模型的能力，会直…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-9d391b.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="LangChain 动态模型：什么时候该在运行时换模型？ · 海上小飞龙">
+<meta property="og:description" content="用 create agent 搭 Agent 的时候，首先要指定模型。 很多情况下，模型指定完就不再变化，从任务开始到结束，用的都是这一个。 这就是静态模型。 但有一件事得先说清楚： 模型的能力，会直…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/langchain.html">LangChain</a><a class="tag" href="/tags/post-2dc9b4.html">大模型</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a></div>
+      <h1 class="post-title">LangChain 动态模型：什么时候该在运行时换模型？</h1>
+      <div class="post-meta">
+        <span>2026-09-19</span>
+        <span class="dot"></span>
+        <span>1694 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>用 <code>create_agent</code> 搭 Agent 的时候，首先要指定模型。</p>
+<p>很多情况下，模型指定完就不再变化，从任务开始到结束，用的都是这一个。</p>
+<p>这就是静态模型。</p>
+<p>但有一件事得先说清楚：</p>
+<p>模型的能力，会直接影响这个 Agent 最终做出来的效果。</p>
+<p>任务一复杂，问题就出来了。有的步骤简单，用便宜的小模型就够；</p>
+<p>有的步骤要做复杂推理，得用能力更强的。</p>
+<p>一个模型从头用到尾，要么成本偏高，要么在关键步骤上能力不够。</p>
+<p>于是就有了另一条路，叫动态模型。</p>
+<p>这篇就把两件事说清楚：</p>
+<p>它们各是什么，什么时候该用哪个。</p>
+<h2>区别就在一句话上</h2>
+<p>两种模型的差别，就这一句话：</p>
+<p>模型是在创建 Agent 的时候一次定好的，还是运行过程中按当时的情况临时选的。</p>
+<p>静态模型是最常见的做法。</p>
+<p>创建 Agent 的时候把模型指定好，之后整个任务执行过程，都用这一个。</p>
+<p>动态模型不一样。</p>
+<p>模型不在创建时定死。</p>
+<p>Agent 跑到某一步，根据当时的状态和上下文，当场决定该用哪个。</p>
+<p>打个比方，静态模型像一条流水线，从头到尾都是同一批工人；</p>
+<p>动态模型像有个调度员在看单子派工，简单的活派普通工人，复杂的活派老师傅。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1789814661132-06dd71eb-8c4b-4162-ab03-9f80a674c540.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>静态模型适合的三种场景</h2>
+<p><strong>1.通用型 Agent</strong></p>
+<p>标准客服系统、个人助理这类，如果功能相对固定、不需要中途换模型，一个模型从头用到尾就够了。</p>
+<p><strong>2.原型验证</strong></p>
+<p>刚动手做一个新 Agent，先求把流程跑通，效果后面再调。</p>
+<p>这时候用静态模型最省事，不用过早设计复杂的模型路由，等真有需要了再调整。</p>
+<p><strong>3.确定性任务</strong></p>
+<p>数据提取、文本分类这类任务，对模型能力的要求通常比较稳定。</p>
+<p>这种任务里，稳定是首要目标，一个模型全程跑下来就行。</p>
+<h2>动态模型什么时候值得用</h2>
+<p>先交代实现方式。</p>
+<p>动态模型的实现，在 LangChain v1 里通常通过中间件完成：</p>
+<p>在 Agent 运行过程中，根据当时的状态和上下文，把这一次模型调用切换到合适的模型。</p>
+<p>常见的有三种情况。</p>
+<p><strong>1.成本和性能的平衡</strong></p>
+<p>不同模型的调用成本可能差很多。</p>
+<p>简单任务交给便宜的小模型，花的钱少；</p>
+<p>复杂推理交给贵一些的大模型，效果更有保障。</p>
+<p>哪一步用哪个模型，按任务难度分，有机会把整体成本压下来。</p>
+<p><strong>2.复杂路由逻辑</strong></p>
+<p>同一个 Agent，面对的人不一样，任务类型也不一样，要求自然不同。</p>
+<p>比如普通咨询，交给小模型就够；</p>
+<p>涉及专业分析，可以换成能力更强的模型。</p>
+<p>也可以按用户类型、任务类型这些运行时信息，把请求交给不同模型。</p>
+<p><strong>3.多模态任务</strong></p>
+<p>一条请求里可能同时带着文本、图片、音频等不同类型的输入。</p>
+<p>不同模型支持、擅长处理的数据类型不一样。</p>
+<p>动态模型可以根据输入类型和任务要求，把请求交给合适的模型。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1789814640186-43bb9b41-ec63-4933-8cdb-ae97113dfb36.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>两边怎么选</h2>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>静态模型</th>
+<th>动态模型</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>模型什么时候定</td>
+<td>创建 Agent 时一次定好</td>
+<td>运行时按状态和上下文现选</td>
+</tr>
+<tr>
+<td>中途换不换</td>
+<td>不换，全程一个模型</td>
+<td>按需切换</td>
+</tr>
+<tr>
+<td>实现复杂度</td>
+<td>简单，指定一次就完</td>
+<td>要增加模型选择逻辑，通常结合中间件实现</td>
+</tr>
+<tr>
+<td>适合的场景</td>
+<td>通用 Agent、原型验证、确定性任务</td>
+<td>控制成本、按任务分流、多模态</td>
+</tr>
+</tbody>
+</table>
+<p>落到实操，可以先这么走：</p>
+<p>刚上手的时候，先用静态模型把流程跑通。</p>
+<p>等真的碰上成本太高、请求要分流、输入类型太杂这类具体问题，再考虑换动态模型也不迟。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "Agent 定义工具，@tool 装饰器的四种写法", "slug": "post-de3ae7"}, "next": {"title": "你把工具都递给它了，可它凭什么知道下一步该干什么？", "slug": "post-d2f6a4"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "LangChain 的九个核心组件，各管什么？", "slug": "post-3db7f6", "desc": "拆开看，LangChain 日常开发里常用到的能力，可以归成九块。 组件 解决什么 模型 换模型的时候，上层代码不用跟着重写 消息 一场对话里，哪句话是谁说的，分得清 工具 模型够得着外部能力 智能体…", "date": "2026-09-15"}, {"title": "模型吐出来的总是一段话，怎么让它乖乖按格式返回？", "slug": "post-2ed7a6", "desc": "调模型的时候，我们都希望它按固定格式把结果给你。 可模型默认吐出来的，是一段自然语言。 你要的是几个字段，它给你的往往是一整段话，中间还夹着解释。 要让它按你给的格式返回，这件事有个名字，叫结构化输出…", "date": "2026-09-17"}, {"title": "你把工具都递给它了，可它凭什么知道下一步该干什么？", "slug": "post-d2f6a4", "desc": "一个模型，能读会写，但它办不了事。 数据库里的数据，它读不到；你写的接口，它调不了。 你把工具递给它，它就能查数据、调接口了。 但下一步做什么，你没法提前写进代码。 工具一多，先用哪个、什么时候该停，…", "date": "2026-09-18"}, {"title": "Agent 定义工具，@tool 装饰器的四种写法", "slug": "post-de3ae7", "desc": "一个 Agent 要能干活，除了会调模型，还得会调工具。 模型负责挑工具，LangChain 负责把工具跑起来。 但这之前还有一件事： 工具得先定义出来，模型才知道有这个工具、什么时候该用它。 在 L…", "date": "2026-09-20"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

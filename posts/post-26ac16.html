@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>你调的接口几乎都返回 JSON，可它凭什么干掉了 XML？ · 海上小飞龙</title>
+<meta name="description" content="你调过的每一个后端接口，返回的数据几乎都是 JSON。 你大概会觉得，这是因为 JSON 在技术上&quot;天生最强&quot;。 这个直觉是错的。 JSON 能赢，并不靠某项碾压级的技术指标，而是刚好踩中了 Web…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-26ac16.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="你调的接口几乎都返回 JSON，可它凭什么干掉了 XML？ · 海上小飞龙">
+<meta property="og:description" content="你调过的每一个后端接口，返回的数据几乎都是 JSON。 你大概会觉得，这是因为 JSON 在技术上&quot;天生最强&quot;。 这个直觉是错的。 JSON 能赢，并不靠某项碾压级的技术指标，而是刚好踩中了 Web…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/post-7ddbe1.html">网络</a><a class="tag" href="/tags/post-30d23e.html">操作系统</a><a class="tag" href="/tags/java.html">Java</a></div>
+      <h1 class="post-title">你调的接口几乎都返回 JSON，可它凭什么干掉了 XML？</h1>
+      <div class="post-meta">
+        <span>2026-08-23</span>
+        <span class="dot"></span>
+        <span>3179 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>你调过的每一个后端接口，返回的数据几乎都是 JSON。</p>
+<p>你大概会觉得，这是因为 JSON 在技术上&quot;天生最强&quot;。</p>
+<p>这个直觉是错的。</p>
+<p>JSON 能赢，并不靠某项碾压级的技术指标，而是刚好踩中了 Web 开发最在意的三个点：</p>
+<p>表示更紧凑、语法更简单、生态更广。</p>
+<p>再往深一层说，是工程效率赢了严谨性。</p>
+<p>一句话：</p>
+<p>JSON 把&quot;传输数据&quot;这件事做到了极简，于是 Web 选了它；</p>
+<p>但凡是&quot;严格、复杂、要文档化&quot;的场合，XML 依然稳坐钓鱼台。</p>
+<h2>同样一份数据，JSON 凭什么更短</h2>
+<p>先看最明显的差距。</p>
+<p>还是那个用户：</p>
+<p>名字张三，年龄 28，爱好篮球和阅读。</p>
+<p>XML 会写成这样：</p>
+<pre><code class="language-xml"><span class="nt">&lt;user&gt;</span>
+<span class="w">  </span><span class="nt">&lt;name&gt;</span>张三<span class="nt">&lt;/name&gt;</span>
+<span class="w">  </span><span class="nt">&lt;age&gt;</span>28<span class="nt">&lt;/age&gt;</span>
+<span class="w">  </span><span class="nt">&lt;hobbies&gt;</span>
+<span class="w">    </span><span class="nt">&lt;hobby&gt;</span>篮球<span class="nt">&lt;/hobby&gt;</span>
+<span class="w">    </span><span class="nt">&lt;hobby&gt;</span>阅读<span class="nt">&lt;/hobby&gt;</span>
+<span class="w">  </span><span class="nt">&lt;/hobbies&gt;</span>
+<span class="nt">&lt;/user&gt;</span>
+</code></pre>
+<p>每个字段名都要用一对开闭标签包起来，<code>name</code> 在文档里出现了两次——一次开头，一次结尾。</p>
+<p>数据一多，这些重复的标签名就是纯纯的字节浪费。</p>
+<p>换成 JSON：</p>
+<pre><code class="language-json"><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;张三&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;age&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">28</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;hobbies&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;篮球&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;阅读&quot;</span><span class="p">]</span>
+<span class="p">}</span>
+</code></pre>
+<p>在这个例子里，每个字段名只需要出现一次；</p>
+<p>数组则直接用 <code>[]</code> 表达，不需要为每个元素额外套一层标签。</p>
+<p>打个比方，XML 像一份公文，每个信息都得用标准格式包起来；</p>
+<p>JSON 更像一张便签，只写关键内容。便签自然比公文短。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1787472100041-7e4c3b70-3ef7-47e3-b897-2a8b8c7f27bc.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>这种简洁带来的好处，远不止&quot;表示更紧凑&quot;本身。</p>
+<p>它让数据读起来像一组&quot;键值对&quot;，直接对应程序里的对象结构，人看得舒服，机器也省事。</p>
+<h2>为什么 JSON 通常更容易解析</h2>
+<p>体积小确实有帮助，但 JSON 通常更容易解析，更重要的原因是：</p>
+<p><strong>它的语法和数据模型都比较简单。</strong></p>
+<p>JSON 只有对象、数组、字符串、数字、布尔值和 <code>null</code> 六类值。</p>
+<p>看到 <code>{</code> 可以进入对象，看到 <code>[</code> 可以进入数组，其他内容则按照明确的语法规则继续解析，整体结构比较直接。</p>
+<p>XML 的语法体系更丰富，除了元素和属性，还涉及命名空间、实体、CDATA、注释以及混合内容等机制。</p>
+<p>这并不意味着 XML 不能高效解析。</p>
+<p>XML 同样支持流式解析；</p>
+<p>只是相比 JSON，解析器需要处理的语法和数据模型更加丰富。</p>
+<p>如果使用 DOM，两者都会涉及把文档解析成内存中的树结构，文档越大，内存开销通常也越明显。</p>
+<p>所以更准确的说法是：</p>
+<p><strong>JSON 和 XML 都能被解析，区别只是 JSON 的语法和数据模型更简单，在常见的数据交换场景下实现起来更轻量。</strong></p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1787473934311-4af35ef7-3f09-48fe-99c0-59016f286b3b.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>为什么 JSON 能迅速成为跨语言的通用格式</h2>
+<p>体积小、语法简单——这些特点，任何一门语言都能自己设计一套类似的格式。</p>
+<p>JSON 真正厉害的地方，是<strong>几乎所有主流编程语言和开发生态都对它提供了成熟支持</strong>。</p>
+<p>原因在于它的数据模型太通用：</p>
+<p>对象、数组、几种基本类型——这正好是现代编程语言最核心的抽象。</p>
+<p>JSON 的对象、数组和基本类型，与现代编程语言中的字典、列表以及基本数据类型有比较直接的对应关系。</p>
+<p>XML 则更偏向文档和标记结构，映射成业务对象时，通常需要额外的解析或转换步骤。</p>
+<p>Web 又推了一把。</p>
+<p>浏览器中的 JavaScript 原生提供了 <code>JSON.parse()</code> 和 <code>JSON.stringify()</code>，JSON 与 JavaScript 的对象模型联系非常紧密，前后端用同一种格式对话，开发效率直接拉满。</p>
+<p>等 Node.js 和 RESTful API 流行起来，JSON 顺理成章成了 Web 接口的默认选项。</p>
+<p>一个生态如果缺少成熟的 JSON 支持，开发体验自然会受到影响。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1787473941268-c58af3db-4cae-4acf-8248-626af180d5c5.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>XML 远没有到退休的时候</h2>
+<p>有些场合 JSON 顶不上去，XML 反而依然有明显优势。</p>
+<p>金融行业的一些交易报文就是典型场景。</p>
+<p>那种数据要求极其严格：</p>
+<p>每个字段都得有明确定义、类型约束和校验规则，收发双方还得靠一份标准文档保证理解完全一致。</p>
+<p>这时候 XML Schema 和命名空间的价值就出来了。</p>
+<p>JSON 本身定义了基本的数据类型，但不像 XML 加 XML Schema 那样提供成熟的模式定义和强制校验体系。</p>
+<p>实际项目通常需要借助 JSON Schema 或其他校验机制来约束数据结构。</p>
+<p>再比如文档标记：像 <code>.docx</code> 这样的 Office Open XML 文档，内部大量使用 XML 描述段落、文本、样式等结构。</p>
+<p>对于&quot;文字内容和格式标记交错出现&quot;这类混合内容，XML 的表达方式天然更合适。</p>
+<p>还有数据转换场景，XML 有 XSLT 这样成熟的转换工具链；</p>
+<p>在一些需要长期保存、跨系统交换和保持结构化语义的场景中，XML 也仍然有较成熟的应用基础。</p>
+<p>一句话：</p>
+<p>JSON 在&quot;需要严格、复杂、文档化交换&quot;的领域，并不比 XML 强。</p>
+<h2>一张表看清 JSON 和 XML</h2>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>JSON</th>
+<th>XML</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>表示形式</td>
+<td>结构紧凑，键值对和数组表达直接</td>
+<td>标签和属性表达更丰富，但通常更冗长</td>
+</tr>
+<tr>
+<td>解析</td>
+<td>语法和数据模型较简单，解析器实现轻量</td>
+<td>语法体系更丰富，解析器需要处理的规则更多</td>
+</tr>
+<tr>
+<td>类型与校验</td>
+<td>内置基本类型；结构约束通常借助 JSON Schema 等机制</td>
+<td>可结合 XML Schema 进行类型与结构校验</td>
+</tr>
+<tr>
+<td>语言映射</td>
+<td>与字典、列表等数据结构对应直接</td>
+<td>更偏文档/标记结构，映射业务对象时通常需要额外规则</td>
+</tr>
+<tr>
+<td>混合内容</td>
+<td>不擅长表达文本与标记交错的文档结构</td>
+<td>原生支持混合内容</td>
+</tr>
+<tr>
+<td>典型场景</td>
+<td>Web API、配置、数据交换</td>
+<td>文档、复杂数据交换、部分行业标准报文</td>
+</tr>
+</tbody>
+</table>
+<h2>说到底，Web 选择了简单，而不是把严谨塞进数据格式</h2>
+<p>理解了上面的对比，再看 Web 为什么最终站队 JSON，答案就清楚了。</p>
+<p>最根本的取舍是：</p>
+<p>Web 更倾向于用&quot;简单和效率&quot;，而不是把&quot;严格约束和丰富的文档能力&quot;全部放进数据格式本身。</p>
+<p>Web 开发讲究快速迭代、前后端分离，数据结构通常不复杂，大部分场景无非是把数据库里的记录原样丢给前端。</p>
+<p>JSON 的设计非常克制，上来就是数据本身，<strong>所见即所得</strong>。</p>
+<p>XML 本想解决更多问题——数据发布、可扩展标记——但这些&quot;更强的能力&quot;在 Web 接口这种场景里，反而成了负担。</p>
+<p>技术世界里没有绝对的好坏，只有适不适合场景。</p>
+<p>下次你理所应当地用 JSON 时，不妨想一想：</p>
+<p>你要的到底是&quot;轻快&quot;，还是&quot;严谨&quot;？</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "明明建了索引，MySQL 却不用？这 8 种情况它悄悄放弃了", "slug": "post-f8e846"}, "next": {"title": "SSH 这么好用，公司为什么还要上堡垒机？", "slug": "post-7ef5f2"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "为什么 synchronized 管不了集群？Redis 分布式锁到底解决了什么问题？", "slug": "post-416895", "desc": "面试官最爱顺藤摸瓜的一连串 面试官问你 Redis 用在项目哪些地方，你若答\"分布式锁\"，他八成追一句：那它怎么实现的？ 这种题有个坑： 别急着背原理， 得先把使用背景讲清楚 ——什么业务、什么场景，…", "date": "2026-08-05"}, {"title": "Redis 分布式锁原理：从 SET NX 到 Redisson 看门狗", "slug": "post-11ef9d", "desc": "一、加锁靠的是 SET NX EX 的原子性 Redis 给了个 setNX，名字拆开就是 set if not exists——只有 key 不存在才写进去。 具体加锁时，我们直接一条 set 命令…", "date": "2026-08-06"}, {"title": "Redis 分片集群：它到底是怎么把数据分片又路由的？", "slug": "post-d06a94", "desc": "主从复制和哨兵能解决高并发读和高可用，但有两个天花板它俩都够不着。 一个是海量数据存储，一个是高并发写。 面试的时候，Redis 分片集群是必问的一题，这篇文章就把这条线彻底讲透。 一、为什么主从不够…", "date": "2026-08-09"}, {"title": "LangChain 模型调用：invoke、stream、batch 到底该怎么选？", "slug": "post-69ffa5", "desc": "调模型这件事，看起来就一句话： 把请求发过去，把结果拿回来。 但结果怎么返回，有三种常见的调用方式。 一种是等它整个生成完再给你，一种是边生成边往外送，还有一种是一次发一批。 LangChain 把它…", "date": "2026-09-16"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Redis 分片集群：它到底是怎么把数据分片又路由的？ · 海上小飞龙</title>
+<meta name="description" content="主从复制和哨兵能解决高并发读和高可用，但有两个天花板它俩都够不着。 一个是海量数据存储，一个是高并发写。 面试的时候，Redis 分片集群是必问的一题，这篇文章就把这条线彻底讲透。 一、为什么主从不够…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-d06a94.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Redis 分片集群：它到底是怎么把数据分片又路由的？ · 海上小飞龙">
+<meta property="og:description" content="主从复制和哨兵能解决高并发读和高可用，但有两个天花板它俩都够不着。 一个是海量数据存储，一个是高并发写。 面试的时候，Redis 分片集群是必问的一题，这篇文章就把这条线彻底讲透。 一、为什么主从不够…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/redis.html">Redis</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a><a class="tag" href="/tags/post-30d23e.html">操作系统</a><a class="tag" href="/tags/java.html">Java</a></div>
+      <h1 class="post-title">Redis 分片集群：它到底是怎么把数据分片又路由的？</h1>
+      <div class="post-meta">
+        <span>2026-08-09</span>
+        <span class="dot"></span>
+        <span>3107 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>主从复制和哨兵能解决高并发读和高可用，但有两个天花板它俩都够不着。</p>
+<p>一个是海量数据存储，一个是高并发写。</p>
+<p>面试的时候，Redis 分片集群是必问的一题，这篇文章就把这条线彻底讲透。</p>
+<h2>一、为什么主从不够用</h2>
+<p>单台 Redis 不是不能扛，是扛不到太高。</p>
+<p>主从模式下永远只有一个 master 在写，数据再多也逃不出这一台机器的内存上限。</p>
+<p>写请求再猛，写并发也被这一个 master 卡死。</p>
+<p>海量数据往哪塞？高并发写谁来解决？</p>
+<p>这时候就该分片集群上场了。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1786284754049-7e6f7756-00ee-4672-8e61-ce6eaef70953.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>二、先说结论：分片集群到底解决什么</h2>
+<p>一句话：</p>
+<p>分片集群就是给 Redis 做「横向扩容」，让多个 master 一起扛。</p>
+<p>它同时顶住三件事。</p>
+<p>存储上，数据被切成多份摊到不同 master，容量跟着节点数线性涨。</p>
+<p>写上，每个 master 都能接受写请求，写并发上限被直接打破。</p>
+<p>读上，每个 master 还能自己挂多个 slave，读写都顶得住。</p>
+<p>还有一件事常被忽略：</p>
+<p>高可用也不靠哨兵了，master 之间互相盯，自己就把哨兵的活干了。</p>
+<p>客户端访问任意节点都行，集群自动把请求路由到正确的节点。</p>
+<h2>三、多 master：把数据拆开存</h2>
+<p>分片集群里不再是「一个 master 领着 slave」的主从关系，而是多个 master 各自存不同的数据。</p>
+<p>打个比方。</p>
+<p>原来只有一个仓管，所有货架归他管。</p>
+<p>现在招了多个仓管，每人分管不同的货架。</p>
+<p>假设一个仓管能管 20G，三个合起来就是 60G，容量随仓管数量走。</p>
+<p>每个 master 自己还能挂多个 slave，所以它同时具备主从的特征：</p>
+<p>多 slave 解决高并发读，多 master 解决高并发写。</p>
+<h2>四、哈希槽：数据到底落在哪个节点</h2>
+<p>这是分片集群的核心机制。</p>
+<p>它引入了一个概念叫哈希槽（hash slot），一共 16384 个。</p>
+<p>创建集群时，把这 16384 个槽平均分给各个主节点。</p>
+<p>比如三个主节点，各自认领一段：</p>
+<ul>
+<li>节点一：0 ~ 5460</li>
+<li>节点二：5461 ~ 10922</li>
+<li>节点三：10923 ~ 16383</li>
+</ul>
+<p>当你写一条数据，比如 <code>set user:9527 小飞龙</code>：</p>
+<p>第一步，对 key 的有效部分算 CRC16 哈希值。这里 <code>user:9527</code> 的哈希值是 16071。</p>
+<p>第二步，拿它模 16384：16071 % 16384 = 16071。</p>
+<p>第三步，16071 落在节点三的槽区间（10923 ~ 16383），这条数据就存到节点三。</p>
+<p>读数据同理，算哈希、模 16384、找到对应节点。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1786284393271-920094b0-0f17-4d11-8af4-45bf76a2127c.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>我把 key 到槽位的映射逻辑贴一段（Redis 源码思路）：</p>
+<pre><code class="language-java"><span class="c1">// Redis 中 key 到槽位的映射</span>
+<span class="kd">public</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">slotOf</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">key</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">String</span><span class="w"> </span><span class="n">effective</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">extractBracePart</span><span class="p">(</span><span class="n">key</span><span class="p">);</span><span class="w"> </span><span class="c1">// 取 {...} 内有效部分；无括号则取整个 key</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">CRC16</span><span class="p">(</span><span class="n">effective</span><span class="p">.</span><span class="na">getBytes</span><span class="p">())</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mi">16384</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kd">private</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="nf">extractBracePart</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">key</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">key</span><span class="p">.</span><span class="na">indexOf</span><span class="p">(</span><span class="sc">&#39;{&#39;</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">end</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">key</span><span class="p">.</span><span class="na">indexOf</span><span class="p">(</span><span class="sc">&#39;}&#39;</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">start</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">end</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">key</span><span class="p">.</span><span class="na">substring</span><span class="p">(</span><span class="n">start</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">end</span><span class="p">);</span><span class="w"> </span><span class="c1">// 大括号内作为有效部分</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">key</span><span class="p">;</span><span class="w"> </span><span class="c1">// 没有大括号，整个 key 就是有效部分</span>
+<span class="p">}</span>
+</code></pre>
+<h2>五、key 的有效部分：把相关业务放一起</h2>
+<p>有时候你希望同一业务的多个 key 落到同一个节点，方便批量操作。</p>
+<p>Redis 允许用大括号指定「有效部分」。</p>
+<p>比如 <code>set {shop}1001 手机</code>，计算哈希时只看 <code>{shop}</code> 里的内容。</p>
+<p><code>shop</code> 的哈希值是 3808，模 16384 得 3808，落在节点一（0 ~ 5460），数据就存到节点一。</p>
+<p>再写 <code>{shop}1002</code>、<code>{shop}1003</code>，只要大括号里都是 shop，它们全落在节点一。</p>
+<p>没有大括号时，整个 key 就是有效部分。</p>
+<p>这个设计很巧妙：</p>
+<p>相同业务设相同有效部分，就能聚在同一个节点，跨 key 的批量读写不用在节点间来回跳。</p>
+<h2>六、master 互 ping：哨兵的活它自己干了</h2>
+<p>主从高可用要靠哨兵（Sentinel）盯着。</p>
+<p>分片集群里不需要哨兵了。</p>
+<p>master 之间互相发 ping 做心跳检测。</p>
+<p>如果多个 master 都认为某个 master 主观下线，就把它标记为客观下线，然后触发主从切换。</p>
+<p>这跟哨兵功能一模一样，只是去中心化了。</p>
+<h2>七、客户端访问任意节点都行</h2>
+<p>机器这么多，客户端该连谁？</p>
+<p>答案是连谁都行。</p>
+<p>集群节点之间做了自动路由。</p>
+<p>你发请求到任意节点，它算完 key 的槽位，发现不该自己管，就把请求转发到正确的节点。</p>
+<p>所以你既不需要哨兵，又自动具备了哨兵的全部能力。</p>
+<h2>八、主从 vs 分片集群，一张表看清</h2>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>主从集群</th>
+<th>分片集群</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>数据存储</td>
+<td>全量复制，受单 master 容量限制</td>
+<td>多 master 分片，容量随节点线性扩展</td>
+</tr>
+<tr>
+<td>写能力</td>
+<td>仅单 master 可写</td>
+<td>多 master 均可写</td>
+</tr>
+<tr>
+<td>读能力</td>
+<td>多 slave 分担</td>
+<td>每 master 可挂多 slave</td>
+</tr>
+<tr>
+<td>高可用</td>
+<td>依赖哨兵</td>
+<td>master 互 ping，去中心化</td>
+</tr>
+<tr>
+<td>客户端路由</td>
+<td>直连指定节点</td>
+<td>访问任意节点，自动路由</td>
+</tr>
+</tbody>
+</table>
+<p>数据来自 Redis 官方 Cluster 规范：</p>
+<p>固定 16384 个哈希槽，用 CRC16 算法分配。</p>
+<h2>九、面试怎么答</h2>
+<p>面试碰上 Redis 分片集群，答三层就够了。</p>
+<p>第一层，它解决什么问题？</p>
+<p>单节点 Redis 有容量和写并发两个天花板。分片集群用多个 master 分片，存储容量随节点线性涨，写并发被多个 master 摊开；每个 master 还能挂 slave 扛读，master 互 ping 替代哨兵做高可用。</p>
+<p>第二层，数据怎么存、怎么取？</p>
+<p>核心是 16384 个哈希槽。</p>
+<p>写数据时，对 key 的有效部分算 CRC16，模 16384 得到槽位，槽位归哪个节点就存哪。</p>
+<p>有效部分默认是整条 key；如果 key 带大括号 <code>{xxx}</code>，就用括号里的内容算，这样同业务的 key 能聚到同一节点。</p>
+<p>读数据同样算槽位、找节点。</p>
+<p>第三层，客户端连谁？</p>
+<p>连任意节点都行，集群内部自动路由。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "面试官：Redis 单线程为什么还这么快？这道题答错的人真不少", "slug": "post-d200d2"}, "next": {"title": "Redis 哨兵模式：它到底是怎么保证高可用的", "slug": "post-09c2db"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "为什么 synchronized 管不了集群？Redis 分布式锁到底解决了什么问题？", "slug": "post-416895", "desc": "面试官最爱顺藤摸瓜的一连串 面试官问你 Redis 用在项目哪些地方，你若答\"分布式锁\"，他八成追一句：那它怎么实现的？ 这种题有个坑： 别急着背原理， 得先把使用背景讲清楚 ——什么业务、什么场景，…", "date": "2026-08-05"}, {"title": "Redis 分布式锁原理：从 SET NX 到 Redisson 看门狗", "slug": "post-11ef9d", "desc": "一、加锁靠的是 SET NX EX 的原子性 Redis 给了个 setNX，名字拆开就是 set if not exists——只有 key 不存在才写进去。 具体加锁时，我们直接一条 set 命令…", "date": "2026-08-06"}, {"title": "Redis 面试高频题：缓存击穿到底是什么？互斥锁和逻辑过期一次讲透", "slug": "post-fa28af", "desc": "先说结论： 缓存击穿（Cache Breakdown）指的是——某个 热点 key 刚好在过期的那一瞬间，被海量并发请求同时打中 ，缓存里没数据，请求全部砸向数据库，数据库瞬间被压垮。 说白了，它跟\"…", "date": "2026-07-28"}, {"title": "Redis 缓存和 MySQL 数据不一致怎么办？双写一致性一次讲透", "slug": "post-4aa231", "desc": "先说大前提： 面试官问\"Redis 作为缓存，MySQL 的数据怎么和 Redis 同步\"，本质就是在考 双写一致性 。 但这道题最忌讳的一点，就是上来直接背标准答案。 答题第一步，必须先交代业务背景…", "date": "2026-07-30"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>
