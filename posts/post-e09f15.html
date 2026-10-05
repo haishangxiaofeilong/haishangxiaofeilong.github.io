@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MySQL 联合索引：最左列为什么不能跳过 · 海上小飞龙</title>
+<meta name="description" content="面试官问联合索引，十有八九会顺着问最左匹配。 这玩意儿看着不起眼，却是索引有没有命中、命中几列的分水岭。 一句话结论 联合索引对列的命中是有顺序的，守一条硬规矩： 查询条件必须从最左列开始匹配，中间不…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-e09f15.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="MySQL 联合索引：最左列为什么不能跳过 · 海上小飞龙">
+<meta property="og:description" content="面试官问联合索引，十有八九会顺着问最左匹配。 这玩意儿看着不起眼，却是索引有没有命中、命中几列的分水岭。 一句话结论 联合索引对列的命中是有顺序的，守一条硬规矩： 查询条件必须从最左列开始匹配，中间不…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/mysql.html">MySQL</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a><a class="tag" href="/tags/post-d11195.html">面试题</a></div>
+      <h1 class="post-title">MySQL 联合索引：最左列为什么不能跳过</h1>
+      <div class="post-meta">
+        <span>2026-08-19</span>
+        <span class="dot"></span>
+        <span>4150 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>面试官问联合索引，十有八九会顺着问最左匹配。</p>
+<p>这玩意儿看着不起眼，却是索引有没有命中、命中几列的分水岭。</p>
+<h2>一句话结论</h2>
+<p>联合索引对列的命中是有顺序的，守一条硬规矩：</p>
+<p>查询条件必须从最左列开始匹配，中间不能断。</p>
+<p>最左列一旦没出现在 WHERE 里，后面那些列写得再全，在常规最左前缀匹配下，这个索引通常也帮不上忙。</p>
+<h2>最左匹配原则到底在说啥</h2>
+<p>说白了，联合索引就是按你建索引时写的列顺序，把数据一层一层排好序。</p>
+<p>这种排序方式，决定了查询时必须从最左列开始才能利用有序性——这就是&quot;最左匹配原则&quot;的由来。</p>
+<p>比如给一张 user 表建了 <code>(age, gender, city)</code> 这个联合索引，B+ 树里的顺序是：</p>
+<p>先按 age 排，age 相同的再按 gender 排，gender 还相同才按 city 排。</p>
+<p>查询的时候也得顺着这个顺序来。查询条件能够从索引的最左列开始，按照索引列顺序连续使用 <code>age → gender → city</code>，就满足最左前缀匹配。</p>
+<h2>为什么非得从最左开始</h2>
+<p>想象一本按&quot;姓氏 → 名字&quot;排的通讯录。</p>
+<p>你想找&quot;姓张、叫三&quot;的人，翻到张姓那一段再找三，很快。</p>
+<p>但你只想找&quot;名字叫三&quot;的人，姓氏不知道，那就没法利用这份有序性做快速定位了。</p>
+<p>通讯录整体是按姓氏排的，光凭名字你只能从头翻到尾。</p>
+<p>联合索引一模一样。</p>
+<p>它先按最左列全局有序，后面的列只在&quot;前面列相等&quot;的小范围里才有序。</p>
+<p>所以跳过最左列去查后面的列，联合索引原本的有序优势就很难直接利用起来。</p>
+<p>通常情况下，无法按照最左前缀进行高效定位。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1787132100880-5a12d38b-012c-4b6b-8c75-9092d4a71d34.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>字段顺序固定，WHERE 条件的顺序随便</h2>
+<p>这是最容易被绕晕的一点。</p>
+<p>联合索引的顺序是 <code>(age, gender, city)</code>，可下面这条 SQL 照样能命中索引：</p>
+<pre><code class="language-sql"><span class="k">select</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="k">user</span>
+<span class="k">where</span><span class="w"> </span><span class="n">city</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;北京&#39;</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="n">age</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="n">gender</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;male&#39;</span><span class="p">;</span>
+</code></pre>
+<p>原因是对于 <code>AND</code> 条件，优化器会根据查询条件和索引情况进行等价的访问路径优化，并不要求你在 SQL 中按照索引定义的顺序书写条件。</p>
+<p>AND 之间换顺序，结果不变，优化器照样能利用 <code>(age, gender, city)</code> 这个索引。</p>
+<p>要分清两件事：</p>
+<p>索引定义里写死的列顺序不能乱。</p>
+<p>WHERE 里条件先后只是写法，优化器兜住了。</p>
+<h2>哪些写法能命中，哪些只能命中一部分</h2>
+<p>还是这张 <code>(age, gender, city)</code> 的表，把常见写法列一下：</p>
+<table>
+<thead>
+<tr>
+<th>WHERE 条件</th>
+<th>常规最左前缀匹配</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>age=10 and gender='male' and city='北京'</code></td>
+<td>age, gender, city</td>
+<td>全程对齐最左前缀</td>
+</tr>
+<tr>
+<td><code>city='北京' and age=10 and gender='male'</code></td>
+<td>age, gender, city</td>
+<td>条件顺序不影响，优化器照样命中</td>
+</tr>
+<tr>
+<td><code>age=10 and gender='male'</code></td>
+<td>age, gender</td>
+<td>最左两列，city 没写也行</td>
+</tr>
+<tr>
+<td><code>age=10</code></td>
+<td>age</td>
+<td>只用最左列，索引照样生效</td>
+</tr>
+<tr>
+<td><code>gender='male' and city='北京'</code></td>
+<td>无法按最左前缀连续匹配</td>
+<td>跳过 age，通常无法像 <code>age → gender → city</code> 一样快速定位。这里说的是传统的最左前缀匹配，现代 MySQL 在特定条件下还存在索引跳跃扫描（Index Skip Scan）等优化，因此&quot;最左列没写 = 索引绝对不能用&quot;并不是绝对结论。</td>
+</tr>
+</tbody>
+</table>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1787132135906-3e7afce3-f2ef-4a9a-ad5e-41a0b2b91faa.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>关键点：</p>
+<p>断在&quot;后面&quot;只是少用好几列，索引还能用；</p>
+<p>断在&quot;最左&quot;，通常就难以按最左前缀高效利用了。</p>
+<h2>范围查询出现后，后面的列通常无法继续缩小查找范围</h2>
+<p>等值查询（<code>=</code>）之后还能继续往下匹配。</p>
+<p>范围查询（<code>&gt;</code>、<code>&lt;</code>、<code>between</code>）的情况不同，但先说一句：</p>
+<p><code>in</code> 属于多值条件，优化器在不少场景会把它当成多个等值范围来访问索引，不能和 <code>&gt;</code>、<code>&lt;</code> 简单画等号。</p>
+<p>下面用明确的区间范围来说明。</p>
+<p>看这条：</p>
+<pre><code class="language-sql"><span class="k">select</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="k">user</span>
+<span class="k">where</span><span class="w"> </span><span class="n">age</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="n">gender</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="s1">&#39;male&#39;</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="n">city</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;北京&#39;</span><span class="p">;</span>
+</code></pre>
+<p>age 是等值条件，能定位到一段，可以继续向右匹配。</p>
+<p>gender 是范围，这一段里 gender 不再全局有序，city 通常就没法接着按等值的方式精确连续定位。</p>
+<p>所以这条语句主要靠 <code>age + gender</code> 两列定位，city 一般得不到范围收窄的好处。</p>
+<p>更极端一点：</p>
+<pre><code class="language-sql"><span class="k">select</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="k">user</span>
+<span class="k">where</span><span class="w"> </span><span class="n">age</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">10</span><span class="p">;</span>
+</code></pre>
+<p>age 本身是范围，排好序的基准列一断，后面 gender、city 通常都没法再基于有序性继续缩小查找范围。</p>
+<p>这条语句主要用 age 一列来定位。</p>
+<p>可以先记住一个常用规律：</p>
+<p>联合索引遇到范围条件后，后面的列通常无法再继续用于缩小索引的查找范围。</p>
+<p>不过&quot;无法继续缩小查找范围&quot;不代表后面的列完全没用，某些场景下它们仍可能参与索引条件下推、覆盖索引、排序等优化。</p>
+<h2>设计联合索引时，通常重点考虑这三个因素</h2>
+<p>知道了匹配规则，建索引时就得把列摆对位置：</p>
+<table>
+<thead>
+<tr>
+<th>原则</th>
+<th>怎么摆</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>等值查询优先</td>
+<td>等值字段放最左</td>
+<td>等值能连续锁定前缀，范围会收窄后续可用列</td>
+</tr>
+<tr>
+<td>范围查询靠右</td>
+<td>范围字段放最右</td>
+<td>范围之后列通常难以继续收窄，早放早断</td>
+</tr>
+<tr>
+<td>结合查询模式考虑选择性</td>
+<td>在查询模式相近、且不影响范围和排序等需求时，再考虑选择性</td>
+<td>选择性越好，越能提前把数据筛薄</td>
+</tr>
+</tbody>
+</table>
+<p>基数高，说人话就是这一列不重复的值多，也就是选择性好。</p>
+<p>比如 user 表 100 行里 age 有 80 个不同值，比 gender 只有男、女两个值区分度高得多。</p>
+<p>不过列顺序不能只盯着基数。</p>
+<p>联合索引字段顺序首先看实际查询条件、等值还是范围、排序分组需求、选择性，以及是否需要覆盖索引。</p>
+<p>在多个字段查询模式相近、又不影响排序和范围查询的前提下，通常优先让选择性更好的字段参与更靠前的索引定位。</p>
+<h2>一个会打破最左原则的特例</h2>
+<p>前面说的都是铁律，但有一种情况最左列没写，索引居然还能用。</p>
+<p>建一张表：</p>
+<pre><code class="language-sql"><span class="k">create</span><span class="w"> </span><span class="k">table</span><span class="w"> </span><span class="n">abc</span><span class="w"> </span><span class="p">(</span>
+<span class="w">  </span><span class="n">id</span><span class="w"> </span><span class="nb">int</span><span class="w"> </span><span class="k">primary</span><span class="w"> </span><span class="k">key</span><span class="p">,</span>
+<span class="w">  </span><span class="n">a</span><span class="w"> </span><span class="nb">int</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="nb">int</span><span class="p">,</span><span class="w"> </span><span class="k">c</span><span class="w"> </span><span class="nb">int</span>
+<span class="p">);</span>
+<span class="k">alter</span><span class="w"> </span><span class="k">table</span><span class="w"> </span><span class="n">abc</span><span class="w"> </span><span class="k">add</span><span class="w"> </span><span class="k">index</span><span class="w"> </span><span class="n">idx_abc</span><span class="w"> </span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="p">,</span><span class="w"> </span><span class="k">c</span><span class="p">);</span>
+</code></pre>
+<p>然后查：</p>
+<pre><code class="language-sql"><span class="k">select</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">abc</span><span class="w"> </span><span class="k">where</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="k">and</span><span class="w"> </span><span class="k">c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+</code></pre>
+<p>按最左原则，这该失效才对。</p>
+<p>但它没失效。</p>
+<p>原因是索引覆盖。</p>
+<p>这张表的列就 <code>id、a、b、c</code> 四个，而联合索引 <code>idx_abc</code> 的叶子节点记录了 <code>(a, b, c)</code> 再加上主键 <code>id</code>。</p>
+<p>虽然 WHERE 条件只写了 b 和 c，但 <code>select *</code> 需要返回的 <code>id、a、b、c</code> 全部都包含在这个二级索引记录中，因此可以形成覆盖索引，不需要回表。</p>
+<p>MySQL 发现这个二级索引能够覆盖查询所需要的全部列，不需要回表。</p>
+<p>如果扫描整棵二级索引的成本低于全表扫描，优化器就可能选择扫描这个索引。</p>
+<p>再对比一张表：</p>
+<pre><code class="language-sql"><span class="k">create</span><span class="w"> </span><span class="k">table</span><span class="w"> </span><span class="n">abc2</span><span class="w"> </span><span class="p">(</span>
+<span class="w">  </span><span class="n">id</span><span class="w"> </span><span class="nb">int</span><span class="w"> </span><span class="k">primary</span><span class="w"> </span><span class="k">key</span><span class="p">,</span>
+<span class="w">  </span><span class="n">a</span><span class="w"> </span><span class="nb">int</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="nb">int</span><span class="p">,</span><span class="w"> </span><span class="k">c</span><span class="w"> </span><span class="nb">int</span><span class="p">,</span><span class="w"> </span><span class="n">d</span><span class="w"> </span><span class="nb">int</span>
+<span class="p">);</span>
+<span class="k">alter</span><span class="w"> </span><span class="k">table</span><span class="w"> </span><span class="n">abc2</span><span class="w"> </span><span class="k">add</span><span class="w"> </span><span class="k">index</span><span class="w"> </span><span class="n">idx_abc</span><span class="w"> </span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="p">,</span><span class="w"> </span><span class="k">c</span><span class="p">);</span>
+</code></pre>
+<p>同样的查询放到 <code>abc2</code> 上，情况就不一样了。</p>
+<p>因为 <code>select *</code> 还需要获取索引中不存在的 <code>d</code>，如果扫描这棵联合索引，就需要额外回表去拿 d。</p>
+<p>这时候优化器会重新计算成本：</p>
+<p>如果“扫描联合索引 + 大量回表”的成本高于全表扫描，就可能直接选择全表扫描，而不是一定走联合索引。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1787132181452-71599db8-fb8d-439b-aac3-4f6df53e4127.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>这个特例看着像是推翻了最左原则，其实并没有。</p>
+<p>这里利用的是<strong>覆盖索引扫描</strong>：</p>
+<p>即使无法按照 <code>(a,b,c)</code> 的最左前缀高效定位，索引本身仍然包含查询所需的全部列，优化器可能选择扫描整棵二级索引，从而避免回表。</p>
+<h2>小结</h2>
+<p>WHERE 条件顺序要和索引顺序一致吗？</p>
+<p>不用，优化器会根据查询条件和索引做等价的访问路径优化，不要求你按索引定义的顺序写条件。</p>
+<p>范围查询之后为什么通常难以继续定位？</p>
+<p>范围破坏了后续列的有序性，无法再按等值方式精确连续定位，但它们仍可能参与过滤、排序或覆盖索引等优化。</p>
+<p>还有一层容易漏掉的：</p>
+<p>当查询所需的列全部包含在某个索引里时，即使缺少最左列，也可能因为覆盖索引而选择扫描这个索引。</p>
+<p>理解到这一层，最左匹配原则就算真正吃透了。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "MySQL 索引下推（ICP）：为什么能少回几次表？", "slug": "post-e45b67"}, "next": {"title": "面试官：什么是覆盖索引？", "slug": "post-022681"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "面试官：MySQL 索引是什么？这道题答全的人真不多", "slug": "post-78822c", "desc": "面试被问到 MySQL 索引，多数人的回答停留在\"加快查询\"四个字。 这话对，但没用。 索引真正要讲清楚的，是一份排好序的目录： 索引可以理解成一份排好序的目录，它通过维护特定的数据结构，让数据库能够…", "date": "2026-08-12"}, {"title": "MySQL 索引为什么是 B+ 树？二叉树、哈希、B 树是怎么被淘汰的", "slug": "post-9f798e", "desc": "面试被问到“MySQL 索引为什么用 B+ 树”，多数人的回答停留在“叶子节点存数据、非叶子节点不存、叶子节点用双向链表支持范围查询”。 这话没错，但没讲清“为什么非得是 B+ 树”。 二叉树不行吗？…", "date": "2026-08-13"}, {"title": "MySQL 聚簇索引和非聚簇索引：为什么二级索引查完还要回表？", "slug": "post-acebb2", "desc": "MySQL 的索引底层是一棵 B+ 树，这个说法你应该听过。 但一张表往往建了好几个索引，每个索引都是一棵独立的 B+ 树。 那问题来了，每棵树的叶子节点，都存一份完整的行数据吗？ 不是。 有的索引叶…", "date": "2026-08-14"}, {"title": "MySQL 回表：为什么走了索引还要再查一次 B+ 树？", "slug": "post-bdc914", "desc": "MySQL 面试里有一个绕不开的问题： 为什么走了索引，还需要回表？ 官方文档并没有给它正式定义，但它连着聚簇索引、非聚簇索引、覆盖索引一整条线，查询优化时经常撞上。 一句话说清楚： 回表就是用二级索…", "date": "2026-08-17"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

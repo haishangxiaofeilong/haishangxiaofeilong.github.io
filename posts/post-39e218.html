@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent 的长期记忆：一个 Store，装下跨会话的信息 · 海上小飞龙</title>
+<meta name="description" content="我在《Agent 的短期记忆：三种 checkpointer 和一个 thread id》里讲过，短期记忆只管一个 thread 内的事，出了会话就不认了。 长期记忆接的是会话之外的那一层。 它保存跟…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-39e218.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Agent 的长期记忆：一个 Store，装下跨会话的信息 · 海上小飞龙">
+<meta property="og:description" content="我在《Agent 的短期记忆：三种 checkpointer 和一个 thread id》里讲过，短期记忆只管一个 thread 内的事，出了会话就不认了。 长期记忆接的是会话之外的那一层。 它保存跟…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/langchain.html">LangChain</a><a class="tag" href="/tags/rag.html">RAG</a><a class="tag" href="/tags/post-2dc9b4.html">大模型</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a></div>
+      <h1 class="post-title">Agent 的长期记忆：一个 Store，装下跨会话的信息</h1>
+      <div class="post-meta">
+        <span>2026-09-24</span>
+        <span class="dot"></span>
+        <span>2217 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>我在<a href="https://mp.weixin.qq.com/s/LOOUIWgIi_ueDeG0fSWjJQ">《Agent 的短期记忆：三种 checkpointer 和一个 thread_id》</a>里讲过，短期记忆只管一个 thread 内的事，出了会话就不认了。</p>
+<p>长期记忆接的是会话之外的那一层。</p>
+<p>它保存跟特定用户或者应用相关的全局信息，比如用户偏好、固定属性、关键的历史信息。</p>
+<p>差别用两个会话就能看出来：</p>
+<p>在 A 会话里记下几条属性，存进长期记忆；</p>
+<p>换到 B 会话，还能把它们取出来接着用。</p>
+<p>短期记忆做不到这一点，它只在当前会话或者当前 thread 里有效。</p>
+<p>再比如，对话轮数一多，历史信息会攒下很多，不可能全都放进短期记忆。</p>
+<p>其中有些信息以后换个会话还会用到，这类就该放进长期记忆。</p>
+<p>短期记忆是这次对话的上下文，长期记忆是 Agent 跨会话留下来的信息。</p>
+<p>它跨会话保留，独立于任何一次具体对话而存在，需要的时候可以把相关信息召回。</p>
+<p>这篇就拆五件事：</p>
+<p>长期记忆是什么、交给谁管、存在哪、按什么结构组织，以及怎么读写。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1790246639408-18b11dfa-fb08-4afa-a929-f6a524a91229.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>长期记忆由谁来管</h2>
+<p>LangChain 里，长期记忆由 Store（存储）组件负责管理。</p>
+<p>用法跟短期记忆很像：</p>
+<p>创建一个 Store 实例，把它传给 <code>create_agent</code>。</p>
+<p>上篇讲短期记忆的时候用的是 checkpointer，这一步用的是 Store，思路是一样的。</p>
+<p>Store 有多种实现，先看最常用的两种。</p>
+<h2>两种常见的 Store：内存和 PostgreSQL</h2>
+<table>
+<thead>
+<tr>
+<th>Store</th>
+<th>存在哪</th>
+<th>适合场景</th>
+<th>注意点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>InMemoryStore</code></td>
+<td>内存</td>
+<td>开发调试</td>
+<td>服务重启之后数据丢失</td>
+</tr>
+<tr>
+<td><code>PostgresStore</code></td>
+<td>PostgreSQL 数据库</td>
+<td>生产环境</td>
+<td>数据库要单独部署和维护</td>
+</tr>
+</tbody>
+</table>
+<p><code>InMemoryStore</code> 把数据存在内存里，写代码、调试的时候用它最省事。</p>
+<p>代价是服务一重启，存下来的东西就没了。</p>
+<p><code>PostgresStore</code> 背后是 PostgreSQL 数据库，数据能持久保存，生产环境用它更合适。</p>
+<p>代价是这套数据库要单独部署和维护。</p>
+<p>如果只是写点代码、跑个 Demo，用 <code>InMemoryStore</code> 就够了；</p>
+<p>要做一个生产系统，就该换成 <code>PostgresStore</code> 这类数据库后端。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1790245416249-cc79fc71-ca82-4d4a-a2bf-4ac75cd4d590.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>把读写封装成工具</h2>
+<p>在 Agent 里，一个常见做法是把长期记忆的读写封装成工具。</p>
+<p>工具的执行函数里能拿到一个 <code>runtime</code> 对象，Store 实例就挂在这个对象上，用 <code>runtime.store</code> 就能访问到。</p>
+<h2>记忆按命名空间和键分开存</h2>
+<p>存进去的数据按三部分组织：</p>
+<p>命名空间、键、值。</p>
+<p>命名空间像一个文件夹，用来把数据隔开，通常放用户 ID、应用上下文这类信息。</p>
+<p>官方没有规定必须这么分，这只是一些常见的做法。</p>
+<p>要让不同用户的记忆彼此隔开，就把用户 ID 放进命名空间。</p>
+<p>键像文件名，用来定位命名空间里的某一条具体记忆。</p>
+<p>值是一个 JSON 对象，存的是这条记忆的实际内容。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1790245020971-4cf77f52-ab03-4184-b77a-f96da8cb3579.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>读用 get，写用 put</h2>
+<p>读一条特定的记忆，用 <code>runtime.store.get</code>，参数是命名空间和键：</p>
+<pre><code class="language-python"><span class="n">runtime</span><span class="o">.</span><span class="n">store</span><span class="o">.</span><span class="n">get</span><span class="p">((</span><span class="s2">&quot;users&quot;</span><span class="p">,</span> <span class="s2">&quot;user_123&quot;</span><span class="p">),</span> <span class="s2">&quot;profile&quot;</span><span class="p">)</span>
+</code></pre>
+<p>写入或者更新一条记忆，用 <code>runtime.store.put</code>，在命名空间和键后面再补上要存的值：</p>
+<pre><code class="language-python"><span class="n">runtime</span><span class="o">.</span><span class="n">store</span><span class="o">.</span><span class="n">put</span><span class="p">((</span><span class="s2">&quot;users&quot;</span><span class="p">,</span> <span class="s2">&quot;user_123&quot;</span><span class="p">),</span> <span class="s2">&quot;profile&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;language&quot;</span><span class="p">:</span> <span class="s2">&quot;中文&quot;</span><span class="p">})</span>
+</code></pre>
+<h2>记忆多了，可以按语义搜</h2>
+<p>除了按键精确取，Store 还支持语义搜索，在一个命名空间里按意思去找相关的记忆，不用去凑关键词。</p>
+<p>这个能力默认不开启，要先把 Store 配上向量模型，把存进去的内容建成向量索引。</p>
+<p>记忆数量一大，语义搜索就很管用。</p>
+<p>真实开发里，长期记忆和短期记忆是同时生效的。</p>
+<p>用起来并不复杂：</p>
+<p>设好命名空间、键、值，直接 get 和 put。</p>
+<p>Store 解决的是记忆存在哪里，至于什么值得记、什么时候记、什么时候取，还是应用自己的事。</p>
+<p>真正要想清楚的是：</p>
+<p>哪些信息该留在会话里，哪些该放进长期记忆。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "花括号展开这道 Hard 题，把它当算式读就顺了", "slug": "post-e4d5ad"}, "next": {"title": "Agent 的短期记忆：三种 checkpointer 和一个 thread_id", "slug": "post-59efd5"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "Agent Skill 和 MCP，到底有什么区别？", "slug": "post-ee1018", "desc": "做 AI 应用开发，经常会遇到两个概念：Agent Skill 和 MCP（Model Context Protocol）。 虽然都是让 AI 能调用工具，但它们根本不是一个维度的东西。 简单来说：…", "date": "2026-06-30"}, {"title": "RAG 面试高频题：召回率太低怎么办？一套完整优化方案讲透", "slug": "post-0b66cc", "desc": "很多人做 RAG 系统，遇到召回率低的问题，第一反应就是换模型——换一个参数更大的、换一个号称语义理解更强的。 结果呢？ 效果提升微乎其微。 根本原因不是模型不够强，而是模型拿到的参考材料本身就是错的…", "date": "2026-07-23"}, {"title": "为什么大模型总记不住你的文档？聊聊向量数据库", "slug": "post-c65602", "desc": "不管是搭 RAG 知识库、做推荐系统，还是搞以图搜图，你迟早会撞上同一个词：向量数据库。 很多人把它想得很玄，觉得是某种更高端的 MySQL。 说白了，它干的事特别单纯： 存一堆高维向量，然后帮你找出…", "date": "2026-08-15"}, {"title": "gRPC 为什么比 HTTP+JSON 快：快不是某一个技术，是4件事叠出来的", "slug": "post-60f4d8", "desc": "内部调用的钱花在哪了 服务之间一次普通的 HTTP+JSON 调用，真正有用的数据占了多少？ 一个 user 对象，id、name、email 这几个字段名每条消息都得原样抄一遍。 接口还靠文档约定。…", "date": "2026-09-03"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

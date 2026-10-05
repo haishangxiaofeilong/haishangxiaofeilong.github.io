@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>【KMP算法-下篇】同一道题：Java 库函数 2600 微秒，手写 KMP 16 微秒 · 海上小飞龙</title>
+<meta name="description" content="给你两个字符串，要你回答第二个在第一个里第一次出现的位置，从 0 开始数。 查不到就返回 1。 题目保证第二个串至少有一个字符。 这种题一行代码就能完成： Java 有 haystack.indexO…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-8a09b4.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="【KMP算法-下篇】同一道题：Java 库函数 2600 微秒，手写 KMP 16 微秒 · 海上小飞龙">
+<meta property="og:description" content="给你两个字符串，要你回答第二个在第一个里第一次出现的位置，从 0 开始数。 查不到就返回 1。 题目保证第二个串至少有一个字符。 这种题一行代码就能完成： Java 有 haystack.indexO…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/post-7ddbe1.html">网络</a><a class="tag" href="/tags/java.html">Java</a><a class="tag" href="/tags/post-d11195.html">面试题</a></div>
+      <h1 class="post-title">【KMP算法-下篇】同一道题：Java 库函数 2600 微秒，手写 KMP 16 微秒</h1>
+      <div class="post-meta">
+        <span>2026-10-01</span>
+        <span class="dot"></span>
+        <span>7992 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p><img src="https://cdn.nlark.com/yuque/0/2026/jpeg/2113993/1790831698010-808d711a-e7e7-4240-810a-324ee13be6fd.jpeg" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>给你两个字符串，要你回答第二个在第一个里第一次出现的位置，从 0 开始数。</p>
+<p>查不到就返回 -1。</p>
+<p>题目保证第二个串至少有一个字符。</p>
+<p>这种题一行代码就能完成：</p>
+<p>Java 有 <code>haystack.indexOf(needle)</code>，C++ 和 Python 也各有现成的 <code>find</code>。</p>
+<p>可这些现成的函数，跑起来不一定比手写的快。</p>
+<p>手写的版本，就是上篇<a href="https://mp.weixin.qq.com/s/yutf5TQhjC4V-ldLJmTe9A">【KMP算法-上篇】匹配失败之后，KMP 凭什么敢一次跳过一大段</a>和中篇<a href="https://mp.weixin.qq.com/s/ponIPvUr584T9orFkju2ew">【KMP算法-中篇】next 数组的递推：往前填一位，靠的是往回退几步</a>讲的那套 KMP。</p>
+<p>这篇讲两件事：</p>
+<p>它快在哪里，以及同一套 KMP 还能解另一道看起来毫不相干的题。</p>
+<h2>库函数能过，一个用例就能把差距拉开</h2>
+<p>JDK 自带的 <code>indexOf</code> 内部用的什么匹配办法，要看源码才知道。</p>
+<p>朴素匹配是最直接的：</p>
+<p>一次对不上，就把起点往后挪一格，重新从头比一遍。</p>
+<p>拿一个容易把差距拉开的用例试一下：</p>
+<p>haystack 是1万个 <code>a</code>，needle 是1999个 <code>a</code> 再加一个 <code>b</code>。</p>
+<p>这种用例下，前面绝大多数起点，都要从头比到 needle 的最后一位，才发现差一个字符。</p>
+<p>同一台机器上，<code>indexOf</code> 花了 2600 多微秒，手写 KMP 只要 16 微秒。</p>
+<p>这组用例里，差距就出在匹配的做法上。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1790832817347-70bdfeea-034b-4143-ab86-bb2f907d22bc.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>把讲过的匹配那一趟拼起来</h2>
+<p>这道题要做的，就是把前面讲的两趟接到一起：</p>
+<p>算 next 数组是一趟，拿 next 做匹配是另一趟。</p>
+<p>把 haystack 当成 S1，needle 当成 S2。</p>
+<p>从两个串的开头同时往前走，字符一样就一起往后挪一位。</p>
+<p>对不上，就看 S2 当前位置的 next 值：</p>
+<p>能退就让 S2 往后退，退不动就让 S1 换一个起点重来。</p>
+<p>S2 走到底，说明配上了，起点是 S1 走到的位置减掉 S2 的长度。</p>
+<p>S1 走到底，S2 还没走完，就是没配上，返回 -1。</p>
+<p>这两趟合起来，就是一个完整的匹配函数。</p>
+<h2>翻译成 Java 代码</h2>
+<pre><code class="language-java"><span class="kd">class</span> <span class="nc">Solution</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">strStr</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">haystack</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">needle</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kt">char</span><span class="o">[]</span><span class="w"> </span><span class="n">s1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">haystack</span><span class="p">.</span><span class="na">toCharArray</span><span class="p">();</span>
+<span class="w">        </span><span class="kt">char</span><span class="o">[]</span><span class="w"> </span><span class="n">s2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">needle</span><span class="p">.</span><span class="na">toCharArray</span><span class="p">();</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">s1</span><span class="p">.</span><span class="na">length</span><span class="p">,</span><span class="w"> </span><span class="n">m</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">s2</span><span class="p">.</span><span class="na">length</span><span class="p">;</span>
+<span class="w">        </span><span class="kt">int</span><span class="o">[]</span><span class="w"> </span><span class="n">next</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nextArray</span><span class="p">(</span><span class="n">s2</span><span class="p">,</span><span class="w"> </span><span class="n">m</span><span class="p">);</span>
+
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w">   </span><span class="c1">// S1 上正在比对的位置</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w">   </span><span class="c1">// S2 上正在比对的位置</span>
+
+<span class="w">        </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">x</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">y</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">m</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">s1</span><span class="o">[</span><span class="n">x</span><span class="o">]</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">s2</span><span class="o">[</span><span class="n">y</span><span class="o">]</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">x</span><span class="o">++</span><span class="p">;</span><span class="w">         </span><span class="c1">// 相等，两个位置一起往后</span>
+<span class="w">                </span><span class="n">y</span><span class="o">++</span><span class="p">;</span>
+<span class="w">            </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">next</span><span class="o">[</span><span class="n">y</span><span class="o">]</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">x</span><span class="o">++</span><span class="p">;</span><span class="w">         </span><span class="c1">// S2 退无可退，S1 换下一个起点</span>
+<span class="w">            </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">next</span><span class="o">[</span><span class="n">y</span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="c1">// S1 不动，S2 退到 next 值所在位置上</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="c1">// S2 走到底就是配上了，起点是 x 减掉 S2 的长度</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">y</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">m</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">m</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// 算每一位的 next 值，只看 S2 自己</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kt">int</span><span class="o">[]</span><span class="w"> </span><span class="nf">nextArray</span><span class="p">(</span><span class="kt">char</span><span class="o">[]</span><span class="w"> </span><span class="n">s</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">m</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">m</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">                    </span><span class="c1">// 只有一位，直接给定</span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="kt">int</span><span class="o">[]</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="o">-</span><span class="mi">1</span><span class="w"> </span><span class="p">};</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="kt">int</span><span class="o">[]</span><span class="w"> </span><span class="n">next</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="kt">int</span><span class="o">[</span><span class="n">m</span><span class="o">]</span><span class="p">;</span>
+<span class="w">        </span><span class="n">next</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="mi">1</span><span class="p">;</span><span class="w">                    </span><span class="c1">// 这两位是规定好的</span>
+<span class="w">        </span><span class="n">next</span><span class="o">[</span><span class="mi">1</span><span class="o">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span><span class="w">                       </span><span class="c1">// 正在算 next 值的位置</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">cn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w">                      </span><span class="c1">// 当前正在试的那个长度</span>
+<span class="w">        </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">m</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">s</span><span class="o">[</span><span class="n">i</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="o">]</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">s</span><span class="o">[</span><span class="n">cn</span><span class="o">]</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">next</span><span class="o">[</span><span class="n">i</span><span class="o">++]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">++</span><span class="n">cn</span><span class="p">;</span><span class="w">        </span><span class="c1">// 对上了，这一位就是当前长度加一</span>
+<span class="w">            </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">cn</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">cn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">next</span><span class="o">[</span><span class="n">cn</span><span class="o">]</span><span class="p">;</span><span class="w">           </span><span class="c1">// 没对上，换成更短的长度再试</span>
+<span class="w">            </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">next</span><span class="o">[</span><span class="n">i</span><span class="o">++]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w">           </span><span class="c1">// 退到 0 还是没对上，这一位就是 0</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">next</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>代码</th>
+<th>大白话</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>s1</code> 和 <code>s2</code></td>
+<td>haystack 和 needle 各自转成的字符数组</td>
+</tr>
+<tr>
+<td><code>x</code> 和 <code>y</code></td>
+<td>S1 和 S2 上各自的比对位置</td>
+</tr>
+<tr>
+<td><code>next[y] == -1</code></td>
+<td>S2 退不动了，S1 换一个起点重来</td>
+</tr>
+<tr>
+<td><code>y = next[y]</code></td>
+<td>S1 不动，S2 退到 next 值所在位置上</td>
+</tr>
+<tr>
+<td><code>y == m</code></td>
+<td>S2 走到底，说明配上了</td>
+</tr>
+<tr>
+<td><code>x - m</code></td>
+<td>配上的这一段在 S1 里的起点</td>
+</tr>
+<tr>
+<td><code>nextArray</code></td>
+<td>单独算 S2 每一位的 next 值，跟 S1 无关</td>
+</tr>
+</tbody>
+</table>
+<h2>换一道题：一棵树里有没有另一棵树</h2>
+<p>第二道题换到树上。</p>
+<p>给你两棵树，问你第一棵里有没有一棵子树，跟第二棵的结构和节点值完全一样。</p>
+<p>这里说的子树，是选中一个节点当起点，从这个节点往下能走到的每一个节点都要算上，一个都不能少。</p>
+<p>举个例子，第一棵长这样：</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1790831772803-8ca1cbc5-5e60-40b9-a919-c4d913338f99.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>第二棵如果是 <code>6</code> 左接一个 <code>3</code>，答案是没有。</p>
+<p>第一棵里的 <code>6</code> 右边还接着 <code>2</code>，它这棵子树是 <code>6, 3, 2</code>，找不出只有 <code>6, 3</code> 的那一棵。</p>
+<p>要是第二棵是 <code>6</code> 左接 <code>3</code>、右接 <code>2</code>，答案就是有。</p>
+<h2>一个个节点去试一遍</h2>
+<p>最直接的做法：</p>
+<p>把第一棵的每个节点都当一次起点，跟第二棵从头比一遍。</p>
+<p>比的时候两边要同时走完才算配上，一边走完一边还有剩就是没配上。</p>
+<pre><code class="language-java"><span class="kd">public</span><span class="w"> </span><span class="kt">boolean</span><span class="w"> </span><span class="nf">isSubtree</span><span class="p">(</span><span class="n">TreeNode</span><span class="w"> </span><span class="n">root</span><span class="p">,</span><span class="w"> </span><span class="n">TreeNode</span><span class="w"> </span><span class="n">subRoot</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">root</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="kc">false</span><span class="p">;</span><span class="w">         </span><span class="c1">// 第一棵都空了，下面不可能有</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">same</span><span class="p">(</span><span class="n">root</span><span class="p">,</span><span class="w"> </span><span class="n">subRoot</span><span class="p">))</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="kc">true</span><span class="p">;</span><span class="w">   </span><span class="c1">// 当前这个节点对上了</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">isSubtree</span><span class="p">(</span><span class="n">root</span><span class="p">.</span><span class="na">left</span><span class="p">,</span><span class="w"> </span><span class="n">subRoot</span><span class="p">)</span><span class="w">    </span><span class="c1">// 没对上，就往左右子树里接着找</span>
+<span class="w">        </span><span class="o">||</span><span class="w"> </span><span class="n">isSubtree</span><span class="p">(</span><span class="n">root</span><span class="p">.</span><span class="na">right</span><span class="p">,</span><span class="w"> </span><span class="n">subRoot</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="c1">// 判断两棵树是不是长得一模一样</span>
+<span class="kd">private</span><span class="w"> </span><span class="kt">boolean</span><span class="w"> </span><span class="nf">same</span><span class="p">(</span><span class="n">TreeNode</span><span class="w"> </span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="n">TreeNode</span><span class="w"> </span><span class="n">b</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">a</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="kc">true</span><span class="p">;</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">a</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="kc">false</span><span class="p">;</span><span class="w">   </span><span class="c1">// 一个有，一个没有</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">a</span><span class="p">.</span><span class="na">val</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">b</span><span class="p">.</span><span class="na">val</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">same</span><span class="p">(</span><span class="n">a</span><span class="p">.</span><span class="na">left</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="p">.</span><span class="na">left</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">same</span><span class="p">(</span><span class="n">a</span><span class="p">.</span><span class="na">right</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="p">.</span><span class="na">right</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre>
+<p>第一棵有 n 个节点，第二棵有 m 个。</p>
+<p>最坏情况下，每个起点都要把第二棵树整棵比一遍，复杂度是 <code>O(n × m)</code>。</p>
+<p>题目给的节点数不大，这么写也能过。</p>
+<p>可树一大就慢了，下面换个做法。</p>
+<h2>把树变成字符串，再跑一遍 KMP</h2>
+<p>一棵树可以先写成一个序列：</p>
+<p>先记自己，再记左子树，最后记右子树。</p>
+<p>空的地方也要记一笔，不然结构就丢了。</p>
+<p>这个写法就叫先序序列化。</p>
+<p>这么记出来的序列是唯一的，把它还原回树，也只会得到原来那一棵。</p>
+<p>第一棵写出来是这样：</p>
+<pre><code class="language-plain">5, 10, 700, #, #, 6, 3, #, #, 2, #, #, 3, #, #
+</code></pre>
+<p><code>#</code> 就是空。</p>
+<p>把两棵树都这么写一遍，然后拿第二棵的序列去第一棵的序列里找。</p>
+<p>找得到，说明第二棵的序列是第一棵序列里连着的一截，第二棵就是第一棵的子树。</p>
+<p>找不到就没有。</p>
+<p>树上的问题变成了序列上的问题，而序列匹配我们已经有 <code>O(n + m)</code> 的做法了。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1790831795578-598baf30-4518-42db-876f-adce46905315.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>第二道题的 Java 代码</h2>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/jpeg/2113993/1790831842582-45933769-9d45-41a6-b5cc-512fbb87ed4b.jpeg" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/jpeg/2113993/1790831842575-fb731ec6-e50e-4430-8ce9-999d0d6815dc.jpeg" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>这道题 KMP 这一趟和第一道题是同一套走法，变的是比对：</p>
+<p>第一道题比的是字符，用 <code>==</code> 就行；</p>
+<p>这里比的是序列里的一个个位置，每个位置要么是一个节点的值，要么是一个 <code>#</code>，在代码里都以 String 存着，得用 <code>equals</code> 来比。</p>
+<pre><code class="language-java"><span class="kd">class</span> <span class="nc">Solution</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">boolean</span><span class="w"> </span><span class="nf">isSubtree</span><span class="p">(</span><span class="n">TreeNode</span><span class="w"> </span><span class="n">root</span><span class="p">,</span><span class="w"> </span><span class="n">TreeNode</span><span class="w"> </span><span class="n">subRoot</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">s1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">ArrayList</span><span class="o">&lt;&gt;</span><span class="p">();</span>
+<span class="w">        </span><span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">s2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">ArrayList</span><span class="o">&lt;&gt;</span><span class="p">();</span>
+<span class="w">        </span><span class="n">serialize</span><span class="p">(</span><span class="n">root</span><span class="p">,</span><span class="w"> </span><span class="n">s1</span><span class="p">);</span>
+<span class="w">        </span><span class="n">serialize</span><span class="p">(</span><span class="n">subRoot</span><span class="p">,</span><span class="w"> </span><span class="n">s2</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">kmp</span><span class="p">(</span><span class="n">s1</span><span class="p">,</span><span class="w"> </span><span class="n">s2</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// 先序序列化：空节点也要占一位，整棵树才能被还原</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">serialize</span><span class="p">(</span><span class="n">TreeNode</span><span class="w"> </span><span class="n">node</span><span class="p">,</span><span class="w"> </span><span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">out</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">node</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">out</span><span class="p">.</span><span class="na">add</span><span class="p">(</span><span class="s">&quot;#&quot;</span><span class="p">);</span>
+<span class="w">            </span><span class="k">return</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="n">out</span><span class="p">.</span><span class="na">add</span><span class="p">(</span><span class="n">String</span><span class="p">.</span><span class="na">valueOf</span><span class="p">(</span><span class="n">node</span><span class="p">.</span><span class="na">val</span><span class="p">));</span>
+<span class="w">        </span><span class="n">serialize</span><span class="p">(</span><span class="n">node</span><span class="p">.</span><span class="na">left</span><span class="p">,</span><span class="w"> </span><span class="n">out</span><span class="p">);</span>
+<span class="w">        </span><span class="n">serialize</span><span class="p">(</span><span class="n">node</span><span class="p">.</span><span class="na">right</span><span class="p">,</span><span class="w"> </span><span class="n">out</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">kmp</span><span class="p">(</span><span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">s1</span><span class="p">,</span><span class="w"> </span><span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">s2</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">s1</span><span class="p">.</span><span class="na">size</span><span class="p">(),</span><span class="w"> </span><span class="n">m</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">s2</span><span class="p">.</span><span class="na">size</span><span class="p">();</span>
+<span class="w">        </span><span class="kt">int</span><span class="o">[]</span><span class="w"> </span><span class="n">next</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nextArray</span><span class="p">(</span><span class="n">s2</span><span class="p">,</span><span class="w"> </span><span class="n">m</span><span class="p">);</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">        </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">x</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">y</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">m</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">s1</span><span class="p">.</span><span class="na">get</span><span class="p">(</span><span class="n">x</span><span class="p">).</span><span class="na">equals</span><span class="p">(</span><span class="n">s2</span><span class="p">.</span><span class="na">get</span><span class="p">(</span><span class="n">y</span><span class="p">)))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">x</span><span class="o">++</span><span class="p">;</span>
+<span class="w">                </span><span class="n">y</span><span class="o">++</span><span class="p">;</span>
+<span class="w">            </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">next</span><span class="o">[</span><span class="n">y</span><span class="o">]</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">x</span><span class="o">++</span><span class="p">;</span>
+<span class="w">            </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">next</span><span class="o">[</span><span class="n">y</span><span class="o">]</span><span class="p">;</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">y</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">m</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">m</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kt">int</span><span class="o">[]</span><span class="w"> </span><span class="nf">nextArray</span><span class="p">(</span><span class="n">List</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span><span class="w"> </span><span class="n">s</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">m</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">m</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="kt">int</span><span class="o">[]</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="o">-</span><span class="mi">1</span><span class="w"> </span><span class="p">};</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="kt">int</span><span class="o">[]</span><span class="w"> </span><span class="n">next</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="kt">int</span><span class="o">[</span><span class="n">m</span><span class="o">]</span><span class="p">;</span>
+<span class="w">        </span><span class="n">next</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+<span class="w">        </span><span class="n">next</span><span class="o">[</span><span class="mi">1</span><span class="o">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="n">cn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">        </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">m</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">s</span><span class="p">.</span><span class="na">get</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">).</span><span class="na">equals</span><span class="p">(</span><span class="n">s</span><span class="p">.</span><span class="na">get</span><span class="p">(</span><span class="n">cn</span><span class="p">)))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">next</span><span class="o">[</span><span class="n">i</span><span class="o">++]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">++</span><span class="n">cn</span><span class="p">;</span>
+<span class="w">            </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">cn</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">cn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">next</span><span class="o">[</span><span class="n">cn</span><span class="o">]</span><span class="p">;</span>
+<span class="w">            </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">next</span><span class="o">[</span><span class="n">i</span><span class="o">++]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">next</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>代码</th>
+<th>大白话</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>serialize</code></td>
+<td>把一棵树按先序序列化，空的地方记 <code>#</code></td>
+</tr>
+<tr>
+<td><code>s1</code> 和 <code>s2</code></td>
+<td>两棵树各自的序列</td>
+</tr>
+<tr>
+<td><code>kmp(s1, s2)</code></td>
+<td>在 s1 里找 s2，跟第一道题是同一套做法</td>
+</tr>
+<tr>
+<td><code>!= -1</code></td>
+<td>找到了，第二棵就是第一棵的子树</td>
+</tr>
+<tr>
+<td><code>nextArray</code></td>
+<td>算 s2 每一位的 next 值，比对用 <code>equals</code>，别的和第一道题一样</td>
+</tr>
+</tbody>
+</table>
+<h2>这几处一不留神就容易写错</h2>
+<h3>needle 长度为 1 时，<code>next[1] = 0</code> 会越界</h3>
+<p><code>nextArray</code> 一上来就写了 <code>next[0] = -1</code> 和 <code>next[1] = 0</code>。</p>
+<p>needle 长度为 1 的时候没有第 2 位，<code>next[1] = 0</code> 这一行会越界。</p>
+<p>所以在最前面加一个判断，长度为 1 直接返回 <code>{ -1 }</code>。</p>
+<h3><code>next[y] == -1</code> 这个分支不能省</h3>
+<p>写代码时容易省掉一步，把&quot;能退&quot;和&quot;退不动&quot;合成一个 <code>else</code>。</p>
+<p>真合成的话，<code>y</code> 会被赋成 <code>-1</code>，下一轮拿 <code>-1</code> 去访问 S2，越界报错。</p>
+<p>退不动的时候，得让 S1 自己往前走一步。</p>
+<h3>返回的是 <code>x - m</code></h3>
+<p>循环停下来的时候，<code>x</code> 停在 S2 整个匹配完之后的位置，也就是起点的后面。</p>
+<p>要减掉 S2 的长度，才是题目要的那个起点。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1790832883024-fc215d71-527d-4fbc-a148-9c2b396203ef.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h3>序列化时，空节点一定要占位</h3>
+<p>第二道题的树如果只记有值的节点，有的树明明不是子树，它的序列却照样能在第一棵的序列里找到。</p>
+<p>比如第一棵是 <code>1</code> 左接 <code>2</code>、右接 <code>3</code>，序列是 <code>1, 2, 3</code>。</p>
+<p>第二棵是 <code>2</code> 右接 <code>3</code>，序列是 <code>2, 3</code>，正好是第一棵序列里的一截。</p>
+<p>按这个找法，答案是&quot;有&quot;，可实际上第一棵里的 <code>2</code> 是个叶子节点，下面什么都没有。</p>
+<p>把空节点也记进去就不会再误判了：</p>
+<p>第一棵变成 <code>1, 2, #, #, 3, #, #</code>，第二棵变成 <code>2, #, 3, #, #</code>，第二棵的序列在第一棵的序列里就找不到了。</p>
+<h3>序列化时，别把节点值拼成一个大字符串</h3>
+<p>把每个节点的值直接拼成一整个字符串，相邻两个节点的值会连在一起。</p>
+<p>比如 <code>1</code> 和 <code>12</code> 两个节点挨着，拼出来是 <code>112</code>，读回去既可以当成 <code>1</code> 和 <code>12</code>，也可以当成 <code>11</code> 和 <code>2</code>。</p>
+<p>所以序列里每个位置都单独存一项，值该转成字符串就转成字符串。</p>
+<h2>两趟各花多少时间</h2>
+<p>第一道题两趟加起来 <code>O(n + m)</code>：算 next 数组 <code>O(m)</code>，匹配 <code>O(n)</code>，额外空间就是那个 next 数组，<code>O(m)</code>。</p>
+<p>前面试过的朴素匹配，最坏情况是每个起点都要把 needle 从头比一遍，也就是 <code>O(n × m)</code>。</p>
+<p>第二道题也是 <code>O(n + m)</code>：两棵树各序列化一遍是 <code>O(n)</code> 和 <code>O(m)</code>，再跑一趟 KMP 是 <code>O(n + m)</code>。</p>
+<p>代价是空间，两个序列都要存下来，<code>O(n + m)</code>。</p>
+<p>一个个节点去试的话就是 <code>O(n × m)</code>，树的节点一多就慢了。</p>
+<h2>两道题，一套骨架</h2>
+<p>两道题一道在字符串上，一道在树上，用的却是同一副骨架：</p>
+<p>把要比的换成一个序列，失配了只让 S2 的位置往回退，S1 的位置一路往前走。</p>
+<p>第一道题里，这个序列就是两个字符串本身。</p>
+<p>第二道题里，这个序列是树先序序列化的结果。</p>
+<p>换一种序列，这一套照样管用。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "括号生成：回溯的三步，一步都不能省", "slug": "post-4d4258"}, "next": {"title": "【KMP算法-中篇】next 数组的递推：往前填一位，靠的是往回退几步", "slug": "post-437325"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "一个登录框，如何让黑客绕过密码？聊聊 SQL 注入", "slug": "post-99da0d", "desc": "面试官问： \"你做Web项目的时候，后台接口肯定要跟数据库打交道。那你知道什么是SQL注入吗？\" 一句话： SQL注入就是攻击者通过构造恶意的输入参数，拼进你的SQL语句里，让数据库执行他想要的任何操…", "date": "2026-07-16"}, {"title": "面试官问我什么是幂等，我说按钮变灰就行了，他直接跳过了这道题", "slug": "post-a52247", "desc": "先说结论： 幂等，就是同一个操作，执行一次和执行多次，对系统状态的影响完全相同。 它在支付系统里是条不能碰的生死线。 只要沾钱，系统就绝不能因为网络抖一下，让用户多扣一分。 很多人以为，幂等就是前端把…", "date": "2026-08-11"}, {"title": "面试官：MySQL 索引是什么？这道题答全的人真不多", "slug": "post-78822c", "desc": "面试被问到 MySQL 索引，多数人的回答停留在\"加快查询\"四个字。 这话对，但没用。 索引真正要讲清楚的，是一份排好序的目录： 索引可以理解成一份排好序的目录，它通过维护特定的数据结构，让数据库能够…", "date": "2026-08-12"}, {"title": "RAG 面试高频题：召回率太低怎么办？一套完整优化方案讲透", "slug": "post-0b66cc", "desc": "很多人做 RAG 系统，遇到召回率低的问题，第一反应就是换模型——换一个参数更大的、换一个号称语义理解更强的。 结果呢？ 效果提升微乎其微。 根本原因不是模型不够强，而是模型拿到的参考材料本身就是错的…", "date": "2026-07-23"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

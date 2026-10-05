@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>【KMP算法-上篇】匹配失败之后，KMP 凭什么敢一次跳过一大段 · 海上小飞龙</title>
+<meta name="description" content="给两个字符串 S1 和 S2，问 S1 里有没有 S2，有的话返回它出现的最左位置，没有就返回 1。 这个问题叫 字符串匹配 。 最直接的做法，是把 S1 的每个位置都当成起点试一遍。 拿 S1 =…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-39fa50.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="【KMP算法-上篇】匹配失败之后，KMP 凭什么敢一次跳过一大段 · 海上小飞龙">
+<meta property="og:description" content="给两个字符串 S1 和 S2，问 S1 里有没有 S2，有的话返回它出现的最左位置，没有就返回 1。 这个问题叫 字符串匹配 。 最直接的做法，是把 S1 的每个位置都当成起点试一遍。 拿 S1 =…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/post-7ddbe1.html">网络</a><a class="tag" href="/tags/java.html">Java</a></div>
+      <h1 class="post-title">【KMP算法-上篇】匹配失败之后，KMP 凭什么敢一次跳过一大段</h1>
+      <div class="post-meta">
+        <span>2026-09-29</span>
+        <span class="dot"></span>
+        <span>5647 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>给两个字符串 S1 和 S2，问 S1 里有没有 S2，有的话返回它出现的最左位置，没有就返回 -1。</p>
+<p>这个问题叫<strong>字符串匹配</strong>。</p>
+<p>最直接的做法，是把 S1 的每个位置都当成起点试一遍。</p>
+<p>拿 S1 = &quot;ABCD&quot;、S2 = &quot;CD&quot; 来说：</p>
+<p>从 0 位置开始，A 对 C 对不上，换 1 位置；</p>
+<p>B 对 C 还是对不上，换 2 位置；</p>
+<p>这次 C 对 C、D 对 D 都对上了，返回 2。</p>
+<p>要是 S2 是 &quot;CDE&quot;，整个 S1 里找不出这一段，返回 -1。</p>
+<p>这个做法好懂，代价是慢。</p>
+<p>每换一个位置，S2 都得从 0 开始重新比一遍，前面那趟配出来的结果，帮不上后面那趟。</p>
+<p>S1 有 n 个字符，S2 有 m 个字符，最坏情况下，从每个位置开始都要往后比 m 次，两边一乘就是 O(n × m)。</p>
+<p>举个极端的例子，S1 是一长串 a，S2 是 &quot;aaf&quot;。</p>
+<p>每个 a 当起点时，都要先对上两个 a，再在第三个字符上对不上，然后换下一个 a，把 S2 的前两个 a 重新对一遍。</p>
+<p>KMP 算法换了个思路，它能把时间压到 O(n + m)，靠的是 S1 的比对位置只往前，从不回头。</p>
+<p>代价是先把 S2 加工一遍，加工出来的结果叫 next 数组。</p>
+<p>这篇讲两件事：</p>
+<p>next 数组长什么样，拿着它匹配时两个比对位置怎么走。</p>
+<p>它自己怎么算出来，留到下一篇。</p>
+<p>接下来都用这两个串：S2 = &quot;AABAABCAABAABT&quot;，S1 = &quot;AABAABCAABAABXA&quot;。</p>
+<h2>next 数组只看 S2</h2>
+<p>算它的时候，用的全是 S2 自己的字符，跟 S1 没关系。</p>
+<p>S2 的每个位置对应一个数，这个数说的是：</p>
+<p>它前面那段字符串里，前缀和后缀相等的最大长度。</p>
+<p>前缀从头开始取，后缀到末尾结束。</p>
+<p>这里有两个地方容易搞混：</p>
+<p>1.算的是这个位置前面那段字符串，不含这个位置上的字符。</p>
+<p>2.前缀和后缀都不能取到整段。取到整段，就是拿整段去对整段，前缀和后缀必然相等，算出来的数就等于整段的长度，但这样的相等说明不了任何东西。</p>
+<p>比如 S2 = &quot;AABAABCAABAABT&quot; 里的位置 6，这个位置上的字符是 C，它前面那段字符串就是 AABAAB。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1790608270374-11ad4469-e8b2-40cd-85ae-4cefa8447d3e.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>这里假设 S2 至少有一个字符，先讲第 0 个和第 1 个位置。</p>
+<p>第 0 个位置固定是 -1。</p>
+<p>它前面一个字符都没有，这个长度不存在，按约定写成 -1。</p>
+<p>第 1 个位置固定是 0，它前面只有一个字符，又不能取到整段，只能拿空的前缀去对空的后缀，长度是 0。</p>
+<p>不管 S2 长什么样，这两个位置的值都是定死的。</p>
+<p>把 S2 取成 &quot;AABAABCAABAABT&quot;，从头到尾算一遍：</p>
+<table>
+<thead>
+<tr>
+<th>位置</th>
+<th>前面那段字符串</th>
+<th>相等的最长前缀和后缀</th>
+<th>next 值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>没有</td>
+<td>没有</td>
+<td>-1</td>
+</tr>
+<tr>
+<td>1</td>
+<td>A</td>
+<td>空</td>
+<td>0</td>
+</tr>
+<tr>
+<td>2</td>
+<td>AA</td>
+<td>A</td>
+<td>1</td>
+</tr>
+<tr>
+<td>3</td>
+<td>AAB</td>
+<td>空</td>
+<td>0</td>
+</tr>
+<tr>
+<td>4</td>
+<td>AABA</td>
+<td>A</td>
+<td>1</td>
+</tr>
+<tr>
+<td>5</td>
+<td>AABAA</td>
+<td>AA</td>
+<td>2</td>
+</tr>
+<tr>
+<td>6</td>
+<td>AABAAB</td>
+<td>AAB</td>
+<td>3</td>
+</tr>
+<tr>
+<td>7</td>
+<td>AABAABC</td>
+<td>空</td>
+<td>0</td>
+</tr>
+<tr>
+<td>8</td>
+<td>AABAABCA</td>
+<td>A</td>
+<td>1</td>
+</tr>
+<tr>
+<td>9</td>
+<td>AABAABCAA</td>
+<td>AA</td>
+<td>2</td>
+</tr>
+<tr>
+<td>10</td>
+<td>AABAABCAAB</td>
+<td>AAB</td>
+<td>3</td>
+</tr>
+<tr>
+<td>11</td>
+<td>AABAABCAABA</td>
+<td>AABA</td>
+<td>4</td>
+</tr>
+<tr>
+<td>12</td>
+<td>AABAABCAABAA</td>
+<td>AABAA</td>
+<td>5</td>
+</tr>
+<tr>
+<td>13</td>
+<td>AABAABCAABAAB</td>
+<td>AABAAB</td>
+<td>6</td>
+</tr>
+</tbody>
+</table>
+<p>挑几个位置核对一遍。</p>
+<p>位置 2 前面是 &quot;AA&quot;，前一个 A 和后一个 A 相等，取 1。</p>
+<p>位置 6 前面是 &quot;AABAAB&quot;，前三个字符和后三个字符都是 &quot;AAB&quot;，取 3。</p>
+<p>位置 7 前面是 &quot;AABAABC&quot;，从头取一段、从尾取一段，怎么取都对不上，这个位置就是 0。</p>
+<p>位置 13 前面是 &quot;AABAABCAABAAB&quot;，前缀和后缀里最长的一对是 &quot;AABAAB&quot;，取 6。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1790608333496-e4a8082d-e33c-4d9a-915f-8e4b88c95c8b.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>这张表就是 S2 的 next 数组，14 个位置，14 个数。</p>
+<p>还有一种位置，它的前缀和后缀会重叠，这里提一下：</p>
+<p>比如某个字符前面是 &quot;AAAAA&quot;，前缀取 4 个 A、后缀取 4 个 A，这两段有 3 个字符是共用的，两边照样相等，这个位置的 next 值就是 4。</p>
+<p>刚才那个 S2 里没有这种位置，表里 14 个数，前缀和后缀没有一处叠在一起，看表和看图都更方便。</p>
+<h2>拿到 next 数组，两个比对位置怎么走</h2>
+<p>匹配还是从两个字符串的 0 位置开始，S1 的 0 位置对着 S2 的 0位置，字符相等就一起往后走。</p>
+<p>走到对不上的时候，S1 的比对位置停住不动，S2 的比对位置退到它刚才那个位置的 next 值所在的位置上，接着往下比。</p>
+<p>拿 S1 和这个 S2 走一遍。</p>
+<p>两个串从各自的 0 位置开始，一路都对得上，一直对到 S1 的 13 位置和 S2 的 13 位置，这里对不上了。</p>
+<p>13 位置的 next 值是 6，于是 S2 的比对位置退到 6，S1 的 13 位置不动，让这两个位置接着比。</p>
+<p>S1中验证的起点，变成 S1 的比对位置减去 S2 的比对位置，即 13 减 6 得 7。</p>
+<p>这一退的含义，就是 S2 不再从 S1 的 1 位置开始比对，改为从 S1 的 7 位置开始比对。</p>
+<p>接下来要验的，是从S1的 7 位置起把 S2 配出来。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1790608374244-8fbe8893-5b66-47c7-9f1c-634c84a49015.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>S1 的 13 位置对 S2 的 6 位置还是对不上，6 位置的 next 值是 3，S2 退到 3 位置，S1中验证的起点变成 10 位置。</p>
+<p>S1 的 13 位置对 S2 的 3 位置依然对不上，3 位置的 next 值是 0，S2 退到 0 位置，S1中验证的起点变成 13 位置。</p>
+<p>S1 的 13 位置对 S2 的 0 位置还是对不上，0 位置的 next 值是 -1。</p>
+<p>这个 -1 说的是 S2 已经退无可退，没有位置可退了。</p>
+<p>代码见到这个 -1，不把 S2 的比对位置真改成 -1，而是让 S1 换下一个位置，从 14 位置重新对上 S2 的 0 位置。</p>
+<p>把整场匹配的几步列出来：</p>
+<table>
+<thead>
+<tr>
+<th>走到哪一步</th>
+<th>S1 的比对位置</th>
+<th>S2 的比对位置</th>
+<th>S1中验证的起点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>还没开始</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>一路配到对不上</td>
+<td>13</td>
+<td>13</td>
+<td>0</td>
+</tr>
+<tr>
+<td>第一次退</td>
+<td>13</td>
+<td>6</td>
+<td>7</td>
+</tr>
+<tr>
+<td>第二次退</td>
+<td>13</td>
+<td>3</td>
+<td>10</td>
+</tr>
+<tr>
+<td>第三次退</td>
+<td>13</td>
+<td>0</td>
+<td>13</td>
+</tr>
+<tr>
+<td>退不动，换起点</td>
+<td>14</td>
+<td>0</td>
+<td>14</td>
+</tr>
+</tbody>
+</table>
+<p>整个过程可以收成一句：</p>
+<p>相等就一起往前，不相等就把 S2 的比对位置回退到 next 数组元素的值对应的位置，S2 退无可退时，S1 的比对位置换下一个位置，S2 留在 0 位置。</p>
+<h2>S1 的 1 到 6 和 7 到 12 都不用再和 S2 比一遍</h2>
+<p>S1 从 7 位置开始验证的时候，S1 的 7 到 12 这 6 个字符没有重新对一遍，直接拿 S1 的 13 位置去对 S2 的 6 位置。</p>
+<p>敢省掉这一步，凭的是 next 值自己的定义。</p>
+<p>S2 的 13 位置的 next 值是 6，意思是 S2 里 0 到 5 这一段，和 7 到 12 这一段，字符完全一样，而且找不到比 6 更长的、相等的前缀和后缀。</p>
+<p>再补一条已知事实：</p>
+<p>刚才是一路从 0 配到 13 位置才对不上的，所以 S1 的 7 到 12 这一段，和 S2 的 7 到 12 这一段，字符也一样。</p>
+<p>S2 里 0 到 5 这一段和 S1 的 7 到 12 这一段，都等于 S2 的 7 到 12，所以它们彼此也相等。</p>
+<p>也就是说，S1 的位置 7 到 12 和 S2 的位置 0 到 5 的字符完全一致。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1790611501042-217baeeb-8544-4b21-a619-2c22dbf31ee5.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>S2 对齐到 S1 的 7 位置之后，S1 的 1 到 6 这几个起点也可以直接跳过。</p>
+<p>因为这几个起点配不出整个 S2。</p>
+<p>只要反过来推一遍就清楚了。</p>
+<p>假设里面真有一个起点，从它开始能把整个 S2 完整对上。</p>
+<p>既然能对上，S1 从这个起点到 12 位置的一段，就得和 S2 的开头一段完全相等。</p>
+<p>起点还必须在 1 到 6 之间，那这一段最少有 7 个字符。</p>
+<p>S1 的 0 到 12 又是一路配到 13 位置才对不上的，所以从起点到 12 位置的同一段，也等于 S2 里同样位置的一段。</p>
+<p>两个说法指的是 S1 里同一段字符，于是 S2 的开头一段，和 S2 靠后的同样长的一段，字符完全一样。</p>
+<p>开头那段从 0 位置开始，是前缀；</p>
+<p>靠后那段一直延伸到 12 位置，是后缀。</p>
+<p>这一对相等的前缀和后缀，长度就是起点到 12 位置那段的长度，最少 7 个字符，比 6 长。</p>
+<p>可 next 值 6 指的就是最长只到 6。</p>
+<p>这个数是拿 S2 自己的字符算出来的，不会出错。</p>
+<p>出错的就是刚才那个假设，1 到 6 这几个起点都配不出整个 S2，直接跳过去没有问题。</p>
+<h2>next 值的二义性</h2>
+<p>6 是 0 到 5 这六个字符的长度，而 0 到 5 后面紧跟着的那个字符，位置正好也是 6。</p>
+<p>所以S2退到 6，退的是长度，也是那段前缀后面那个字符所在的位置。</p>
+<p>两个说法指着同一格，写代码的时候直接用这个数当下标就行。</p>
+<h2>主流程就三个分支</h2>
+<p>不相等的时候，S2 的比对位置往回退，不会漏掉任何还能配上整个 S2 的机会；</p>
+<p>S1 上跳过的那几个起点，本来就不可能配上。</p>
+<p>这两件事合起来，整个匹配过程只剩三种情况。</p>
+<p>1.两个位置的字符相等，两个比对位置一起往后走。</p>
+<p>2.不相等，但 S2 还能退，S2 的比对位置退到 next 值上，S1 不动。</p>
+<p>3.不相等，S2 退到 0 位置还是对不上，S1 换下一个位置重新开始，S2 还在 0 位置。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1790613429794-841a4a8b-5935-4863-9602-a647675cf65c.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<pre><code class="language-java"><span class="kt">int</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w">                       </span><span class="c1">// S1 上正在比对的位置</span>
+<span class="kt">int</span><span class="w"> </span><span class="n">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w">                       </span><span class="c1">// S2 上正在比对的位置</span>
+
+<span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">x</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">y</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">m</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">s1</span><span class="p">.</span><span class="na">charAt</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">s2</span><span class="p">.</span><span class="na">charAt</span><span class="p">(</span><span class="n">y</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">x</span><span class="o">++</span><span class="p">;</span><span class="w">                     </span><span class="c1">// 相等，两个位置一起往后</span>
+<span class="w">        </span><span class="n">y</span><span class="o">++</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">next</span><span class="o">[</span><span class="n">y</span><span class="o">]</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">  </span><span class="c1">// S2 退无可退，S1 换下一个起点</span>
+<span class="w">        </span><span class="n">x</span><span class="o">++</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">next</span><span class="o">[</span><span class="n">y</span><span class="o">]</span><span class="p">;</span><span class="w">             </span><span class="c1">// S1 不动，S2 退到 next 值上</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+
+<span class="k">return</span><span class="w"> </span><span class="n">y</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">m</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">m</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="o">-</span><span class="mi">1</span><span class="p">;</span><span class="w">      </span><span class="c1">// S2 走完说明配上了，起点是 x - m</span>
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>代码</th>
+<th>大白话</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>x++</code> 和 <code>y++</code> 挨着</td>
+<td>两边的字符对上了，一起往后挪一个位置</td>
+</tr>
+<tr>
+<td><code>next[y] == -1</code> 时单独 <code>x++</code></td>
+<td>S2 已经退到 0 位置还是对不上，换 S1 的下一个起点</td>
+</tr>
+<tr>
+<td><code>y = next[y]</code></td>
+<td>S1 不动，S2 退到它自己记着的那个位置</td>
+</tr>
+<tr>
+<td><code>y == m</code></td>
+<td>S2 整个配完了，说明找到了</td>
+</tr>
+<tr>
+<td><code>x - m</code></td>
+<td>比对位置往前推 m 个位置，就是这段匹配的起点</td>
+</tr>
+<tr>
+<td>循环走完而 <code>y</code> 没到 m</td>
+<td>S1 走到底还没配上，返回 -1</td>
+</tr>
+</tbody>
+</table>
+<p>跳出循环的判据落在 y 上。</p>
+<p>如果它走到 m，说明 S2 从头到尾都配上了，这时候 S1 的比对位置往后推 m 个位置就是答案。</p>
+<p>如果它是被 x 走到底打断的，说明 S1 里没有 S2。</p>
+<h2>收尾</h2>
+<p>S1 的比对位置从头到尾只往前，没有往回退过，这就是 next 数组在匹配里做的事。</p>
+<p>next 数组自己怎么算出来，以及这一路的来回为什么总共只花 O(n + m)，这两件事放在下一篇。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "【KMP算法-中篇】next 数组的递推：往前填一位，靠的是往回退几步", "slug": "post-437325"}, "next": {"title": "改一个数，右边全得重算，这题怎么扛住两万次查询", "slug": "post-14a0c1"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "一个登录框，如何让黑客绕过密码？聊聊 SQL 注入", "slug": "post-99da0d", "desc": "面试官问： \"你做Web项目的时候，后台接口肯定要跟数据库打交道。那你知道什么是SQL注入吗？\" 一句话： SQL注入就是攻击者通过构造恶意的输入参数，拼进你的SQL语句里，让数据库执行他想要的任何操…", "date": "2026-07-16"}, {"title": "Spring Bean 的生命周期到底是什么？", "slug": "post-3ebc3d", "desc": "Bean 的生命周期，指的是一个对象在 Spring 容器中，从创建、初始化，到被使用，再到最终销毁所经历的完整过程。 这道题是面试高频题，但很多人备考时习惯去网上找帖子背图。 其实不需要死记硬背，把…", "date": "2026-08-01"}, {"title": "为什么 synchronized 管不了集群？Redis 分布式锁到底解决了什么问题？", "slug": "post-416895", "desc": "面试官最爱顺藤摸瓜的一连串 面试官问你 Redis 用在项目哪些地方，你若答\"分布式锁\"，他八成追一句：那它怎么实现的？ 这种题有个坑： 别急着背原理， 得先把使用背景讲清楚 ——什么业务、什么场景，…", "date": "2026-08-05"}, {"title": "Redis 分布式锁原理：从 SET NX 到 Redisson 看门狗", "slug": "post-11ef9d", "desc": "一、加锁靠的是 SET NX EX 的原子性 Redis 给了个 setNX，名字拆开就是 set if not exists——只有 key 不存在才写进去。 具体加锁时，我们直接一条 set 命令…", "date": "2026-08-06"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

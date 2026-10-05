@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>面试官：你说懂 AOP，那 Spring 到底是怎么把方法“插进去”的？ · 海上小飞龙</title>
+<meta name="description" content="在之前的文章Spring Boot 核心就这 3 件事中有读者留言，问我能不能讲讲Spring AOP，今天就来聊聊Spring AOP。 AOP 要解决什么问题？ 很多人把 AOP 想得特别复杂，其…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-17ba3c.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="面试官：你说懂 AOP，那 Spring 到底是怎么把方法“插进去”的？ · 海上小飞龙">
+<meta property="og:description" content="在之前的文章Spring Boot 核心就这 3 件事中有读者留言，问我能不能讲讲Spring AOP，今天就来聊聊Spring AOP。 AOP 要解决什么问题？ 很多人把 AOP 想得特别复杂，其…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/mysql.html">MySQL</a><a class="tag" href="/tags/spring.html">Spring</a><a class="tag" href="/tags/rag.html">RAG</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a></div>
+      <h1 class="post-title">面试官：你说懂 AOP，那 Spring 到底是怎么把方法“插进去”的？</h1>
+      <div class="post-meta">
+        <span>2026-07-21</span>
+        <span class="dot"></span>
+        <span>5366 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>在之前的文章<a href="https://mp.weixin.qq.com/s/ffxeF-Gh5em4XL_eHNyrgg">Spring Boot 核心就这 3 件事</a>中有读者留言，问我能不能讲讲Spring AOP，今天就来聊聊Spring AOP。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1784629413243-ea602bac-3c64-4892-8f1e-23163f565084.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>AOP 要解决什么问题？</h2>
+<p>很多人把 AOP 想得特别复杂，其实说白了，它要解决的问题就一个：</p>
+<p><strong>代码写完了，突然发现有一堆公共逻辑要加进去，但不想一个一个方法去改。</strong></p>
+<p>打个比方：</p>
+<p>你的项目已经上线了，里面有一百多个方法。</p>
+<p>这时候产品经理跑过来说，所有接口都要加权限校验。</p>
+<p>你怎么办？</p>
+<p>打开那一百个方法，每个方法第一行都手写 <code>checkPermission()</code>？</p>
+<p>这要是以后还要加日志、加参数校验、加限流呢？每个方法都加四遍？</p>
+<p><strong>那不直接就裂开了。</strong></p>
+<p>所以 AOP 就出来了。</p>
+<p>AOP 叫面向切面编程（Aspect-Oriented Programming），它的核心思路是：</p>
+<p><strong>把那些跟业务无关的公共逻辑抽出来统一处理，业务代码本身一行都不用动。</strong></p>
+<p>说人话就是——</p>
+<p>你在公司大楼门口装了一个安检仪。</p>
+<p>不管你是去财务部还是技术部，所有人都要先过安检。</p>
+<p>财务部不需要自己雇保安，技术部也不需要。</p>
+<p><strong>业务代码只管业务，公共逻辑交给 AOP。</strong></p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1784623545660-36ec3eb9-1b32-4f9e-83f3-d09d0b11b167.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>那 AOP 具体怎么做到的呢？</p>
+<p>拆开来看，先搞清楚它里面的核心概念。</p>
+<h2>AOP 的核心概念</h2>
+<h3>切面（Aspect）</h3>
+<p>切面是 AOP 的核心载体。</p>
+<p>什么叫切面？</p>
+<p>就是把多个类中重复出现的通用行为，封装成一个可重用的模块。</p>
+<p>比如你要做日志记录，那你就写一个类，把日志相关的代码全部放进去。</p>
+<p>这个类，就叫&quot;日志切面&quot;。</p>
+<p>在 Spring 里，用 <code>@Aspect</code> 注解来标识一个切面类：</p>
+<pre><code class="language-java"><span class="nd">@Aspect</span>
+<span class="nd">@Component</span>
+<span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">LogAspect</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// 日志逻辑写在这里</span>
+<span class="p">}</span>
+</code></pre>
+<p>一个项目可以有若干个切面，就像一栋楼里有多个安检口：入口安检、电梯安检、VIP 通道安检，各管各的。</p>
+<h3>通知（Advice）</h3>
+<p>光有切面还不够。</p>
+<p>你还得告诉 Spring：</p>
+<p><strong>这个切面里的逻辑，在方法执行的哪个阶段执行？</strong></p>
+<p>是在方法调用之前？调用之后？正常返回之后？还是抛出异常的时候？</p>
+<p>Spring AOP 中常用的通知类型主要有五种：</p>
+<p><strong>前置通知（@Before）</strong>：</p>
+<p>目标方法执行之前触发。就好比进门先登记。</p>
+<p><strong>后置通知（@After）</strong>：</p>
+<p>目标方法执行之后触发，不管成功失败都要执行。</p>
+<p>就好比走的时候打个招呼。</p>
+<p>它类似于 finally 块，无论目标方法正常返回还是抛异常都会执行。</p>
+<p><strong>返回通知（@AfterReturning）</strong>：</p>
+<p>目标方法正常返回后才触发。就好比办完事盖个章。</p>
+<p><strong>异常通知（@AfterThrowing）</strong>：</p>
+<p>目标方法抛出异常时才触发。就好比出事有人接手。</p>
+<p><strong>环绕通知（@Around）</strong>：</p>
+<p>包裹整个方法调用过程，是最强的一种通知。</p>
+<table>
+<thead>
+<tr>
+<th>通知类型</th>
+<th>执行时机</th>
+<th>一句话理解</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>@Before 前置通知</td>
+<td>方法执行前</td>
+<td>进门先登记</td>
+</tr>
+<tr>
+<td>@After 后置通知</td>
+<td>方法执行后</td>
+<td>走时打招呼</td>
+</tr>
+<tr>
+<td>@AfterReturning 返回通知</td>
+<td>正常返回后</td>
+<td>办完盖章</td>
+</tr>
+<tr>
+<td>@AfterThrowing 异常通知</td>
+<td>方法抛异常时</td>
+<td>出事接手</td>
+</tr>
+<tr>
+<td>@Around 环绕通知</td>
+<td>包裹整个调用</td>
+<td>全程陪同</td>
+</tr>
+</tbody>
+</table>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1784623570390-31ef8fb5-d050-4ae3-88a3-bba1026a6069.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>那这五种通知怎么选？</p>
+<p>看需求。</p>
+<p>记个日志，前置通知就够了。</p>
+<p>但如果你要做缓存优化，命中缓存就直接返回、不调用目标方法，那只能用环绕通知，因为只有它能决定目标方法执不执行。</p>
+<p>说白了，前四种通知都是在方法的某个时间点&quot;插一脚&quot;，而环绕通知是<strong>站在方法门口</strong>，想不想让你进去，它说了算。</p>
+<h3>切入点（Pointcut）</h3>
+<p>通知解决了&quot;什么时候执行&quot;，切入点解决的是&quot;对哪些方法执行&quot;。</p>
+<p>举个例子：</p>
+<p>你的通知逻辑写好了，但你不想让它作用于所有方法。</p>
+<p>你只想让它在 <code>com.example.service</code> 包下的所有方法上生效。</p>
+<p>这时候就需要切入点表达式：</p>
+<pre><code class="language-java"><span class="nd">@Pointcut</span><span class="p">(</span><span class="s">&quot;execution(* com.example.service..*(..))&quot;</span><span class="p">)</span>
+<span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">serviceMethod</span><span class="p">()</span><span class="w"> </span><span class="p">{}</span>
+</code></pre>
+<p>这段表达式翻译成大白话就是：</p>
+<p><strong>com.example.service 包及其子包下的所有方法，全部纳入这个切面的管理范围。</strong></p>
+<p>切入点就是一个匹配规则。</p>
+<p>没匹配上的方法，切面逻辑根本不会生效。</p>
+<h3>目标对象（Target）和代理对象（Proxy）</h3>
+<p>到这里，你可能有个疑问：</p>
+<p>切面、通知、切入点都配好了，那 AOP 到底是怎么&quot;插入&quot;到原有代码里的？</p>
+<p><strong>答案就是：它根本没改你的代码，而是偷偷换了一个对象。</strong></p>
+<p>这就是 AOP 最核心的机制——动态代理。</p>
+<p>**目标对象（Target）**就是你原来写的业务类。</p>
+<p>它是真正承载业务逻辑的地方。</p>
+<p>切面不会修改它的源码，只是在运行时给它&quot;套一层壳&quot;。</p>
+<p>打个比方：</p>
+<p>目标对象是一台手机，代理对象就像手机外面套了一层保护壳。</p>
+<p>你操作手机时，其实先经过保护壳，再到手机本身。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1784624124098-97710e36-8831-413f-aaf9-6c928ecf3601.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>**代理对象（Proxy）**是 AOP 最关键的概念，没有之一。</p>
+<p>Spring AOP 的运行机制是：<strong>用代理对象替换掉原始的目标对象。</strong></p>
+<p>调用方以为自己在调用目标对象，实际上调用的全是代理对象。</p>
+<p>代理对象收到请求后，先执行通知逻辑，再决定是否调用目标方法，最后再执行后续通知。</p>
+<p>从调用方的角度看，代理对象和目标对象长得一模一样——接口、方法签名完全一致。</p>
+<p>但实际上，中间已经多了一层&quot;加工&quot;。</p>
+<p>Spring AOP 中常见的代理创建器有：</p>
+<ul>
+<li><code>AnnotationAwareAspectJAutoProxyCreator</code></li>
+<li><code>InfrastructureAdvisorAutoProxyCreator</code></li>
+<li><code>DefaultAdvisorAutoProxyCreator</code></li>
+</ul>
+<p>实际开发中你不用手动配置这些，Spring 会自动注册。</p>
+<p>你要做的只是：<strong>定义切面、写好通知、配好切入点。</strong></p>
+<p>那除了这些，还有一个相对冷门的概念叫<strong>引入（Introduction）</strong>。</p>
+<p>引入可以在不修改目标类源码的情况下，让代理对象额外实现新的接口和行为。</p>
+<p>打个比方：</p>
+<p>你公司有个普通员工，某天你直接给他加了个&quot;项目经理&quot;的头衔。</p>
+<p>他原来的工作照旧，但多了一种新身份。</p>
+<p>这个功能实际项目中用得不多，但面试如果被问到，知道有这么个东西就行。</p>
+<h2>AOP 底层是怎么跑起来的？</h2>
+<p>到这里，AOP 的概念层面基本讲完了。</p>
+<p>但如果你想把面试答深，一定要补上这一层：</p>
+<p><strong>AOP 的实现依赖动态代理，而动态代理的创建有两种方式——JDK 和 CGLIB。</strong></p>
+<table>
+<thead>
+<tr>
+<th>代理方式</th>
+<th>触发条件</th>
+<th>实现原理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>JDK 动态代理</td>
+<td>目标类实现了接口</td>
+<td>运行时生成接口代理类，通过 InvocationHandler 反射调用目标方法。</td>
+</tr>
+<tr>
+<td>CGLIB 代理</td>
+<td>目标类没有实现接口</td>
+<td>基于继承，运行时生成目标类的子类，通过方法覆盖实现增强。</td>
+</tr>
+</tbody>
+</table>
+<p><strong>那问题来了——Spring 到底选哪种？</strong></p>
+<p>在 Spring Framework 早期版本中，默认策略是有接口使用 JDK，无接口使用 CGLIB。</p>
+<p>但 Spring Boot 2.x 之后，默认使用 CGLIB 代理（等价于开启 <code>spring.aop.proxy-target-class=true</code>）。</p>
+<p>说人话就是：</p>
+<p>JDK 代理是&quot;按合同办事&quot;——你实现了什么接口，代理就帮你实现同样的接口；</p>
+<p>CGLIB 是&quot;继承增强&quot;——运行时生成目标类的子类，通过方法覆盖实现增强。</p>
+<h3>从源码看代理是怎么创建的</h3>
+<p>很多人面试讲到&quot;动态代理&quot;就结束了，但这只答了表面。</p>
+<p>如果你能把 Bean 的生命周期和 AOP 代理的创建过程串起来讲，面试官会觉得你是真的看过源码。</p>
+<p>整个流程可以拆成以下几步：</p>
+<ol>
+<li>Spring 容器启动，按照依赖顺序创建 Bean</li>
+<li>Bean 实例化并完成初始化后，会进入 BeanPostProcessor 的后置处理阶段，AOP 就是在这里判断是否需要创建代理</li>
+<li><code>AnnotationAwareAspectJAutoProxyCreator</code> 作为后置处理器，检查当前 Bean 是否需要被代理</li>
+<li>如果需要代理，调用 <code>AbstractAutoProxyCreator.createProxy()</code> 方法</li>
+<li>通过 <code>ProxyFactory</code> 获取代理对象</li>
+<li>根据目标类是否实现接口，选择 JDK 动态代理或 CGLIB 代理</li>
+<li>代理对象创建完成，替换原始 Bean，放入 Spring 容器</li>
+</ol>
+<p>关键的源码链路：</p>
+<pre><code class="language-plain">BeanPostProcessor.postProcessAfterInitialization()
+  -&gt; AbstractAutoProxyCreator.wrapIfNeeded()
+    -&gt; AbstractAutoProxyCreator.createProxy()
+      -&gt; ProxyFactory.getProxy(classLoader)
+        -&gt; CglibAopProxy.getProxy()     // CGLIB 方式
+        -&gt; JdkDynamicAopProxy.getProxy() // JDK 方式
+</code></pre>
+<p>注意 <code>wrapIfNeeded()</code> 这个名字——<strong>&quot;如果需要，就包装&quot;</strong>。</p>
+<p>也就是说，不是所有 Bean 都会被代理。</p>
+<p>只有命中了切面匹配规则的 Bean，才会走代理创建流程。</p>
+<p>这就是为什么 AOP 不会影响没有切面配置的业务 Bean—— 没有匹配到切面的 Bean 不会创建代理，因此不会产生运行时代理调用开销。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1784629016659-66a67fcf-5795-40f5-93c6-706aa71951d8.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h3>声明式事务：AOP 最典型的应用场景</h3>
+<p>如果你有余力，还可以把 Spring 声明式事务的执行流程也串进 AOP 的回答里。</p>
+<p>因为 <code>@Transactional</code> 注解之所以能让方法自动拥有事务能力，靠的就是 AOP 代理在方法执行前开启事务、执行后提交或回滚。</p>
+<p>整个流程大致是：</p>
+<ol>
+<li>方法调用被事务切面拦截</li>
+<li>事务拦截器在目标方法执行前，根据传播机制获取或创建事务</li>
+<li>目标方法执行</li>
+<li>正常返回 → 提交事务</li>
+<li>抛出异常 → 回滚事务</li>
+</ol>
+<p>这部分面试时可以根据自身掌握程度选择性回答。</p>
+<p>能说清楚 AOP + 动态代理就已经足够应对大部分场景；</p>
+<p>如果能顺带提一句声明式事务，那就是加分项。</p>
+<h2>小贴士</h2>
+<ul>
+<li>AOP 只代理 Spring 容器管理的 Bean，通过 new 关键字创建的对象不会被代理</li>
+<li>同类方法内部自调用不会触发 AOP，因为自调用走的是 this，绕过了代理对象</li>
+<li>环绕通知是唯一能阻止目标方法执行的通知类型，慎用</li>
+<li>JDK 代理和 CGLIB 在现代 JVM 上性能差异极小，不用过度纠结</li>
+</ul>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "RAG 面试高频题：召回率太低怎么办？一套完整优化方案讲透", "slug": "post-0b66cc"}, "next": {"title": "一个登录框，如何让黑客绕过密码？聊聊 SQL 注入", "slug": "post-99da0d"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "Spring Bean 的生命周期到底是什么？", "slug": "post-3ebc3d", "desc": "Bean 的生命周期，指的是一个对象在 Spring 容器中，从创建、初始化，到被使用，再到最终销毁所经历的完整过程。 这道题是面试高频题，但很多人备考时习惯去网上找帖子背图。 其实不需要死记硬背，把…", "date": "2026-08-01"}, {"title": "为什么大模型总记不住你的文档？聊聊向量数据库", "slug": "post-c65602", "desc": "不管是搭 RAG 知识库、做推荐系统，还是搞以图搜图，你迟早会撞上同一个词：向量数据库。 很多人把它想得很玄，觉得是某种更高端的 MySQL。 说白了，它干的事特别单纯： 存一堆高维向量，然后帮你找出…", "date": "2026-08-15"}, {"title": "Agent Skill 和 MCP，到底有什么区别？", "slug": "post-ee1018", "desc": "做 AI 应用开发，经常会遇到两个概念：Agent Skill 和 MCP（Model Context Protocol）。 虽然都是让 AI 能调用工具，但它们根本不是一个维度的东西。 简单来说：…", "date": "2026-06-30"}, {"title": "RAG 面试高频题：召回率太低怎么办？一套完整优化方案讲透", "slug": "post-0b66cc", "desc": "很多人做 RAG 系统，遇到召回率低的问题，第一反应就是换模型——换一个参数更大的、换一个号称语义理解更强的。 结果呢？ 效果提升微乎其微。 根本原因不是模型不够强，而是模型拿到的参考材料本身就是错的…", "date": "2026-07-23"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

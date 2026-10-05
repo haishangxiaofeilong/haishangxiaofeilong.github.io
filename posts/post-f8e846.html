@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>明明建了索引，MySQL 却不用？这 8 种情况它悄悄放弃了 · 海上小飞龙</title>
+<meta name="description" content="索引失效这件事，面试八股里几乎人手能背几条： like 左边加 %、对字段套函数、隐式转换…… 这些都没错。 但很少有人被追问一句，“它们为什么会让索引失效？”，还能答得让面试官满意。 把原因拆开看，…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-f8e846.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="明明建了索引，MySQL 却不用？这 8 种情况它悄悄放弃了 · 海上小飞龙">
+<meta property="og:description" content="索引失效这件事，面试八股里几乎人手能背几条： like 左边加 %、对字段套函数、隐式转换…… 这些都没错。 但很少有人被追问一句，“它们为什么会让索引失效？”，还能答得让面试官满意。 把原因拆开看，…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/mysql.html">MySQL</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a><a class="tag" href="/tags/post-d11195.html">面试题</a></div>
+      <h1 class="post-title">明明建了索引，MySQL 却不用？这 8 种情况它悄悄放弃了</h1>
+      <div class="post-meta">
+        <span>2026-08-24</span>
+        <span class="dot"></span>
+        <span>3991 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>索引失效这件事，面试八股里几乎人手能背几条：</p>
+<p>like 左边加 %、对字段套函数、隐式转换……</p>
+<p>这些都没错。</p>
+<p>但很少有人被追问一句，“它们为什么会让索引失效？”，还能答得让面试官满意。</p>
+<p>把原因拆开看，其实只有两条线。</p>
+<p>一条是<strong>结构性</strong>的——你写出来的 SQL 让查询条件无法直接利用 B+ 树已有的有序结构，MySQL 无法直接利用这棵普通索引树进行有效定位，通常需要选择其他访问方式；</p>
+<p>另一条是<strong>成本性</strong>的——B+树还在，但优化器算了一笔账，觉得走索引比全表扫描还慢，于是最终没有选择走索引。</p>
+<p>结构性失效和成本性失效这两类搞混了，你背再多场景都是死记硬背。</p>
+<p>下面把每条场景都归到&quot;结构性&quot;和&quot;成本性&quot;这两条线上，你看完就知道哪些能避免、哪些由不得你。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1787566836186-d56db2fd-8db4-40b0-aedd-f93276b2c07f.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>先说结论</h2>
+<p>开发者常说的&quot;索引失效&quot;，通常是指：</p>
+<p>表上明明存在索引，但某条 SQL 执行时，优化器没有选择通过这个索引来访问数据。</p>
+<p>原因分两类（这里为了方便理解，是我自己建立的分类，不是 MySQL 官方术语）：</p>
+<ul>
+<li><strong>结构性失效</strong>：查询条件无法直接利用普通索引已有的有序结构（对索引列套函数/表达式、隐式转换、左模糊、没有形成有效的左前缀），普通索引无法直接形成有效的定位条件，通常无法通过这个索引做高效的范围/等值查找，优化器可能选择全表扫描、全索引扫描等其他访问方式。</li>
+<li><strong>成本性失效</strong>：索引本身能够使用，但优化器根据成本估算，认为某种索引访问路径不如其他方案划算（低基数字段、小表、大结果集、统计信息不准，以及 OR / Index Merge 等复杂访问路径选择），于是最终没有选择这个索引访问方案。</li>
+</ul>
+<p>后面每一条场景，都是在为这两条线找具体的落点。</p>
+<h2>对索引字段套了函数或表达式</h2>
+<p>你写了 <code>WHERE DATE(create_time) = '2025-11-11'</code>，或者 <code>WHERE YEAR(create_time) = 2025</code>——这些都是对索引字段做了加工。</p>
+<p>普通 <code>create_time</code> 索引建立的是原始列值的有序结构：<code>2025-11-11 01:00:00</code> 按原始值排好序，所以能二分定位。</p>
+<p>但查询条件要求按 <code>DATE(create_time)</code> 这个表达式的结果来判断。</p>
+<p>普通的 <code>create_time</code> 索引并没有直接建立在这个表达式结果上，因此无法根据该表达式的结果进行有效定位，这个条件也就难以通过这棵普通索引完成范围查找，优化器通常只能选择其他访问方式，例如扫描数据后逐行计算 <code>DATE()</code>。</p>
+<p>说白了，索引是按&quot;原值&quot;建的，你却拿&quot;加工后的值&quot;去查，树帮不上忙。</p>
+<p>这里的关键是&quot;无法直接利用普通索引的有序结构&quot;，而不是 SQL 真的把 B+ 树搞坏了。</p>
+<p>而且 MySQL 8.0.13 以后支持函数索引，可以直接对表达式建索引（<code>INDEX ((DATE(create_time)))</code>），那就不存在这个问题了。</p>
+<p>所以更好的写法是把函数从列上挪走，改成对原始列的范围判断：</p>
+<pre><code class="language-sql"><span class="k">WHERE</span><span class="w"> </span><span class="n">create_time</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="s1">&#39;2025-11-11 00:00:00&#39;</span>
+<span class="w">  </span><span class="k">AND</span><span class="w"> </span><span class="n">create_time</span><span class="w"> </span><span class="o">&lt;</span><span class="w">  </span><span class="s1">&#39;2025-11-12 00:00:00&#39;</span>
+</code></pre>
+<p>记住一条：</p>
+<p>不要把函数套在索引列上，尽量把条件改写成对原始列的范围判断。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1787567780596-d6af80a9-0fab-4db0-8c5f-34a2825d6ddd.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>隐式类型转换</h2>
+<p>字段是 <code>VARCHAR</code>，你却拿数字去查：</p>
+<p><code>WHERE phone = 15810111111</code>。</p>
+<p>MySQL 发现两边类型不一致，会按照类型转换规则进行隐式转换。</p>
+<p>问题在于，如果转换方式导致索引列无法保持原本的索引比较形式，就可能无法利用普通索引进行高效定位。</p>
+<p>这跟上一节套函数是同一个后果：</p>
+<p>查询条件无法直接利用普通索引已有的有序结构。</p>
+<p>正确的写法是 <code>WHERE phone = '15810111111'</code>，把查询值也变成字符串，两边类型一致，可以避免不必要的类型转换，更有利于直接利用索引进行查找。</p>
+<h2>like 左边是 %</h2>
+<p><code>WHERE name LIKE '%明'</code> 或者 <code>WHERE name LIKE '%小%'</code>——% 打头，意味着你要找的是&quot;结尾或中间包含某串&quot;的数据。</p>
+<p>B+树的有序是&quot;从左到右&quot;的。</p>
+<p>索引能帮你快速定位&quot;以某串开头&quot;的数据，因为开头定了，范围就锁定了。</p>
+<p>但 % 在最左边，意味着无法根据字符串开头形成有效的索引范围，因此普通 B+ 树索引无法帮助我们快速定位匹配范围，通常只能扫描大量索引记录或数据后再进行匹配。</p>
+<p><code>WHERE name LIKE '小%'</code> 这种&quot;右边是 %&quot;的写法不会破坏字符串开头的有序性，可以形成有效的索引范围，但最终是否选择这个索引，仍然要看优化器的成本判断。</p>
+<h2>违反组合索引的最左匹配</h2>
+<p>建了组合索引 <code>(a, b, c)</code>，就得从左往右用。</p>
+<p>你写 <code>WHERE b = 1 AND c = 2</code>，跳过了最左边的 <code>a</code>。</p>
+<p>这种情况下，通常无法按照普通的左前缀方式去利用后面的索引列——就像查电话簿，它按&quot;姓→名→号&quot;三级排序，你只拿&quot;名&quot;去查，前面姓是空的，顺序就乱了，只能翻遍整本。</p>
+<p>不过现代 MySQL 还有 Skip Scan 等优化，具体能不能、要怎样用到索引，还要看版本、数据分布和优化器选择，不能说&quot;一定完全用不上&quot;。</p>
+<p><code>WHERE a = 1 AND c = 2</code> 这种跳过中间 <code>b</code> 的，在普通的联合索引范围访问中，<code>a</code> 能形成有效的左前缀定位，而 <code>c</code> 虽然出现在条件里，却无法像 <code>a、b</code> 那样直接形成连续的索引定位条件，通常需要作为 <code>a</code> 命中之后的后续过滤条件来处理，所以一般最多用到 <code>a</code> 那一段。</p>
+<h2>or 不等于索引失效，但会增加优化器的选择难度</h2>
+<p><code>WHERE indexed_col = 1 OR non_indexed_col = 2</code>——or 的一边有索引，另一边没建索引。</p>
+<p>这不意味着索引一定失效。</p>
+<p>对于两边都具备可索引条件的情况，MySQL 甚至可能使用 Index Merge，分别扫描多个索引再合并结果；</p>
+<p>如果其中一边没有可用索引，优化器仍可能选择利用另一边索引后再做过滤，但也可能认为整体成本过高而直接全表扫描。</p>
+<p>最终能否用索引、用哪种，取决于具体数据和成本估算。</p>
+<p>所以 OR 本身不是&quot;索引失效&quot;的硬场景，它更适合归到&quot;优化器访问路径选择&quot;这一类：</p>
+<p>能不能用索引、用哪种，取决于成本，而不是&quot;有一边没索引就必定全表&quot;。</p>
+<h2>低基数字段上建索引</h2>
+<p><code>gender</code> 只有男、女两个值，<code>status</code> 只有 0、1、2 几个值——这种字段通常选择性较低，单独建立索引的收益可能有限。</p>
+<p>索引的价值在于&quot;快速缩小范围&quot;。</p>
+<p>一个值占了半张表，走索引先查到一堆行、再回表，还不如直接从头扫一遍。</p>
+<p>优化器算完这笔账，可能会放弃索引，选择全表扫描。</p>
+<h2>表太小，或者结果集太大</h2>
+<p>两种相反的极端，结局一样——优化器可能放弃索引：</p>
+<ul>
+<li><strong>表太小</strong>：一张表只有几条、十几条记录，全表扫描本身比&quot;走索引再回表&quot;还快，优化器直接选全表。</li>
+<li><strong>结果集太大</strong>：当查询需要返回表中很大一部分数据时，走索引意味着大量索引扫描加回表，回表的随机 IO 成本可能比顺序扫全表还高，优化器也可能放弃索引、改走全表扫描。没有固定的比例阈值，最终看成本模型怎么算。</li>
+</ul>
+<p>这条是纯成本判断，你 SQL 写得再标准也没用，是数据分布本身决定的。</p>
+<h2>统计信息过期，误导了优化器</h2>
+<p>优化器靠表的统计信息来估算&quot;走索引贵不贵&quot;。</p>
+<p>你做了大量增删改，但统计信息没更新，如果统计信息不能准确反映当前数据分布，优化器对选择性、扫描行数等的估算就可能出现偏差，从而选出并不理想的执行计划，放弃了一个本该有用的索引。</p>
+<p>解决办法是 <code>ANALYZE TABLE 表名</code>，它可以更新相关统计信息，让优化器基于更接近当前数据分布的信息重新估算执行计划。</p>
+<p>把上面这些场景梳理一下，可以归到两条主线上：</p>
+<p><strong>第一类：</strong></p>
+<p><strong>条件本身难以利用普通索引</strong>——对索引列做函数/表达式、不合适的隐式类型转换、<code>LIKE '%xxx'</code>、联合索引没有形成有效的左前缀。</p>
+<p>这类属于能靠改写法避免的。</p>
+<p><strong>第二类：索引能用，但优化器认为不划算，或访问路径更复杂</strong>——低基数字段、表太小、需要返回大量数据、统计信息不准，以及 OR / Index Merge 这类复杂条件下的访问路径选择。</p>
+<p>这类更多由数据分布和成本模型决定，改 SQL 也未必救得回来。</p>
+<p>面试时先抛&quot;结构性 + 成本性&quot;这条主线（本文自己的分类框架），再往下举例，比直接背八条清单清楚得多。</p>
+<p>真碰上优化器选择了不理想的索引时，<code>FORCE INDEX</code> 可以告诉优化器优先使用指定索引，但是否应该这么做仍要结合 <code>EXPLAIN</code> 和实际执行效果判断；</p>
+<p><code>ANALYZE TABLE</code> 可以更新统计信息，帮助优化器重新估算执行计划——这两个是常用的干预手段，但也不是万能兜底。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "你建表时引擎那栏从没改过，可 InnoDB 凭什么把 MyISAM 挤成了老古董？", "slug": "post-bc8872"}, "next": {"title": "你调的接口几乎都返回 JSON，可它凭什么干掉了 XML？", "slug": "post-26ac16"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "面试官：MySQL 索引是什么？这道题答全的人真不多", "slug": "post-78822c", "desc": "面试被问到 MySQL 索引，多数人的回答停留在\"加快查询\"四个字。 这话对，但没用。 索引真正要讲清楚的，是一份排好序的目录： 索引可以理解成一份排好序的目录，它通过维护特定的数据结构，让数据库能够…", "date": "2026-08-12"}, {"title": "MySQL 索引为什么是 B+ 树？二叉树、哈希、B 树是怎么被淘汰的", "slug": "post-9f798e", "desc": "面试被问到“MySQL 索引为什么用 B+ 树”，多数人的回答停留在“叶子节点存数据、非叶子节点不存、叶子节点用双向链表支持范围查询”。 这话没错，但没讲清“为什么非得是 B+ 树”。 二叉树不行吗？…", "date": "2026-08-13"}, {"title": "MySQL 聚簇索引和非聚簇索引：为什么二级索引查完还要回表？", "slug": "post-acebb2", "desc": "MySQL 的索引底层是一棵 B+ 树，这个说法你应该听过。 但一张表往往建了好几个索引，每个索引都是一棵独立的 B+ 树。 那问题来了，每棵树的叶子节点，都存一份完整的行数据吗？ 不是。 有的索引叶…", "date": "2026-08-14"}, {"title": "MySQL 回表：为什么走了索引还要再查一次 B+ 树？", "slug": "post-bdc914", "desc": "MySQL 面试里有一个绕不开的问题： 为什么走了索引，还需要回表？ 官方文档并没有给它正式定义，但它连着聚簇索引、非聚簇索引、覆盖索引一整条线，查询优化时经常撞上。 一句话说清楚： 回表就是用二级索…", "date": "2026-08-17"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>问的是最少拿几次，答案在最长的那一段 · 海上小飞龙</title>
+<meta name="description" content="一个数组，每次从最左边或最右边拿走一个数字，拿走的加起来要正好等于给定的目标值，问最少拿几次。 正面去数每一次该拿左边还是右边，路子很绕。 把这道题反过来看，剩下的只是一段连续区间的事。 这篇要讲的，…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-e57a3d.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="问的是最少拿几次，答案在最长的那一段 · 海上小飞龙">
+<meta property="og:description" content="一个数组，每次从最左边或最右边拿走一个数字，拿走的加起来要正好等于给定的目标值，问最少拿几次。 正面去数每一次该拿左边还是右边，路子很绕。 把这道题反过来看，剩下的只是一段连续区间的事。 这篇要讲的，…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/post-7ddbe1.html">网络</a><a class="tag" href="/tags/java.html">Java</a></div>
+      <h1 class="post-title">问的是最少拿几次，答案在最长的那一段</h1>
+      <div class="post-meta">
+        <span>2026-09-28</span>
+        <span class="dot"></span>
+        <span>6202 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1790530393238-c234ee10-8fe7-423d-a399-88b128d432a6.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>一个数组，每次从最左边或最右边拿走一个数字，拿走的加起来要正好等于给定的目标值，问最少拿几次。</p>
+<p>正面去数每一次该拿左边还是右边，路子很绕。</p>
+<p>把这道题反过来看，剩下的只是一段连续区间的事。</p>
+<p>这篇要讲的，就是怎么把那段区间找出来。</p>
+<h2>先把题目翻译成人话</h2>
+<p>为了讲得顺，后面换个说法：</p>
+<p>把数组里每个数字看成一块饼干，把移除看成拿走。</p>
+<p>规则一个字没改，只是叫法变了。</p>
+<p>一排饼干，每块上面写着重量：</p>
+<pre><code class="language-plain">1   2   3
+</code></pre>
+<p>每次只能拿走最左边或最右边那一块，拿走的重量加起来，要正好等于 <code>x</code>。</p>
+<p>问最少拿几次。</p>
+<p>凑不出来就返回 -1。</p>
+<h2>正面去数，能做但很绕</h2>
+<p>最直接的想法，是逐个位置做决定：</p>
+<p>拿左边，还是拿右边。</p>
+<p>拿两次有 4 条路，拿三次有 8 条，拿十次有 1024 条，规律是 2 的 k 次方。</p>
+<p>这么一条条试下去，时间就不够用了。</p>
+<p>不过这个数字得说准。</p>
+<p>它数的是带顺序的路径数，先左后右和先右后左，在题目看来是同一个结果，所以这个 2 的 k 次方里有一部分是重复的。</p>
+<p>真正要定的其实只有两个数：</p>
+<p>左边拿走几个，记作 <code>L</code>；</p>
+<p>右边拿走几个，记作 <code>R</code>。</p>
+<p>数组长度记作 <code>n</code>，满足 <code>L + R &lt;= n</code> 的 <code>L</code>、<code>R</code> 组合有 <code>O(n²)</code> 个。</p>
+<p>所以正面也做得出来。</p>
+<p>只是要额外小心，左右两边别重复拿，还要在几个都行的方案里挑次数最小的那个，写起来啰嗦。</p>
+<h2>反过来数：看留下多少</h2>
+<p>先看拿走的和留下的。</p>
+<pre><code class="language-plain">拿走的 + 留下的 = 全部
+</code></pre>
+<p>既然总共就这么多，留下的重量一定是：</p>
+<pre><code class="language-plain">留下的重量 = 全部重量 - x
+</code></pre>
+<p>再看一层关系：</p>
+<p>拿得越少，留下的越多；</p>
+<p>拿得越多，留下的越少。</p>
+<p>所以要拿的次数最少，就是让留下的最多。</p>
+<p>而留下的那几块，是两头拿完之后剩下的，一定是中间连着的一段。</p>
+<p>如果一块都不留，那留下的长度就是 0。</p>
+<p>题目到这里就变成一句话：</p>
+<p>找出连着的几块饼干，它们重量加起来正好等于 <code>全部重量 - x</code>，要求越长越好。</p>
+<p>设最长能留 <code>maxLen</code> 块，答案就是 <code>n - maxLen</code>。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1790559711221-93fe3a52-2f8a-4301-aba2-c3779e40bb09.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>怎么找&quot;连着的、重量刚好等于某值&quot;的一段</h2>
+<p>用前缀和。</p>
+<p>再准备一本记事本，专门记下每个累加和对应的位置。</p>
+<p>先把&quot;从头加到某一个位置&quot;的累加和列出来：</p>
+<pre><code class="language-plain">位置：   -1     0     1     2
+累加和：  0     1     3     6
+</code></pre>
+<p>位置 -1 是虚拟的，代表还没开始加。</p>
+<p>有了这张表，任意一段 <code>[k, i]</code> 的重量就等于：</p>
+<pre><code class="language-plain">位置 i 的累加和 - 位置 k-1 的累加和
+</code></pre>
+<p>想让它等于 <code>全部重量 - x</code>，下面把这个目标值记作 <code>target</code>，移项就得到：</p>
+<pre><code class="language-plain">位置 k-1 的累加和 = 位置 i 的累加和 - target
+</code></pre>
+<p>所以每走到一个位置，就拿&quot;当前累加和 - target&quot;去记事本里翻。</p>
+<p>翻到了，说明那一段就是从翻到的位置开始，一直加到现在这个位置，重量正好是 <code>target</code>。</p>
+<p>这一段的长度，就是当前位置减去翻到的位置。</p>
+<p>记事本记的是：</p>
+<p>累加和 → 它最早出现的位置。</p>
+<p>非要记最早的那个，是因为起点越靠前，这一段越长，而我们要的就是最长。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1790559721455-41c55ac5-6da2-46c7-886d-6bc94f729311.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>为什么开头要先放一个 0</h2>
+<p>记事本开头先放一条：</p>
+<pre><code class="language-plain">累加和 0  →  出现在位置 -1
+</code></pre>
+<p><code>-1</code> 是个虚拟位置，它在数组第一个元素（位置 0）的前面，代表&quot;还什么都没累加&quot;的状态，那时候累加和就是 0。</p>
+<p>从头开始的段，全都要靠它。</p>
+<p>算一段 <code>[k, i]</code> 要用两个累加和相减。</p>
+<p>当 <code>k = 0</code> 时，要减掉的那个累加和，就是位置 -1 上的 0。</p>
+<p>少了这条，那个 0 就翻不到，从头开始的段全都查不出来。</p>
+<h2>看一个具体例子</h2>
+<pre><code class="language-plain">nums = [1, 2, 3],  x = 3
+total = 6
+target = total - x = 3          ← 要留下的重量
+</code></pre>
+<p>预期答案：</p>
+<p>从右边拿走 3，一次搞定，剩下 <code>[1, 2]</code> 重量正好是 3，所以最少 1 次。</p>
+<p>记事本开头：</p>
+<p><code>{0 → -1}</code></p>
+<p><strong>走到位置 0，累加和 = 1</strong></p>
+<p>记事本记下 <code>1 → 0</code>。</p>
+<p>查 <code>1 - 3 = -2</code>，记事本里没有，跳过。</p>
+<p><strong>走到位置 1，累加和 = 3</strong></p>
+<p>记事本记下 <code>3 → 1</code>。</p>
+<p>查 <code>3 - 3 = 0</code>，记事本里有，记的是位置 -1。</p>
+<p>长度 = <code>1 - (-1) = 2</code>，这一段就是 <code>[1, 2]</code>，最长记录更新为 2。</p>
+<p><strong>走到位置 2，累加和 = 6</strong></p>
+<p>记事本记下 <code>6 → 2</code>。</p>
+<p>查 <code>6 - 3 = 3</code>，记事本里有，记的是位置 1。</p>
+<p>长度 = <code>2 - 1 = 1</code>，这一段是 <code>[3]</code>，没超过 2，不更新。</p>
+<p>最长的一段长度是 2，答案 = <code>3 - 2 = 1</code>。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1790559735965-d85a75bc-62be-4698-9195-fc4826637c3b.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>翻译成 Java 代码</h2>
+<pre><code class="language-java"><span class="kd">class</span> <span class="nc">Solution</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">minOperations</span><span class="p">(</span><span class="kt">int</span><span class="o">[]</span><span class="w"> </span><span class="n">nums</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">x</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// 全部重量</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">total</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Arrays</span><span class="p">.</span><span class="na">stream</span><span class="p">(</span><span class="n">nums</span><span class="p">).</span><span class="na">sum</span><span class="p">();</span>
+
+<span class="w">        </span><span class="c1">// 要留下的重量 = 全部重量 - x</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">target</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">total</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">x</span><span class="p">;</span>
+
+<span class="w">        </span><span class="c1">// 记事本：累加和 -&gt; 这个累加和最早出现在哪个位置</span>
+<span class="w">        </span><span class="n">Map</span><span class="o">&lt;</span><span class="n">Integer</span><span class="p">,</span><span class="w"> </span><span class="n">Integer</span><span class="o">&gt;</span><span class="w"> </span><span class="n">firstIndex</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">HashMap</span><span class="o">&lt;&gt;</span><span class="p">();</span>
+
+<span class="w">        </span><span class="c1">// 位置 -1 是个虚拟位置，在数组第一个元素前面，累加和是 0</span>
+<span class="w">        </span><span class="n">firstIndex</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mi">1</span><span class="p">);</span>
+
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">sum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w">        </span><span class="c1">// 走到这个位置为止的累加和</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">maxLen</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="mi">1</span><span class="p">;</span><span class="w">    </span><span class="c1">// 留下的最长一段的长度</span>
+
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">nums</span><span class="p">.</span><span class="na">length</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">sum</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">nums</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="p">;</span>
+
+<span class="w">            </span><span class="c1">// 同一个累加和只记最早那次，后来的不覆盖</span>
+<span class="w">            </span><span class="n">firstIndex</span><span class="p">.</span><span class="na">putIfAbsent</span><span class="p">(</span><span class="n">sum</span><span class="p">,</span><span class="w"> </span><span class="n">i</span><span class="p">);</span>
+
+<span class="w">            </span><span class="c1">// 要找的那段，它起点之前的累加和是 sum - target</span>
+<span class="w">            </span><span class="kt">int</span><span class="w"> </span><span class="n">need</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sum</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">target</span><span class="p">;</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">firstIndex</span><span class="p">.</span><span class="na">containsKey</span><span class="p">(</span><span class="n">need</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">maxLen</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Math</span><span class="p">.</span><span class="na">max</span><span class="p">(</span><span class="n">maxLen</span><span class="p">,</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">firstIndex</span><span class="p">.</span><span class="na">get</span><span class="p">(</span><span class="n">need</span><span class="p">));</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="c1">// 一段都凑不出来就返回 -1，否则答案 = 总块数 - 留下的最长一段</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">maxLen</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="o">-</span><span class="mi">1</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="o">-</span><span class="mi">1</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">nums</span><span class="p">.</span><span class="na">length</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">maxLen</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>代码</th>
+<th>大白话</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>total</code></td>
+<td>全部重量</td>
+</tr>
+<tr>
+<td><code>target</code></td>
+<td>要留下的重量，等于全部重量减去 <code>x</code></td>
+</tr>
+<tr>
+<td><code>firstIndex</code></td>
+<td>记事本：累加和 → 最早出现的位置</td>
+</tr>
+<tr>
+<td><code>put(0, -1)</code></td>
+<td>在数组前面放一个虚拟位置，撑起从头开始的那些段</td>
+</tr>
+<tr>
+<td><code>putIfAbsent(sum, i)</code></td>
+<td>同一个累加和只记最早那次，段才能最长</td>
+</tr>
+<tr>
+<td><code>sum - target</code></td>
+<td>就是&quot;当前累加和 - target&quot;，拿去查记事本</td>
+</tr>
+<tr>
+<td><code>i - firstIndex.get(need)</code></td>
+<td>这一段的长度</td>
+</tr>
+<tr>
+<td><code>nums.length - maxLen</code></td>
+<td>留下的最多，拿走的就最少</td>
+</tr>
+</tbody>
+</table>
+<h2>C++ 版</h2>
+<p>同一套思路，C++ 用 <code>unordered_map</code> 记累加和，把&quot;只记最早那次&quot;写成 <code>emplace</code>。</p>
+<pre><code class="language-cpp"><span class="k">class</span><span class="w"> </span><span class="nc">Solution</span><span class="w"> </span><span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">minOperations</span><span class="p">(</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">nums</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">x</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">total</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">v</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">nums</span><span class="p">)</span><span class="w"> </span><span class="n">total</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">v</span><span class="p">;</span>
+
+<span class="w">        </span><span class="c1">// 要留下的重量 = 全部重量 - x</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">target</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">total</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">x</span><span class="p">;</span>
+
+<span class="w">        </span><span class="c1">// 记事本：累加和 -&gt; 这个累加和最早出现在哪个位置</span>
+<span class="w">        </span><span class="n">unordered_map</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">firstIndex</span><span class="p">;</span>
+<span class="w">        </span><span class="n">firstIndex</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-1</span><span class="p">;</span>
+
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">sum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">maxLen</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-1</span><span class="p">;</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">nums</span><span class="p">.</span><span class="n">size</span><span class="p">();</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">sum</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">nums</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+
+<span class="w">            </span><span class="c1">// emplace 遇到已有的 key 不覆盖，正好只留最早那次</span>
+<span class="w">            </span><span class="n">firstIndex</span><span class="p">.</span><span class="n">emplace</span><span class="p">(</span><span class="n">sum</span><span class="p">,</span><span class="w"> </span><span class="n">i</span><span class="p">);</span>
+
+<span class="w">            </span><span class="kt">int</span><span class="w"> </span><span class="n">need</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sum</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">target</span><span class="p">;</span>
+<span class="w">            </span><span class="k">auto</span><span class="w"> </span><span class="n">it</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">firstIndex</span><span class="p">.</span><span class="n">find</span><span class="p">(</span><span class="n">need</span><span class="p">);</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">it</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">firstIndex</span><span class="p">.</span><span class="n">end</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">maxLen</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">max</span><span class="p">(</span><span class="n">maxLen</span><span class="p">,</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">);</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">maxLen</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">-1</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="mi">-1</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">nums</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">maxLen</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">};</span>
+</code></pre>
+<h2>Python 版</h2>
+<p>同一套思路，Python 用字典记累加和，判存在用 <code>in</code>，取位置直接用下标，代码最短。</p>
+<pre><code class="language-python"><span class="k">class</span><span class="w"> </span><span class="nc">Solution</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">minOperations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nums</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">x</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="n">total</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">nums</span><span class="p">)</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">total</span> <span class="o">-</span> <span class="n">x</span>
+
+        <span class="n">first_index</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">}</span>   <span class="c1"># 记事本：累加和 -&gt; 最早出现的位置</span>
+
+        <span class="n">cur</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">max_len</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">nums</span><span class="p">):</span>
+            <span class="n">cur</span> <span class="o">+=</span> <span class="n">v</span>
+
+            <span class="c1"># 同一个累加和只记最早那次，后来的不动它</span>
+            <span class="k">if</span> <span class="n">cur</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">first_index</span><span class="p">:</span>
+                <span class="n">first_index</span><span class="p">[</span><span class="n">cur</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span>
+
+            <span class="n">need</span> <span class="o">=</span> <span class="n">cur</span> <span class="o">-</span> <span class="n">target</span>
+            <span class="k">if</span> <span class="n">need</span> <span class="ow">in</span> <span class="n">first_index</span><span class="p">:</span>
+                <span class="n">max_len</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">max_len</span><span class="p">,</span> <span class="n">i</span> <span class="o">-</span> <span class="n">first_index</span><span class="p">[</span><span class="n">need</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="o">-</span><span class="mi">1</span> <span class="k">if</span> <span class="n">max_len</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="k">else</span> <span class="nb">len</span><span class="p">(</span><span class="n">nums</span><span class="p">)</span> <span class="o">-</span> <span class="n">max_len</span>
+</code></pre>
+<h2>几处容易写错的地方</h2>
+<h3><code>put(0, -1)</code> 不能少</h3>
+<p>少了这一条，<code>[1, 2]</code> 这种从头开始的段就查不出来。</p>
+<p>还是 <code>[1, 2, 3]</code> 那个例子，能留下的最长一段只剩 1 块，答案就从 <code>3 - 2 = 1</code> 变成 <code>3 - 1 = 2</code>。</p>
+<h3>记事本只记最早的位置</h3>
+<p>写成每次覆盖成最新位置，段会越算越短。</p>
+<p>Java 的 <code>putIfAbsent</code> 和 C++ 的 <code>emplace</code> 就是干这件事的。</p>
+<h3>返回的是 <code>n - maxLen</code></h3>
+<p><code>maxLen</code> 记的是留下的长度，题目问的是拿走的次数。</p>
+<p>两者加起来才是全部。</p>
+<h3><code>x</code> 正好等于全部重量时，答案是 <code>n</code></h3>
+<p>这时 <code>target</code> 是 0，对应的情况是一块都不留，留下的长度是 0。</p>
+<p>不用为它单独写判断：</p>
+<p>循环里每一个位置都是先把累加和写进记事本再查，<code>need</code> 正好等于刚写进去的当前累加和，查到的是它自己，长度是 0，最后返回 <code>n</code>。</p>
+<h3><code>x</code> 比全部重量还大时无解</h3>
+<p><code>target</code> 变成负数。</p>
+<p>题目里的数字都是正数，任意一段的重量都不可能是负数。</p>
+<p>记事本里永远查不到，<code>maxLen</code> 保持 -1，函数自动返回 -1。</p>
+<h2>开销有多大</h2>
+<p>只扫一遍数组，每个位置查一次记事本。</p>
+<p>时间 <code>O(n)</code>，空间 <code>O(n)</code>，记事本最多存下 <code>n + 1</code> 个累加和。</p>
+<h2>收个尾</h2>
+<p>这道题最关键的地方，就是把问题反过来看。</p>
+<p>同一件事，正面去算&quot;怎么拿走&quot;，得先定左右各拿多少，还要保证两边别重复拿，最后再比一比谁拿得更少。</p>
+<p>反过来算&quot;怎么留下&quot;，剩下的是一段连续区间，要满足的条件只剩一条：重量。</p>
+<p>这一换，要防的坑少了一大半。</p>
+<p>前缀和配一本记事本，是找&quot;连续区间和恰好等于某值&quot;的标准搭配。</p>
+<p>区间和、子数组和这一类的题，很多都是它的变形。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "改一个数，右边全得重算，这题怎么扛住两万次查询", "slug": "post-14a0c1"}, "next": {"title": "谁比谁有钱，谁最安静：一道用_欠账_想明白的题", "slug": "post-d21f56"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "一个登录框，如何让黑客绕过密码？聊聊 SQL 注入", "slug": "post-99da0d", "desc": "面试官问： \"你做Web项目的时候，后台接口肯定要跟数据库打交道。那你知道什么是SQL注入吗？\" 一句话： SQL注入就是攻击者通过构造恶意的输入参数，拼进你的SQL语句里，让数据库执行他想要的任何操…", "date": "2026-07-16"}, {"title": "Spring Bean 的生命周期到底是什么？", "slug": "post-3ebc3d", "desc": "Bean 的生命周期，指的是一个对象在 Spring 容器中，从创建、初始化，到被使用，再到最终销毁所经历的完整过程。 这道题是面试高频题，但很多人备考时习惯去网上找帖子背图。 其实不需要死记硬背，把…", "date": "2026-08-01"}, {"title": "为什么 synchronized 管不了集群？Redis 分布式锁到底解决了什么问题？", "slug": "post-416895", "desc": "面试官最爱顺藤摸瓜的一连串 面试官问你 Redis 用在项目哪些地方，你若答\"分布式锁\"，他八成追一句：那它怎么实现的？ 这种题有个坑： 别急着背原理， 得先把使用背景讲清楚 ——什么业务、什么场景，…", "date": "2026-08-05"}, {"title": "Redis 分布式锁原理：从 SET NX 到 Redisson 看门狗", "slug": "post-11ef9d", "desc": "一、加锁靠的是 SET NX EX 的原子性 Redis 给了个 setNX，名字拆开就是 set if not exists——只有 key 不存在才写进去。 具体加锁时，我们直接一条 set 命令…", "date": "2026-08-06"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>一开始我把删除顺序全枚举了一遍，然后发现完全没必要 · 海上小飞龙</title>
+<meta name="description" content="今天刷到 LeetCode 2091 这道题： 一开始差点去枚举所有可能的删除顺序，越想越乱。 其实想清楚一个约束就通了： 因为只能从两头删，删完之后剩下的元素，一定是原数组里一整段连续的部分。 先把…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-b4f591.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="一开始我把删除顺序全枚举了一遍，然后发现完全没必要 · 海上小飞龙">
+<meta property="og:description" content="今天刷到 LeetCode 2091 这道题： 一开始差点去枚举所有可能的删除顺序，越想越乱。 其实想清楚一个约束就通了： 因为只能从两头删，删完之后剩下的元素，一定是原数组里一整段连续的部分。 先把…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/post-7ddbe1.html">网络</a><a class="tag" href="/tags/java.html">Java</a></div>
+      <h1 class="post-title">一开始我把删除顺序全枚举了一遍，然后发现完全没必要</h1>
+      <div class="post-meta">
+        <span>2026-08-30</span>
+        <span class="dot"></span>
+        <span>2673 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>今天刷到 LeetCode 2091 这道题：</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/jpeg/2113993/1788064865123-6f8ab149-b496-4beb-aef4-e209fe89520c.jpeg" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/jpeg/2113993/1788064873832-55413ac6-a008-467b-9e9d-bc069c626193.jpeg" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>一开始差点去枚举所有可能的删除顺序，越想越乱。</p>
+<p>其实想清楚一个约束就通了：</p>
+<p>因为只能从两头删，删完之后剩下的元素，一定是原数组里一整段连续的部分。</p>
+<h2>先把规则翻译成人话</h2>
+<p>只能头删或者尾删，每次动一个元素。</p>
+<p>目标是把最大值和最小值都干掉。</p>
+<p>求的是最少删几次。</p>
+<p>举个通俗点的例子：</p>
+<p>想象一排座位，你只能从最左边或者最右边赶人走。</p>
+<p>现在要赶走个子最矮和最高的两个人，怎么赶最省事？</p>
+<p>你肯定不会从中间抽人，而是从两边把其他人先请走，留下中间一截。</p>
+<h2>答案只和两个下标有关</h2>
+<p>设最小值的下标是 left，最大值的下标是 right，约定 left 比 right 小，数组长度记成 n。</p>
+<p>因为只能从两头删，最后留下来的必然是一段连续的子数组。</p>
+<p>我们要删除的又是最小值和最大值，所以这段连续子数组不能包含下标 left 和 right。</p>
+<p>把最值的位置标出来，原数组被分成三个不包含最值的位置区间：</p>
+<ul>
+<li>左侧：下标 0 到 left-1</li>
+<li>中间：下标 left+1 到 right-1</li>
+<li>右侧：下标 right+1 到 n-1</li>
+</ul>
+<p>留下的连续子数组可以落在这些区域里的任意一部分。</p>
+<p>但删除次数最少等价于留下的元素尽可能多。</p>
+<p>同一个区域里，保留得越长，需要删除的元素就越少，所以每个区域只需要考虑“整段保留”的情况。</p>
+<p>因此，最优方案只需要在下面三种里取删除次数最少的一种：</p>
+<ul>
+<li>保住左侧整段</li>
+<li>保住中段</li>
+<li>保住右侧整段</li>
+</ul>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1788066664228-cc72e96c-33d1-4cb4-b80f-72073789c08e.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>三种保留方案，算一笔账</h2>
+<p>保留哪一段，删除次数就是&quot;总长度减去这段的长度&quot;：</p>
+<table>
+<thead>
+<tr>
+<th>保留哪段</th>
+<th>删除方式</th>
+<th>删除次数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>左段 [0..left-1]</td>
+<td>从 left 开始一路删到末尾</td>
+<td>n - left</td>
+</tr>
+<tr>
+<td>中段 [left+1..right-1]</td>
+<td>左边删掉 left+1 个，右边删掉 n-right 个</td>
+<td>left + 1 + n - right</td>
+</tr>
+<tr>
+<td>右段 [right+1..n-1]</td>
+<td>从 0 删到 right</td>
+<td>right + 1</td>
+</tr>
+</tbody>
+</table>
+<p>这三个数里取最小的，就是答案。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1788065727713-696ba518-7be7-4fc5-bf5e-953470c62c12.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>拿例子走一遍</h2>
+<p>nums = [2, 10, 7, 5, 4, 1, 8, 6]，长度 n = 8。</p>
+<p>最小值是 1，在位置 5；</p>
+<p>最大值是 10，在位置 1。</p>
+<p>所以 left = 1，right = 5。</p>
+<p>套上面的公式：</p>
+<ul>
+<li>保留左段：n - left = 8 - 1 = 7</li>
+<li>保留中段：left + 1 + n - right = 1 + 1 + 8 - 5 = 5</li>
+<li>保留右段：right + 1 = 5 + 1 = 6</li>
+</ul>
+<p>最小是 5。</p>
+<p>说人话就是：</p>
+<p>从前面删掉 2 个（2、10，把最大值带走），从后面删掉 3 个（6、8、1，把最小值带走），一共 5 次，剩下的就是 [7, 5, 4]。</p>
+<p>再看第二个例子，nums = [0, -4, 19, 1, 8, -2, -3, 5]，n = 8。</p>
+<p>最小 -4 在位置 1，最大 19 在位置 2，left = 1，right = 2。</p>
+<p>三种方案分别需要 7、8、3 次，答案是 3——从前面删 3 个，把 -4 和 19 一次性带走。</p>
+<h2>代码</h2>
+<p>逻辑就三步：</p>
+<p>找最值下标、定 left 和 right、取三种情况的最小值。</p>
+<pre><code class="language-java"><span class="kd">class</span> <span class="nc">Solution</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">minimumDeletions</span><span class="p">(</span><span class="kt">int</span><span class="o">[]</span><span class="w"> </span><span class="n">nums</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nums</span><span class="p">.</span><span class="na">length</span><span class="p">;</span>
+<span class="w">        </span><span class="c1">// 一趟遍历，记下最小值和最大值的下标</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">minIdx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">maxIdx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">nums</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">nums</span><span class="o">[</span><span class="n">minIdx</span><span class="o">]</span><span class="p">)</span><span class="w"> </span><span class="n">minIdx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i</span><span class="p">;</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">nums</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">nums</span><span class="o">[</span><span class="n">maxIdx</span><span class="o">]</span><span class="p">)</span><span class="w"> </span><span class="n">maxIdx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="c1">// left 是两个最值里靠左的下标，right 是靠右的</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">left</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Math</span><span class="p">.</span><span class="na">min</span><span class="p">(</span><span class="n">minIdx</span><span class="p">,</span><span class="w"> </span><span class="n">maxIdx</span><span class="p">);</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">right</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Math</span><span class="p">.</span><span class="na">max</span><span class="p">(</span><span class="n">minIdx</span><span class="p">,</span><span class="w"> </span><span class="n">maxIdx</span><span class="p">);</span>
+
+<span class="w">        </span><span class="c1">// 三种保留方案里，删除次数最小的那个就是答案</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">Math</span><span class="p">.</span><span class="na">min</span><span class="p">(</span><span class="n">Math</span><span class="p">.</span><span class="na">min</span><span class="p">(</span><span class="n">right</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">left</span><span class="p">),</span><span class="w"> </span><span class="n">left</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">right</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre>
+<h2>复杂度</h2>
+<p>时间上，找最值扫一遍数组 O(n)，后面都是 O(1)，整体 O(n)。</p>
+<p>空间上，只用了几个变量，O(1)。</p>
+<h2>小结</h2>
+<p>这道题的突破口就一句话：</p>
+<p>只能从两头删，所以剩下的必然是连续段。</p>
+<p>把最值下标 left、right 找到，最终留下的连续子数组不能包含这两个最值，而删除次数最少等于留下元素最多，所以只需比较左、中、右三个完整区域，取删除次数最小的那个，一趟 O(n) 扫完就出来。</p>
+<p>别去枚举删除顺序，那只会越想越乱。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "redo log 和 binlog 的两阶段提交：崩溃了到底谁说了算？", "slug": "post-8a760e"}, "next": {"title": "MySQL 事务原子性：undo log 记什么、存哪、何时清", "slug": "post-0f275b"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "一个登录框，如何让黑客绕过密码？聊聊 SQL 注入", "slug": "post-99da0d", "desc": "面试官问： \"你做Web项目的时候，后台接口肯定要跟数据库打交道。那你知道什么是SQL注入吗？\" 一句话： SQL注入就是攻击者通过构造恶意的输入参数，拼进你的SQL语句里，让数据库执行他想要的任何操…", "date": "2026-07-16"}, {"title": "Spring Bean 的生命周期到底是什么？", "slug": "post-3ebc3d", "desc": "Bean 的生命周期，指的是一个对象在 Spring 容器中，从创建、初始化，到被使用，再到最终销毁所经历的完整过程。 这道题是面试高频题，但很多人备考时习惯去网上找帖子背图。 其实不需要死记硬背，把…", "date": "2026-08-01"}, {"title": "为什么 synchronized 管不了集群？Redis 分布式锁到底解决了什么问题？", "slug": "post-416895", "desc": "面试官最爱顺藤摸瓜的一连串 面试官问你 Redis 用在项目哪些地方，你若答\"分布式锁\"，他八成追一句：那它怎么实现的？ 这种题有个坑： 别急着背原理， 得先把使用背景讲清楚 ——什么业务、什么场景，…", "date": "2026-08-05"}, {"title": "Redis 分布式锁原理：从 SET NX 到 Redisson 看门狗", "slug": "post-11ef9d", "desc": "一、加锁靠的是 SET NX EX 的原子性 Redis 给了个 setNX，名字拆开就是 set if not exists——只有 key 不存在才写进去。 具体加锁时，我们直接一条 set 命令…", "date": "2026-08-06"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

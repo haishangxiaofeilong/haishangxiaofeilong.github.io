@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>你把工具都递给它了，可它凭什么知道下一步该干什么？ · 海上小飞龙</title>
+<meta name="description" content="一个模型，能读会写，但它办不了事。 数据库里的数据，它读不到；你写的接口，它调不了。 你把工具递给它，它就能查数据、调接口了。 但下一步做什么，你没法提前写进代码。 工具一多，先用哪个、什么时候该停，…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-d2f6a4.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="你把工具都递给它了，可它凭什么知道下一步该干什么？ · 海上小飞龙">
+<meta property="og:description" content="一个模型，能读会写，但它办不了事。 数据库里的数据，它读不到；你写的接口，它调不了。 你把工具递给它，它就能查数据、调接口了。 但下一步做什么，你没法提前写进代码。 工具一多，先用哪个、什么时候该停，…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/langchain.html">LangChain</a><a class="tag" href="/tags/post-2dc9b4.html">大模型</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a></div>
+      <h1 class="post-title">你把工具都递给它了，可它凭什么知道下一步该干什么？</h1>
+      <div class="post-meta">
+        <span>2026-09-18</span>
+        <span class="dot"></span>
+        <span>2695 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>一个模型，能读会写，但它办不了事。</p>
+<p>数据库里的数据，它读不到；你写的接口，它调不了。</p>
+<p>你把工具递给它，它就能查数据、调接口了。</p>
+<p>但下一步做什么，你没法提前写进代码。</p>
+<p>工具一多，先用哪个、什么时候该停，这些都得现场判断。</p>
+<p>这个决定权，是一次一次交给模型的。</p>
+<p>它调一个工具，看一眼结果，再决定下一步。</p>
+<p>一轮接一轮，直到这件事做完。</p>
+<p>这样一套东西，就是 Agent 的骨架。</p>
+<h2>模型和工具中间，多出来一个循环</h2>
+<p>LangChain 里，Agent 是一套把模型和工具接起来的机制，靠的就是中间那个循环。</p>
+<p>说白了：</p>
+<p>让模型在一个循环里反复调工具，直到任务做完。</p>
+<p>模型负责想和挑：</p>
+<p>看一眼手上有什么信息，判断这一步要做什么，再挑一个工具，把参数填好。</p>
+<p>LangChain 负责把工具真正跑起来，再把这次的结果返回给模型。</p>
+<p>工具只管提供能力，用哪个、什么时候用，现场交给模型判断。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1789734364938-ef7799aa-3728-43e2-b208-513ced3c8387.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">langchain.agents</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_agent</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">langchain.tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">tool</span>
+
+<span class="nd">@tool</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">query_order</span><span class="p">(</span><span class="n">order_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;按订单号查状态。&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">order_id</span><span class="si">}</span><span class="s2">：已发货&quot;</span>
+
+<span class="n">agent</span> <span class="o">=</span> <span class="n">create_agent</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+    <span class="n">tools</span><span class="o">=</span><span class="p">[</span><span class="n">query_order</span><span class="p">],</span>
+    <span class="n">system_prompt</span><span class="o">=</span><span class="s2">&quot;回答订单问题之前，先调工具拿数据。&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</code></pre>
+<h2>一次执行，链路长这样</h2>
+<p>需求先到模型。</p>
+<p>模型看一眼上下文，判断要回答这个问题，得先拿到什么。</p>
+<p>需要调工具，它就发出一条调用请求，落到工具集合里。</p>
+<p>工具跑完，把结果返回给模型。</p>
+<p>模型拿着结果，判断下一步该做什么。</p>
+<p>不用再调工具，就直接给答案，这一轮结束。</p>
+<p>还要调工具，就回到模型，再来一轮。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1789734281100-3c262d1c-635a-4e57-82f4-9199795dcaf9.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<pre><code class="language-python"><span class="n">result</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span>
+    <span class="p">{</span><span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="p">[{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;订单 20260918001 到哪了？&quot;</span><span class="p">}]}</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;messages&quot;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+</code></pre>
+<p>把这条链路拆细，是七步：</p>
+<table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>干什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>接住输入</td>
+<td>用户的请求进到 Agent</td>
+</tr>
+<tr>
+<td>模型推理</td>
+<td>模型判断这一步要做什么</td>
+</tr>
+<tr>
+<td>读取工具调用</td>
+<td>从模型的输出里拿到工具名称和调用参数</td>
+</tr>
+<tr>
+<td>把工具跑起来</td>
+<td>LangChain 执行这一次调用</td>
+</tr>
+<tr>
+<td>更新状态</td>
+<td>把工具调用的结果和这一轮的记录写回上下文</td>
+</tr>
+<tr>
+<td>判断下一步</td>
+<td>有工具调用就继续执行，没有就结束</td>
+</tr>
+<tr>
+<td>给出答案</td>
+<td>把最终答案交给用户</td>
+</tr>
+</tbody>
+</table>
+<h2>这套循环的来历：ReAct</h2>
+<p>ReAct 这个名字来自 Reasoning 和 Acting 两个词，出在一篇 2022 年的论文里。</p>
+<p>这套模式要做的事很朴素：</p>
+<p>让模型在思考和行动之间来回切换。</p>
+<p>LangChain 最早那批通用 Agent 就是照 ReAct 做的：</p>
+<p>模型按固定格式写出下一步用哪个工具、参数填什么，LangChain 再从这段输出里解析出这次调用。</p>
+<p>这套循环拆开是四个动作：</p>
+<ul>
+<li>思考：拿到问题，先判断下一步要做什么</li>
+<li>行动：从工具集合里挑一个，把参数填好</li>
+<li>观察：工具返回了什么，看一眼</li>
+<li>循环：把新信息带回思考那一步，重新判断</li>
+</ul>
+<p>要调工具的时候，这四个动作转一圈，就是一轮。</p>
+<p>换成示意代码是这样：</p>
+<p>（注意方法名是编的，只用来表示循环）</p>
+<pre><code class="language-python"><span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+    <span class="n">thought</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">think</span><span class="p">(</span><span class="n">question</span><span class="p">,</span> <span class="n">history</span><span class="p">)</span>   <span class="c1"># 思考：判断下一步做什么</span>
+    <span class="n">tool_call</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">pick_tool</span><span class="p">(</span><span class="n">thought</span><span class="p">)</span>       <span class="c1"># 行动：挑工具、填参数</span>
+    <span class="k">if</span> <span class="n">tool_call</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">model</span><span class="o">.</span><span class="n">answer</span><span class="p">(</span><span class="n">thought</span><span class="p">)</span>           <span class="c1"># 不用再动手，直接给出答案</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">run_tool</span><span class="p">(</span><span class="n">tool_call</span><span class="p">)</span>               <span class="c1"># 观察：把工具调用结果拿到手</span>
+    <span class="n">history</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>                     <span class="c1"># 结果写回上下文，进入下一轮</span>
+</code></pre>
+<h2>跑循环的那层，换过一次实现</h2>
+<p>循环本身没变，但负责跑它的那一层，换过。</p>
+<p>早期版本里，这个活由一个叫 <code>AgentExecutor</code> 的执行器干：</p>
+<p>模型规划一步，执行器执行一步。</p>
+<p>LangChain 1.0 之后，跑 Agent 的这套底子换了一遍，建在 LangGraph 上了。</p>
+<p>模型、工具和状态都进到图里，连成一条能来回走的线，什么时候停下，看连线上的条件。</p>
+<p>老项目要继续用原来那套，装 <code>langchain-classic</code>，再改一下导入路径就行。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1789727900027-1c1d3600-8bd4-428b-a4df-5aa246ee1361.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>不管哪一版，你在外面看到的都是一个循环。</p>
+<h2>什么时候该上 Agent</h2>
+<p>有的任务，步骤是固定的。</p>
+<p>每一步用什么工具、按什么顺序走，你都清楚，那就直接写进代码，链路短、好排查。</p>
+<p>另一种任务，下一步怎么做，要看上一步的结果才能决定。</p>
+<p>比如第一次搜索没有结果，接下来是换个关键词再搜，还是转人工，得看到返回了什么才定得下来。</p>
+<p>只有决定权必须留在模型手里的任务，才轮到 Agent 上场。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "LangChain 动态模型：什么时候该在运行时换模型？", "slug": "post-9d391b"}, "next": {"title": "模型吐出来的总是一段话，怎么让它乖乖按格式返回？", "slug": "post-2ed7a6"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "LangChain 的九个核心组件，各管什么？", "slug": "post-3db7f6", "desc": "拆开看，LangChain 日常开发里常用到的能力，可以归成九块。 组件 解决什么 模型 换模型的时候，上层代码不用跟着重写 消息 一场对话里，哪句话是谁说的，分得清 工具 模型够得着外部能力 智能体…", "date": "2026-09-15"}, {"title": "模型吐出来的总是一段话，怎么让它乖乖按格式返回？", "slug": "post-2ed7a6", "desc": "调模型的时候，我们都希望它按固定格式把结果给你。 可模型默认吐出来的，是一段自然语言。 你要的是几个字段，它给你的往往是一整段话，中间还夹着解释。 要让它按你给的格式返回，这件事有个名字，叫结构化输出…", "date": "2026-09-17"}, {"title": "LangChain 动态模型：什么时候该在运行时换模型？", "slug": "post-9d391b", "desc": "用 create agent 搭 Agent 的时候，首先要指定模型。 很多情况下，模型指定完就不再变化，从任务开始到结束，用的都是这一个。 这就是静态模型。 但有一件事得先说清楚： 模型的能力，会直…", "date": "2026-09-19"}, {"title": "Agent 定义工具，@tool 装饰器的四种写法", "slug": "post-de3ae7", "desc": "一个 Agent 要能干活，除了会调模型，还得会调工具。 模型负责挑工具，LangChain 负责把工具跑起来。 但这之前还有一件事： 工具得先定义出来，模型才知道有这个工具、什么时候该用它。 在 L…", "date": "2026-09-20"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

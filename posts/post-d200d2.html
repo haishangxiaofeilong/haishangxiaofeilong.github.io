@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>面试官：Redis 单线程为什么还这么快？这道题答错的人真不少 · 海上小飞龙</title>
+<meta name="description" content="先说结论。Redis 快，不是因为「单线程」本身快，而是三件事叠在一起：数据在内存、单线程避开了上下文切换和锁竞争、IO 多路复用让一个线程扛住海量连接。 前两条面试官基本不会深问。那问题来了——第三…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-d200d2.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="面试官：Redis 单线程为什么还这么快？这道题答错的人真不少 · 海上小飞龙">
+<meta property="og:description" content="先说结论。Redis 快，不是因为「单线程」本身快，而是三件事叠在一起：数据在内存、单线程避开了上下文切换和锁竞争、IO 多路复用让一个线程扛住海量连接。 前两条面试官基本不会深问。那问题来了——第三…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/redis.html">Redis</a><a class="tag" href="/tags/grpc.html">gRPC</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a><a class="tag" href="/tags/post-30d23e.html">操作系统</a></div>
+      <h1 class="post-title">面试官：Redis 单线程为什么还这么快？这道题答错的人真不少</h1>
+      <div class="post-meta">
+        <span>2026-08-10</span>
+        <span class="dot"></span>
+        <span>2709 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>先说结论。Redis 快，不是因为「单线程」本身快，而是三件事叠在一起：数据在内存、单线程避开了上下文切换和锁竞争、IO 多路复用让一个线程扛住海量连接。</p>
+<p>前两条面试官基本不会深问。那问题来了——第三点 IO 多路复用才是真正的考点。下面把它一次讲透。</p>
+<h2>一、快的三条根因</h2>
+<p><strong>第一，数据在内存。</strong></p>
+<p>这是最主要的原因。</p>
+<p>内存读写是纳秒级，磁盘是毫秒级，差了几个数量级。</p>
+<p>Redis 所有操作都基于内存，天然就快。</p>
+<p><strong>第二，单线程反而省了开销。</strong></p>
+<p>多线程听着快，但线程数超过 CPU 核数就要上下文切换，切换本身耗性能。</p>
+<p>更麻烦的是线程安全：</p>
+<p>多线程共享数据就得上锁，锁竞争又会把并行逼成串行。</p>
+<p>Redis 干脆单线程执行命令，没有切换、没有锁，简单直接。</p>
+<p><strong>第三，IO 多路复用 + 非阻塞 IO。</strong></p>
+<p>这是它能用单线程扛高并发的关键，也是下面要展开的重点。</p>
+<h2>二、瓶颈在网络，不在执行</h2>
+<p>要理解第三点，先建立一个判断：</p>
+<p>既然命令都是内存操作，执行本身就极快，那 Redis 的性能瓶颈其实不是 CPU，而是网络延迟。</p>
+<p>说白了，慢的不是「算」，是「等数据来、等数据走」。</p>
+<p>所以优化的方向不是多开线程去算，而是别让线程干等网络。</p>
+<p>IO 多路复用解决的就是这件事。</p>
+<h2>三、IO 效率的两个敌人</h2>
+<p>讲清多路复用之前，得先知道 IO 慢在哪。</p>
+<p>Linux 下，进程分用户空间和内核空间：</p>
+<p>用户空间权限低，不能直接操作网卡、磁盘这些硬件，必须借助内核空间的接口。</p>
+<p>发一条消息，数据要从用户缓冲区拷到内核缓冲区，再由内核写进网卡；</p>
+<p>收一条消息，反过来从网卡读到内核缓冲区，再拷回用户缓冲区。</p>
+<p>整个过程里，拖慢 IO 的有两件事：</p>
+<ul>
+<li><strong>无效等待</strong>：内核还没收到数据，用户进程只能干等。</li>
+<li><strong>数据拷贝</strong>：用户态和内核态之间来回拷，拷贝期间进程也是阻塞的。</li>
+</ul>
+<p>后面几种 IO 模型，都是在和这两件事较劲。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1786355804381-f4d12d07-6a04-4a75-9b62-53b96c944b96.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>四、三种 IO 模型：阻塞、非阻塞、多路复用</h2>
+<table>
+<thead>
+<tr>
+<th>模型</th>
+<th>第一阶段（等数据）</th>
+<th>第二阶段（拷数据）</th>
+<th>问题</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>阻塞 IO</td>
+<td>阻塞，干等</td>
+<td>阻塞</td>
+<td>两阶段都卡，一个连接卡住全卡</td>
+</tr>
+<tr>
+<td>非阻塞 IO</td>
+<td>非阻塞，但轮询</td>
+<td>阻塞</td>
+<td>轮询造成 CPU 空转</td>
+</tr>
+<tr>
+<td>IO 多路复用</td>
+<td>阻塞在监听，但一次管多个</td>
+<td>阻塞</td>
+<td>单线程同时管多个连接，效率高</td>
+</tr>
+</tbody>
+</table>
+<p>阻塞 IO 最直白：</p>
+<p>等数据就绪要等，数据从内核拷到用户也要等，两个阶段都阻塞。</p>
+<p>更糟的是它一次只能盯一个连接，这个连接在等数据，后面排队的连接全得跟着等。</p>
+<p>非阻塞 IO 把第一阶段变成「不停轮询」：</p>
+<p>内核没数据就立刻返回，进程反复问「好了没」。</p>
+<p>表面不阻塞了，但本质是盲等，CPU 被空转耗光，性能也没起来。</p>
+<p>IO 多路复用换了个思路：</p>
+<p>一个线程同时监听一堆 Socket，谁就绪通知谁，不用傻等，也不用盲问。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1786342881120-f999c15a-a775-4b00-9196-95f559edcfa2.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>五、select/poll 与 epoll 的差别</h2>
+<p>多路复用在 Linux 上有三种实现：select、poll、epoll。前两个是一路人，epoll 是升级版。</p>
+<p>打个比方。</p>
+<p>餐厅里很多桌客人要点餐：</p>
+<ul>
+<li><strong>select / poll</strong> 像每张桌上装了个按钮，全连到服务员头顶的一盏灯。任意一位按了，灯就亮，但服务员不知道是谁按的，只能一桌一桌去问「你要点餐吗」，找到为止。连接越多，遍历越慢。</li>
+<li><strong>epoll</strong> 像按钮直接连到服务员面前的屏幕，谁按了，屏幕上直接显示「3 号桌就绪」。服务员不用遍历，直接去处理。</li>
+</ul>
+<p>差别就在这：</p>
+<p>select/poll 只告诉你「有 Socket 就绪」，但不说是哪个，你只能逐个翻；</p>
+<p>epoll 在通知的同时把就绪的 Socket 直接交给你，省掉了遍历。</p>
+<p>这也是 Redis 在高并发下依然稳的关键。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1786343504470-bd7a0a2a-65a5-454d-a6f0-9f10618db55f.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>六、Redis 的网络模型：多路复用 + 事件派发</h2>
+<p>Redis 的网络模型，就是 IO 多路复用，再叠一套自己的事件派发机制。</p>
+<p>多路复用负责监听客户端连接（每一个 Socket 连接）。</p>
+<p>连接上之后会有不同事件：</p>
+<p>有读请求，有写请求。</p>
+<p>多路复用把就绪的连接和事件捞出来，派发给对应的事件处理器：</p>
+<ul>
+<li><strong>连接应答处理器</strong>：处理客户端的连接应答。</li>
+<li><strong>命令请求处理器</strong>：接收客户端参数、转成 Redis 指令、执行、产出结果。</li>
+<li><strong>命令回复处理器</strong>：把结果响应回客户端。</li>
+</ul>
+<p>一句话：</p>
+<p>请求进来交给多路复用做事件监听，提前定义好各种处理器，什么事件就派发给什么处理器。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1786342929015-7f654a9f-e018-4512-a84a-ba827baa7b7e.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>七、Redis 6.0 之后为什么又有多线程？</h2>
+<p>注意，上面说的都是单线程模型。</p>
+<p>Redis 6.0 引入了多线程，但只加在两处网络 IO 上：</p>
+<ul>
+<li><strong>接收网络请求、解析命令</strong>时，多线程并行把客户端发来的字节流解析成 Redis 命令。</li>
+<li><strong>响应结果输出</strong>时，多线程并行把结果写回网络。</li>
+</ul>
+<p>命令的<strong>执行</strong>仍然是主线程串行跑，线程安全、基于内存、不影响性能。</p>
+<p>真正拖慢的，是「收字节」和「发字节」这两段网络 IO，所以多线程只加在这里。</p>
+<p>到这里就能回答面试官了：</p>
+<p>Redis 用单线程执行命令，靠 IO 多路复用 + 事件派发扛住高并发；6.0 后又把网络收发的 IO 多线程化，进一步压榨网络延迟带来的损耗。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "面试官问我什么是幂等，我说按钮变灰就行了，他直接跳过了这道题", "slug": "post-a52247"}, "next": {"title": "Redis 分片集群：它到底是怎么把数据分片又路由的？", "slug": "post-d06a94"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "Redis 面试高频题：缓存击穿到底是什么？互斥锁和逻辑过期一次讲透", "slug": "post-fa28af", "desc": "先说结论： 缓存击穿（Cache Breakdown）指的是——某个 热点 key 刚好在过期的那一瞬间，被海量并发请求同时打中 ，缓存里没数据，请求全部砸向数据库，数据库瞬间被压垮。 说白了，它跟\"…", "date": "2026-07-28"}, {"title": "Redis 缓存和 MySQL 数据不一致怎么办？双写一致性一次讲透", "slug": "post-4aa231", "desc": "先说大前提： 面试官问\"Redis 作为缓存，MySQL 的数据怎么和 Redis 同步\"，本质就是在考 双写一致性 。 但这道题最忌讳的一点，就是上来直接背标准答案。 答题第一步，必须先交代业务背景…", "date": "2026-07-30"}, {"title": "Redis 持久化：RDB 与 AOF", "slug": "post-807c58", "desc": "为什么需要持久化？ Redis 虽然快，但它的数据主要存储在内存中，而内存属于易失性存储介质。 一旦断电或者服务重启，如果没有持久化机制，数据就可能丢失。 所以 Redis 提供了两种持久化方案： R…", "date": "2026-08-03"}, {"title": "Redis 的数据过期策略，到底是怎么删数据的？", "slug": "post-136c78", "desc": "给 Redis 的 key 设了过期时间，时间一到，这条数据会瞬间从内存里消失吗？ 这个问题问的其实就是 Redis 的 数据过期策略 。 说白了，当我们给一个 key 指定了 TTL（比如 set…", "date": "2026-08-04"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

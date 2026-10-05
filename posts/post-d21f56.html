@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>谁比谁有钱，谁最安静：一道用_欠账_想明白的题 · 海上小飞龙</title>
+<meta name="description" content="这道题看起来是在找谁最安静，真正难的是： 这么多人有前后关系，先算谁、后算谁，就成了关键。 顺序排对了，答案才能一路往下传，而且不用反复回头算。 这篇就从这个&quot;顺序&quot;入手，看看这道题为什么要这么排，以…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-d21f56.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="谁比谁有钱，谁最安静：一道用_欠账_想明白的题 · 海上小飞龙">
+<meta property="og:description" content="这道题看起来是在找谁最安静，真正难的是： 这么多人有前后关系，先算谁、后算谁，就成了关键。 顺序排对了，答案才能一路往下传，而且不用反复回头算。 这篇就从这个&quot;顺序&quot;入手，看看这道题为什么要这么排，以…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/post-7ddbe1.html">网络</a><a class="tag" href="/tags/java.html">Java</a></div>
+      <h1 class="post-title">谁比谁有钱，谁最安静：一道用_欠账_想明白的题</h1>
+      <div class="post-meta">
+        <span>2026-09-27</span>
+        <span class="dot"></span>
+        <span>7077 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1790441478793-d2e45d86-0a5f-4c7c-aa6b-65f7973a9ed8.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1790441504148-a10450f2-b5a5-4286-b0ee-d672c60fbcc5.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>这道题看起来是在找谁最安静，真正难的是：</p>
+<p><strong>这么多人有前后关系，先算谁、后算谁，就成了关键。</strong></p>
+<p>顺序排对了，答案才能一路往下传，而且不用反复回头算。</p>
+<p>这篇就从这个&quot;顺序&quot;入手，看看这道题为什么要这么排，以及为什么这样算一定对。</p>
+<h2>先把它想成一家公司</h2>
+<p>为了讲得顺，后面把题目里的人看成同一家公司的员工，安静值就当成每个人的安静指数。</p>
+<p>规则一个字没改，只是换了个叫法。</p>
+<p>题目给的信息，就是谁比谁有钱。</p>
+<p>每个人都有一个安静指数，数字越小越安静。</p>
+<p>对每个员工，要做的都是同一件事：</p>
+<p>在他自己，以及所有比他有钱的人里面，挑出最安静的那个人。</p>
+<p>答案就是那个人的编号。</p>
+<p>这里有个容易漏掉的地方，&quot;比他有钱&quot;是会滚雪球的。</p>
+<p>A 比 B 有钱，B 比 C 有钱，那 A 也算比 C 有钱，哪怕 A 和 C 之间没有直接写关系。</p>
+<p>题目保证这种关系不会绕成一个圈，比如不会出现 A 比 B 有钱、B 又比 A 有钱这种情况。</p>
+<p>这就是题目说的逻辑自洽。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1790440912581-b9609e0e-2ab5-402b-9bb7-d2a88e5178b9.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>最笨的做法</h2>
+<p>对每个人，顺着关系网把所有比他有钱的人都捞出来，再挑一个最安静的。</p>
+<p>关系网翻来覆去走好几遍，人一多，操作次数就要成倍往上翻。</p>
+<p>慢的原因在于重复：</p>
+<p>同一个上级的信息，被他下面每一层都重新捞了一遍。</p>
+<p>这种重复没有带来任何新东西。</p>
+<h2>换个方向：没有上级的人先算</h2>
+<p>关键的一句话：</p>
+<blockquote>
+<p>没有上级的人，先算完。</p>
+</blockquote>
+<p>这样的人，候选名单里只有他自己，答案铁定就是他本人。</p>
+<p>他算完，就通知那些直接比他穷的下级：</p>
+<blockquote>
+<p>我这边的答案是 X。你把 X 跟你手上现在的答案比一比，谁更安静就留谁。</p>
+</blockquote>
+<p>收到通知的人，把自己&quot;还欠几个直接上级的通知&quot;这个计数减一。</p>
+<p>减到 0，说明他的上级全都算完了，答案也就定下来了，可以接着通知下级。</p>
+<p>这个计数就叫欠账，是整道题的开关。</p>
+<p>还有上级没通知他，他的答案就还可能变。欠账清零，该给他的答案就都到齐了。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1790477329115-21f859f2-0217-4c69-bc39-d55f8ff3161b.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>走一遍例子</h2>
+<p>取一组小数据走一遍：</p>
+<pre><code class="language-plain">quiet  = [3, 2, 5, 4]        编号 0、1、2、3，安静指数分别是 3、2、5、4
+richer = [[0,1], [1,2], [3,2]]
+</code></pre>
+<p>三组关系读出来是：</p>
+<p>0 比 1 有钱，1 比 2 有钱，3 比 2 有钱。</p>
+<p>画成图，箭头从有钱的指向没钱的：</p>
+<pre><code class="language-plain">0 → 1 → 2
+3 ──────→ 2
+</code></pre>
+<p>先看哪些人没有上级。</p>
+<p>没人比 0 有钱，也没有人比 3 有钱，所以这两个人可以先算。</p>
+<p>答案先全部设成自己：</p>
+<pre><code class="language-plain">ans = [0, 1, 2, 3]
+</code></pre>
+<p><strong>处理 0</strong>，他的答案就是 0，安静指数 3。</p>
+<p>通知下级 1：</p>
+<pre><code class="language-plain">手上答案：ans[1] = 1   安静指数 2
+新来的：  ans[0] = 0   安静指数 3
+</code></pre>
+<p>安静指数 2 比 3 小，所以不换。</p>
+<p>1 的欠账减到 0，1 算完了。</p>
+<p><strong>处理 3</strong>，答案就是 3，安静指数 4。</p>
+<p>通知下级 2：</p>
+<pre><code class="language-plain">手上答案：ans[2] = 2   安静指数 5
+新来的：  ans[3] = 3   安静指数 4
+</code></pre>
+<p>安静指数 4 比 5 小，换。</p>
+<p><code>ans[2]</code> 从 2 改成 3。</p>
+<p>2 的欠账从 2 减到 1，还欠一个，因为 1 还没通知他。</p>
+<p><strong>处理 1</strong>，答案在前面就定下来了，就是 1，安静指数 2。</p>
+<p>通知下级 2：</p>
+<pre><code class="language-plain">手上答案：ans[2] = 3   安静指数 4
+新来的：  ans[1] = 1   安静指数 2
+</code></pre>
+<p>安静指数 2 更小，换。</p>
+<p><code>ans[2]</code> 改成 1。</p>
+<p>2 的欠账减到 0，2 也算完了。</p>
+<p>结果 <code>ans = [0, 1, 1, 3]</code>。</p>
+<p>核对一遍：</p>
+<table>
+<thead>
+<tr>
+<th>人</th>
+<th>候选名单（自己加上所有比他有钱的）</th>
+<th>最安静的</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>1</td>
+<td>1、0</td>
+<td>1（安静指数 2）</td>
+</tr>
+<tr>
+<td>2</td>
+<td>2、1、3、0</td>
+<td>1（安静指数 2）</td>
+</tr>
+<tr>
+<td>3</td>
+<td>3</td>
+<td>3</td>
+</tr>
+</tbody>
+</table>
+<p>对上了。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1790440949736-3103b522-43c8-46df-83da-faa404b8af7c.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<h2>翻译成 Java 代码</h2>
+<pre><code class="language-java"><span class="kd">class</span> <span class="nc">Solution</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">int</span><span class="o">[]</span><span class="w"> </span><span class="nf">loudAndRich</span><span class="p">(</span><span class="kt">int</span><span class="o">[][]</span><span class="w"> </span><span class="n">richer</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="o">[]</span><span class="w"> </span><span class="n">quiet</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">quiet</span><span class="p">.</span><span class="na">length</span><span class="p">;</span>
+
+<span class="w">        </span><span class="c1">// 建图：箭头从&quot;有钱的&quot;指向&quot;没钱的&quot;</span>
+<span class="w">        </span><span class="n">ArrayList</span><span class="o">&lt;</span><span class="n">ArrayList</span><span class="o">&lt;</span><span class="n">Integer</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">graph</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">ArrayList</span><span class="o">&lt;&gt;</span><span class="p">();</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">graph</span><span class="p">.</span><span class="na">add</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">ArrayList</span><span class="o">&lt;&gt;</span><span class="p">());</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="c1">// indegree[i] = 还有几个人直接比 i 有钱，也就是 i 还欠几个通知</span>
+<span class="w">        </span><span class="kt">int</span><span class="o">[]</span><span class="w"> </span><span class="n">indegree</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="kt">int</span><span class="o">[</span><span class="n">n</span><span class="o">]</span><span class="p">;</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="o">[]</span><span class="w"> </span><span class="n">r</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">richer</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">graph</span><span class="p">.</span><span class="na">get</span><span class="p">(</span><span class="n">r</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span><span class="p">).</span><span class="na">add</span><span class="p">(</span><span class="n">r</span><span class="o">[</span><span class="mi">1</span><span class="o">]</span><span class="p">);</span><span class="w">   </span><span class="c1">// r[0] 比 r[1] 更有钱，连边 r[0] → r[1]</span>
+<span class="w">            </span><span class="n">indegree</span><span class="o">[</span><span class="n">r</span><span class="o">[</span><span class="mi">1</span><span class="o">]]++</span><span class="p">;</span><span class="w">            </span><span class="c1">// r[1] 多欠一个上级</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="c1">// 数组加两个指针，当队列用</span>
+<span class="w">        </span><span class="kt">int</span><span class="o">[]</span><span class="w"> </span><span class="n">queue</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="kt">int</span><span class="o">[</span><span class="n">n</span><span class="o">]</span><span class="p">;</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">l</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w">   </span><span class="c1">// 队头</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">r</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w">   </span><span class="c1">// 队尾</span>
+
+<span class="w">        </span><span class="c1">// 没人比他有钱的人先入队，他们不欠任何上级</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">indegree</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">queue</span><span class="o">[</span><span class="n">r</span><span class="o">++]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i</span><span class="p">;</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="c1">// 答案先全部设成自己</span>
+<span class="w">        </span><span class="kt">int</span><span class="o">[]</span><span class="w"> </span><span class="n">ans</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="kt">int</span><span class="o">[</span><span class="n">n</span><span class="o">]</span><span class="p">;</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">ans</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">l</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">r</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="kt">int</span><span class="w"> </span><span class="n">cur</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">queue</span><span class="o">[</span><span class="n">l</span><span class="o">++]</span><span class="p">;</span>
+
+<span class="w">            </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">next</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">graph</span><span class="p">.</span><span class="na">get</span><span class="p">(</span><span class="n">cur</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="c1">// cur 比 next 有钱，所以 cur 的答案也是 next 的合法候选</span>
+<span class="w">                </span><span class="c1">// 谁更安静就留谁，数字小的赢</span>
+<span class="w">                </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">quiet</span><span class="o">[</span><span class="n">ans</span><span class="o">[</span><span class="n">cur</span><span class="o">]]</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">quiet</span><span class="o">[</span><span class="n">ans</span><span class="o">[</span><span class="n">next</span><span class="o">]]</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="n">ans</span><span class="o">[</span><span class="n">next</span><span class="o">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ans</span><span class="o">[</span><span class="n">cur</span><span class="o">]</span><span class="p">;</span>
+<span class="w">                </span><span class="p">}</span>
+
+<span class="w">                </span><span class="c1">// next 少欠一个上级，欠账清零就轮到他了</span>
+<span class="w">                </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">--</span><span class="n">indegree</span><span class="o">[</span><span class="n">next</span><span class="o">]</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="n">queue</span><span class="o">[</span><span class="n">r</span><span class="o">++]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">next</span><span class="p">;</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">ans</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>代码</th>
+<th>大白话</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>graph.get(r[0]).add(r[1])</code></td>
+<td>谁比谁有钱，画一个箭头指向没钱的</td>
+</tr>
+<tr>
+<td><code>indegree[r[1]]++</code></td>
+<td>被指的人欠一个通知</td>
+</tr>
+<tr>
+<td><code>indegree[i] == 0</code> 入队</td>
+<td>没人比他有钱，先算</td>
+</tr>
+<tr>
+<td><code>ans[i] = i</code></td>
+<td>候选名单先只写自己</td>
+</tr>
+<tr>
+<td><code>quiet[ans[cur]] &lt; quiet[ans[next]]</code></td>
+<td>比谁更安静，取数字小的</td>
+</tr>
+<tr>
+<td><code>--indegree[next] == 0</code></td>
+<td>上级都通知完了，轮到他</td>
+</tr>
+</tbody>
+</table>
+<h2>C++ 版</h2>
+<p>同一套思路，C++ 把数组模拟的队列换成 <code>std::queue</code>。</p>
+<pre><code class="language-cpp"><span class="k">class</span><span class="w"> </span><span class="nc">Solution</span><span class="w"> </span><span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+<span class="w">    </span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">loudAndRich</span><span class="p">(</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&gt;&amp;</span><span class="w"> </span><span class="n">richer</span><span class="p">,</span><span class="w"> </span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">quiet</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">quiet</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+
+<span class="w">        </span><span class="c1">// 建图：箭头从&quot;有钱的&quot;指向&quot;没钱的&quot;</span>
+<span class="w">        </span><span class="n">vector</span><span class="o">&lt;</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">graph</span><span class="p">(</span><span class="n">n</span><span class="p">);</span>
+<span class="w">        </span><span class="c1">// indegree[i] = 还有几个人直接比 i 有钱，也就是 i 还欠几个通知</span>
+<span class="w">        </span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">indegree</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="n">r</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">richer</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">graph</span><span class="p">[</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]].</span><span class="n">push_back</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span><span class="w">   </span><span class="c1">// r[0] 比 r[1] 更有钱，连边 r[0] → r[1]</span>
+<span class="w">            </span><span class="n">indegree</span><span class="p">[</span><span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span><span class="o">++</span><span class="p">;</span><span class="w">              </span><span class="c1">// r[1] 多欠一个上级</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="c1">// 答案先全部设成自己</span>
+<span class="w">        </span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ans</span><span class="p">(</span><span class="n">n</span><span class="p">);</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">ans</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="c1">// 没人比他有钱的人先入队，他们不欠任何上级</span>
+<span class="w">        </span><span class="n">queue</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">;</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">indegree</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">q</span><span class="p">.</span><span class="n">push</span><span class="p">(</span><span class="n">i</span><span class="p">);</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">q</span><span class="p">.</span><span class="n">empty</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="kt">int</span><span class="w"> </span><span class="n">cur</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">q</span><span class="p">.</span><span class="n">front</span><span class="p">();</span>
+<span class="w">            </span><span class="n">q</span><span class="p">.</span><span class="n">pop</span><span class="p">();</span>
+
+<span class="w">            </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">next</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">graph</span><span class="p">[</span><span class="n">cur</span><span class="p">])</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="c1">// cur 比 next 有钱，所以 cur 的答案也是 next 的合法候选</span>
+<span class="w">                </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">quiet</span><span class="p">[</span><span class="n">ans</span><span class="p">[</span><span class="n">cur</span><span class="p">]]</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">quiet</span><span class="p">[</span><span class="n">ans</span><span class="p">[</span><span class="n">next</span><span class="p">]])</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="n">ans</span><span class="p">[</span><span class="n">next</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ans</span><span class="p">[</span><span class="n">cur</span><span class="p">];</span>
+<span class="w">                </span><span class="p">}</span>
+
+<span class="w">                </span><span class="c1">// next 少欠一个上级，欠账清零就轮到他了</span>
+<span class="w">                </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">--</span><span class="n">indegree</span><span class="p">[</span><span class="n">next</span><span class="p">]</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="n">q</span><span class="p">.</span><span class="n">push</span><span class="p">(</span><span class="n">next</span><span class="p">);</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">ans</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">};</span>
+</code></pre>
+<h2>Python 版</h2>
+<p>同一套思路，Python 用 <code>deque</code> 当队列，图存成嵌套列表。</p>
+<pre><code class="language-python"><span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">deque</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">Solution</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">loudAndRich</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">richer</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span> <span class="n">quiet</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">quiet</span><span class="p">)</span>
+
+        <span class="c1"># 建图：箭头从&quot;有钱的&quot;指向&quot;没钱的&quot;</span>
+        <span class="n">graph</span> <span class="o">=</span> <span class="p">[[]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)]</span>
+        <span class="c1"># indegree[i] = 还有几个人直接比 i 有钱，也就是 i 还欠几个通知</span>
+        <span class="n">indegree</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">n</span>
+        <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">richer</span><span class="p">:</span>
+            <span class="n">graph</span><span class="p">[</span><span class="n">a</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>   <span class="c1"># a 比 b 更有钱，连边 a → b</span>
+            <span class="n">indegree</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>     <span class="c1"># b 多欠一个上级</span>
+
+        <span class="c1"># 答案先全部设成自己</span>
+        <span class="n">ans</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
+
+        <span class="c1"># 没人比他有钱的人先入队，他们不欠任何上级</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">deque</span><span class="p">(</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">if</span> <span class="n">indegree</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">while</span> <span class="n">q</span><span class="p">:</span>
+            <span class="n">cur</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">popleft</span><span class="p">()</span>
+
+            <span class="k">for</span> <span class="n">nxt</span> <span class="ow">in</span> <span class="n">graph</span><span class="p">[</span><span class="n">cur</span><span class="p">]:</span>
+                <span class="c1"># cur 比 nxt 有钱，所以 cur 的答案也是 nxt 的合法候选</span>
+                <span class="k">if</span> <span class="n">quiet</span><span class="p">[</span><span class="n">ans</span><span class="p">[</span><span class="n">cur</span><span class="p">]]</span> <span class="o">&lt;</span> <span class="n">quiet</span><span class="p">[</span><span class="n">ans</span><span class="p">[</span><span class="n">nxt</span><span class="p">]]:</span>
+                    <span class="n">ans</span><span class="p">[</span><span class="n">nxt</span><span class="p">]</span> <span class="o">=</span> <span class="n">ans</span><span class="p">[</span><span class="n">cur</span><span class="p">]</span>
+
+                <span class="c1"># nxt 少欠一个上级，欠账清零就轮到他了</span>
+                <span class="n">indegree</span><span class="p">[</span><span class="n">nxt</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="n">indegree</span><span class="p">[</span><span class="n">nxt</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">q</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nxt</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">ans</span>
+</code></pre>
+<h2>为什么这样一定对</h2>
+<p>轮到一个人的时候，所有比他有钱的人都已经算过了。</p>
+<p>他们的答案顺着链条一层层传到他身上，所以他开始算的时候，拿到的就是最终答案，不会再被改。</p>
+<p>换个说法，整个过程就是按&quot;谁没有上级，谁先算&quot;这个顺序往下推，每个人都要等上级的通知收齐才算；算完，答案就定下来了。</p>
+<p>这也是拓扑排序类题目的共同点：</p>
+<p>先处理没有依赖的，处理完就解锁下一批。</p>
+<h2>两个坑</h2>
+<h3>箭头方向别搞反</h3>
+<p><code>richer[i] = [a, b]</code> 说的是 a 比 b 更有钱，箭头是 <code>a → b</code>，欠账加在 <code>b</code> 头上。</p>
+<p>方向反了，欠账就算在了错误的人身上，整道题全错。</p>
+<h3>比较的是安静值，不是编号</h3>
+<p>用的是 <code>quiet[ans[cur]]</code>：先拿编号去查安静值，再比大小。</p>
+<p>直接比 <code>ans[cur]</code>，就变成了比谁编号小，跟题目要的安静程度没关系。</p>
+<h2>复杂度</h2>
+<p><code>n</code> 个人，<code>m</code> 条富有关系。</p>
+<p>每个人只算一次，每条边走一次。</p>
+<p>时间 <code>O(n + m)</code>，空间 <code>O(n + m)</code>。</p>
+<h2>回头看这道题</h2>
+<p>这道题最值得记的地方，是&quot;欠账&quot;这个角度。</p>
+<p>面对一张有依赖关系的有向图，最直白的想法是顺着链条去查，但那样同一个答案会被反复算很多遍。</p>
+<p>换成&quot;谁没有依赖，谁先算，算完解锁下一批&quot;，算出来的答案直接往下传，没有回头重算。</p>
+<p>这就是拓扑排序。</p>
+<p>听起来像个算法名词，说白了就是排队：</p>
+<p>谁的事办完了，谁就往前挪一格。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "问的是最少拿几次，答案在最长的那一段", "slug": "post-e57a3d"}, "next": {"title": "十万个数、五十亿种剪法，这道题怎么数", "slug": "post-2f17fa"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "一个登录框，如何让黑客绕过密码？聊聊 SQL 注入", "slug": "post-99da0d", "desc": "面试官问： \"你做Web项目的时候，后台接口肯定要跟数据库打交道。那你知道什么是SQL注入吗？\" 一句话： SQL注入就是攻击者通过构造恶意的输入参数，拼进你的SQL语句里，让数据库执行他想要的任何操…", "date": "2026-07-16"}, {"title": "Spring Bean 的生命周期到底是什么？", "slug": "post-3ebc3d", "desc": "Bean 的生命周期，指的是一个对象在 Spring 容器中，从创建、初始化，到被使用，再到最终销毁所经历的完整过程。 这道题是面试高频题，但很多人备考时习惯去网上找帖子背图。 其实不需要死记硬背，把…", "date": "2026-08-01"}, {"title": "为什么 synchronized 管不了集群？Redis 分布式锁到底解决了什么问题？", "slug": "post-416895", "desc": "面试官最爱顺藤摸瓜的一连串 面试官问你 Redis 用在项目哪些地方，你若答\"分布式锁\"，他八成追一句：那它怎么实现的？ 这种题有个坑： 别急着背原理， 得先把使用背景讲清楚 ——什么业务、什么场景，…", "date": "2026-08-05"}, {"title": "Redis 分布式锁原理：从 SET NX 到 Redisson 看门狗", "slug": "post-11ef9d", "desc": "一、加锁靠的是 SET NX EX 的原子性 Redis 给了个 setNX，名字拆开就是 set if not exists——只有 key 不存在才写进去。 具体加锁时，我们直接一条 set 命令…", "date": "2026-08-06"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>

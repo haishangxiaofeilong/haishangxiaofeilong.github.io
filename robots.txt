@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://haishangxiaofeilong.github.io/sitemap.xml

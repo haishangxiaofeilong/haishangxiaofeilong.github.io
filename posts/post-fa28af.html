@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fx fx-hero fx-spot fx-tilt fx-nav fx-grid">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Redis 面试高频题：缓存击穿到底是什么？互斥锁和逻辑过期一次讲透 · 海上小飞龙</title>
+<meta name="description" content="先说结论： 缓存击穿（Cache Breakdown）指的是——某个 热点 key 刚好在过期的那一瞬间，被海量并发请求同时打中 ，缓存里没数据，请求全部砸向数据库，数据库瞬间被压垮。 说白了，它跟&quot;…">
+<meta name="keywords" content="MySQL,Redis,Spring,LangChain,RAG,大模型,后端开发,技术博客">
+<meta name="author" content="海上小飞龙">
+<meta name="theme-color" content="#0a0e17" id="themeColorMeta">
+<link rel="canonical" href="https://haishangxiaofeilong.github.io/posts/post-fa28af.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Redis 面试高频题：缓存击穿到底是什么？互斥锁和逻辑过期一次讲透 · 海上小飞龙">
+<meta property="og:description" content="先说结论： 缓存击穿（Cache Breakdown）指的是——某个 热点 key 刚好在过期的那一瞬间，被海量并发请求同时打中 ，缓存里没数据，请求全部砸向数据库，数据库瞬间被压垮。 说白了，它跟&quot;…">
+<meta property="og:site_name" content="海上小飞龙">
+<link rel="icon" href="/assets/images/favicon.png">
+<link rel="apple-touch-icon" href="/assets/images/favicon.png">
+<script>
+(function () {
+  try {
+    var saved = localStorage.getItem("theme");
+    if (saved !== "light" && saved !== "dark") {
+      // 没存过偏好就跟随系统
+      saved = (window.matchMedia &&
+               window.matchMedia("(prefers-color-scheme: light)").matches)
+        ? "light" : "dark";
+    }
+    document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+})();
+</script>
+<link rel="stylesheet" href="/assets/style.css">
+
+</head>
+<body>
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="promo-topbar" id="promoTopbar">
+  <span class="promo-topbar-text">新文章优先发在公众号，建议关注防走丢</span>
+  <button class="promo-topbar-btn" data-open-wechat>看公众号</button>
+  <button class="promo-topbar-close" data-close-topbar aria-label="关闭">&times;</button>
+</div>
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="/">
+      <img class="brand-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <span class="brand-text">
+        <span class="brand-name">海上小飞龙</span>
+        <span class="brand-sub">后端 · 大模型深度拆解</span>
+      </span>
+    </a>
+    <nav class="nav" id="mainNav"><a class="nav-link" href="/">首页</a><a class="nav-link" href="/posts/">全部文章</a><a class="nav-link" href="/tags/">标签</a><a class="nav-link" href="/about/">关于</a>
+      <div class="search-box">
+      <input type="search" id="siteSearch" placeholder="搜索文章  /" autocomplete="off" aria-label="站内搜索">
+      <div class="search-results" id="searchResults" hidden></div>
+    </div>
+      <button class="theme-toggle" id="themeToggle" type="button"
+        aria-label="切换深色/浅色主题" title="切换深色/浅色主题">
+  <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.2M12 19.4v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.4 12h2.2M19.4 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/>
+  </svg>
+  <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"
+       fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+       stroke-linejoin="round">
+    <path d="M20.4 14.2A8.6 8.6 0 0 1 9.8 3.6a8.6 8.6 0 1 0 10.6 10.6z"/>
+  </svg>
+</button>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<main class="site-main">
+<article class="post">
+  <div class="wrap post-wrap">
+    <nav class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/posts/">文章</a></nav>
+    <header class="post-header">
+      <div class="post-tags"><a class="tag" href="/tags/redis.html">Redis</a><a class="tag" href="/tags/post-7ddbe1.html">网络</a><a class="tag" href="/tags/post-30d23e.html">操作系统</a><a class="tag" href="/tags/post-d11195.html">面试题</a></div>
+      <h1 class="post-title">Redis 面试高频题：缓存击穿到底是什么？互斥锁和逻辑过期一次讲透</h1>
+      <div class="post-meta">
+        <span>2026-07-28</span>
+        <span class="dot"></span>
+        <span>2409 字</span><span class="dot"></span><span><span id="vercount_value_page_pv" class="pv-num">&mdash;</span> 次阅读</span>
+        
+      </div>
+    </header>
+
+    
+
+    <div class="post-content" id="postContent"><p>先说结论：</p>
+<p>缓存击穿（Cache Breakdown）指的是——某个<strong>热点 key 刚好在过期的那一瞬间，被海量并发请求同时打中</strong>，缓存里没数据，请求全部砸向数据库，数据库瞬间被压垮。</p>
+<p>说白了，它跟&quot;缓存里一直没数据&quot;不是一回事，而是&quot;本来该有的数据，恰好在那一刻失效了&quot;。</p>
+<p>那问题来了——平时风平浪静，为什么偏偏过期那一刻就崩？</p>
+<p>举个通俗一点的例子。</p>
+<p>假设我们按文章 ID 去查文章内容，正常链路是：</p>
+<p>先读 Redis，命中就直接返回；</p>
+<p>没命中才回源数据库，再把结果写回缓存。</p>
+<p>可要是这个 key 刚刚过期，同一毫秒里涌进来几万个请求，它们一查 Redis 全是空，于是几万个请求<strong>同时往数据库冲</strong>。</p>
+<p>数据库的并发能力远低于 Redis，很容易在瞬时高并发下被打满。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1785229137885-84d294db-ac2f-4685-a9e2-048399decd90.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>可以看到，请求原本都应该命中 Redis，但由于热点 Key 恰好过期，所有请求瞬间涌向数据库。</p>
+<p>有人可能会问：</p>
+<p>查询的时候不是已经把数据同步进 Redis 了吗，怎么还会压垮库？</p>
+<p>关键在&quot;重建缓存&quot;这一步。</p>
+<p>从数据库把数据查出来、再写回 Redis，中间要花时间。</p>
+<p>从数据库把数据查出来，再写回 Redis，这个过程不是瞬间完成的。</p>
+<p>要是涉及多表 Join、聚合统计等复杂查询，重建缓存往往需要几十毫秒，甚至更长时间。</p>
+<p>只要这段时间内并发足够高，数据库仍然可能被大量请求压垮。</p>
+<p>这种&quot;过期瞬间被并发打穿&quot;的现象，就叫<strong>缓存击穿</strong>。</p>
+<p>那怎么治？</p>
+<p>主流就两条路：</p>
+<p><strong>一是加互斥锁（本质就是分布式锁）。</strong></p>
+<p><strong>二是逻辑过期。</strong></p>
+<p>下面把两种方案拆开讲，顺便说清它们的取舍。</p>
+<h2>方案一：互斥锁（分布式锁）</h2>
+<p>一句话：谁先抢到锁，谁去重建缓存，其他人排队等。</p>
+<p>流程是这样的。</p>
+<p>线程 A 来查缓存，发现是空的，于是加一把互斥锁（也就是分布式锁），然后去查数据库、重建缓存、把数据写回 Redis，最后释放锁。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1785229094755-2fc30d66-4736-4205-80d7-e74dd1adaf00.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>与此同时线程 B 也来查，缓存还是空的（因为 A 还没建完）。</p>
+<p>B 也想拿锁，但锁在 A 手里，于是 B 拿锁失败，只能先睡一会儿，再重新尝试。</p>
+<p>等 A 把数据写回 Redis、释放锁之后，B 再查缓存，就能直接拿到数据。</p>
+<p>核心点：</p>
+<p><strong>同一时刻只有一个线程能拿到锁</strong>，其余线程全在等待。</p>
+<p>好处是数据强一致，坏处是性能偏低——大家都得排队。</p>
+<h2>方案二：逻辑过期</h2>
+<p>这个思路和互斥锁不一样，它<strong>根本不给热点 key 设物理过期时间</strong>。</p>
+<p>那怎么知道数据老了没？</p>
+<p>答案是：</p>
+<p>存数据的时候，额外塞一个 <code>expire</code> 字段进去，用这个字段判断逻辑上过没过期。</p>
+<p>看下它的存储结构：</p>
+<p>key 还是文章 ID，value 里 <code>id</code>、<code>title</code> 是正常业务字段，我们多加了一个 <code>expire</code> 字段，专门记录这条数据的逻辑过期时间。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1785229078019-3c937291-1cc9-433d-b3d9-37bf30c351f9.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>具体流程是这样的。</p>
+<p>线程 A 查缓存，发现这条数据&quot;逻辑上&quot;已经过期了，于是去读 <code>expire</code> 字段确认——确实过期。</p>
+<p>既然过期了，就得重建缓存。</p>
+<p>所以 A 先去抢一把互斥锁（注意，这里同样需要加锁，否则多个线程都会同时开启后台重建任务，数据库依然可能被打爆）。</p>
+<p>不过和方案一不同的是：</p>
+<p>A 抢到锁之后，会异步开启一个后台线程负责重建缓存（查库 → 写回缓存 → 重置 <code>expire</code> → 释放锁）。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2026/png/2113993/1785229048680-eb58b950-5323-4d0d-ac5d-44b9fa3ad1d5.png" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" /></p>
+<p>重点来了：</p>
+<p>线程 A <strong>自己不等待新线程建完</strong>，直接把当前这份（已过期的）旧数据返回给用户。</p>
+<p>接着线程 C 来了，也发现数据过期，也想拿锁重建。</p>
+<p>但锁还在 A 手里，C 拿锁失败——C 也不等待，直接返回旧数据。</p>
+<p>如果 C 在这儿死等锁，那不就和互斥锁一模一样了？</p>
+<p>所以逻辑过期的精髓就是：</p>
+<p><strong>拿不到锁的线程，直接返回旧数据，绝不阻塞。</strong></p>
+<p>等重建线程把新数据写回缓存、释放锁之后，再来线程 D，查到的就是最新的、没过期的数据了。</p>
+<h2>两种方案怎么选？</h2>
+<p>一句话：</p>
+<p><strong>互斥锁保一致性，逻辑过期保可用性。</strong></p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>一致性</th>
+<th>性能</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>互斥锁</strong></td>
+<td>强一致（其他线程等待，数据一定最新）</td>
+<td>较低（线程互相等待）</td>
+<td>对一致性要求高，如<strong>跟钱相关的业务</strong></td>
+</tr>
+<tr>
+<td><strong>逻辑过期</strong></td>
+<td>不保证绝对一致（可能返回旧数据）</td>
+<td>较高（不阻塞，直接返回）</td>
+<td>更看重用户体验，如<strong>互联网高并发读多场景</strong></td>
+</tr>
+</tbody>
+</table>
+<p>怎么选？</p>
+<p>看业务底线：</p>
+<p><strong>如果你的数据必须强一致</strong>，比如订单、余额这类跟钱打交道的地方，闭眼选互斥锁。</p>
+<p><strong>如果你的业务更在意用户体验</strong>，宁可先返回旧数据也不能让用户卡住，那逻辑过期更香。</p>
+</div>
+
+    <aside class="promo-inline">
+  <img class="promo-inline-avatar" src="/assets/images/logo.png" alt="海上小飞龙" loading="lazy">
+  <div class="promo-inline-body">
+    <p class="promo-inline-title">这篇对你有帮助吗？</p>
+    <p class="promo-inline-text">公众号里有更多同类硬核拆解，每周更新。</p>
+  </div>
+  <button class="promo-inline-btn" data-open-wechat>微信搜「海上小飞龙」</button>
+</aside>
+
+    
+
+    <nav class="post-nav" id="postNav"></nav>
+
+    <script id="postNavData" type="application/json">{"prev": {"title": "Redis 面试高频题：缓存雪崩到底是什么？四种解决方案一次讲清", "slug": "post-6165a4"}, "next": {"title": "RAG 面试高频题：召回率太低怎么办？一套完整优化方案讲透", "slug": "post-0b66cc"}}</script>
+    <script id="relatedData" type="application/json">[{"title": "Redis 持久化：RDB 与 AOF", "slug": "post-807c58", "desc": "为什么需要持久化？ Redis 虽然快，但它的数据主要存储在内存中，而内存属于易失性存储介质。 一旦断电或者服务重启，如果没有持久化机制，数据就可能丢失。 所以 Redis 提供了两种持久化方案： R…", "date": "2026-08-03"}, {"title": "Redis 集群到底有几种方案？先把主从复制讲透", "slug": "post-4f6aba", "desc": "Redis 集群到底有哪几种玩法？ 这是后端面试里出场率极高的一道题。 标准答案就三个： 主从复制、哨兵模式、分片集群。 三者各自解决不同的痛点，而且彼此之间还能牵出一串延伸问题。 比如主从数据到底怎…", "date": "2026-08-07"}, {"title": "Redis 哨兵模式：它到底是怎么保证高可用的", "slug": "post-09c2db", "desc": "主从复制有个绕不开的短板： 它撑不起 Redis 的高可用。 主节点一旦宕机，整个集群就失去了写入能力。 哨兵模式就是为解决这个问题而生的，它能让主从集群自动完成故障恢复。 哨兵到底是什么 哨兵节点本…", "date": "2026-08-08"}, {"title": "Redis 面试高频题：缓存雪崩到底是什么？四种解决方案一次讲清", "slug": "post-6165a4", "desc": "先给结论： 缓存雪崩，说的是大量缓存数据在同一时间失效，或者缓存服务整体不可用，导致大量请求绕过缓存直接访问数据库，最终把数据库压垮。 说白了，它跟\"单个 key 出问题\"不是一回事，而是 成片地崩…", "date": "2026-07-29"}]</script>
+  </div>
+</article>
+<section class="section comments-section" id="comments">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title"><span class="section-mark"></span>评论</h2>
+      <span class="section-hint">用 GitHub 账号登录后留言</span>
+    </div>
+    <div class="giscus"></div>
+    <script src="https://giscus.app/client.js"
+            data-repo="haishangxiaofeilong/haishangxiaofeilong.github.io"
+            data-repo-id="R_kgDOUcQotg"
+            data-category="Announcements"
+            data-category-id="DIC_kwDOUcQots4DFtEC"
+            data-mapping="pathname"
+            data-strict="0"
+            data-reactions-enabled="1"
+            data-emit-metadata="0"
+            data-input-position="top"
+            data-theme="transparent_dark"
+            data-lang="zh-CN"
+            data-loading="lazy"
+            crossorigin="anonymous"
+            async>
+    </script>
+  </div>
+</section>
+<section class="promo-readend" data-readend
+  data-delay="25"
+  data-scroll="70">
+  <div class="promo-readend-inner">
+    <img class="promo-readend-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <div class="promo-readend-body">
+      <h3 class="promo-readend-title">觉得有用？别错过下一篇</h3>
+      <p class="promo-readend-text">新文章在公众号首发，搜索「海上小飞龙」即可关注。</p>
+      <div class="promo-readend-actions">
+        <button class="btn btn-primary" data-open-wechat>扫码关注公众号</button>
+        <button class="btn btn-ghost" data-dismiss-readend>先不了</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img class="footer-logo" src="/assets/images/logo.png" alt="海上小飞龙">
+      <div>
+        <p class="footer-name">海上小飞龙</p>
+        <p class="footer-desc">后端与大模型技术深度拆解：MySQL、Redis、Spring 底层原理，LangChain、RAG、大模型推理工程实践。</p>
+      </div>
+    </div>
+    <div class="footer-links">
+      <a href="/posts/">全部文章</a>
+      <a href="/tags/">标签</a>
+      <a href="/about/">关于</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>&copy; 2026 海上小飞龙</span>
+    <span>Powered by GitHub Pages</span>
+  </div>
+</footer>
+<div class="wechat-modal" id="wechatModal" hidden>
+  <div class="wechat-modal-mask" data-close-modal></div>
+  <div class="wechat-modal-box" role="dialog" aria-modal="true" aria-label="关注公众号">
+    <button class="wechat-modal-close" data-close-modal aria-label="关闭">&times;</button>
+    <img class="wechat-modal-qr" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+    <p class="wechat-modal-name">海上小飞龙</p>
+    <p class="wechat-modal-slogan">微信搜一搜「海上小飞龙」</p>
+    <p class="wechat-modal-desc">专注后端与大模型硬核拆解，每篇都讲到能直接拿去面试。</p>
+  </div>
+</div>
+<aside class="floating-qr" id="floatingQr">
+  <div class="floating-qr-head">
+    <span class="floating-qr-title">关注公众号</span>
+    <button class="floating-qr-close" data-close-floating aria-label="关闭">&times;</button>
+  </div>
+  <img class="floating-qr-img" src="/assets/images/wechat-qrcode.jpg" alt="海上小飞龙 公众号二维码">
+  <p class="floating-qr-text">第一时间收到更新</p>
+</aside>
+<script src="/assets/app.js" defer></script>
+<script defer src="https://events.vercount.one/js"></script>
+
+</body>
+</html>
